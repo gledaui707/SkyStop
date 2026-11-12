@@ -254,11 +254,10 @@ export function Airports() {
               <span className="photo-fade absolute inset-x-0 bottom-0 h-[70%]" />
               <span className="glass-dark absolute left-4 top-4 rounded-full px-3 py-1 text-sub font-bold tracking-wide">{a.code}</span>
               <span className="glass-dark absolute right-4 top-4 rounded-full px-3 py-1 text-cap font-medium">{a.country}</span>
-              <span className="absolute bottom-5 left-5 right-24 block">
+              <span className="absolute bottom-5 left-5 right-5 block">
                 <span className="block text-h1 font-bold leading-tight">{a.name}</span>
                 <span className="mt-1 block text-sub text-white/80">{getActivities(a.code).length} activities · {getTemplates(a.code).length} curated itinerary</span>
               </span>
-              <Notch />
             </button>
           </li>
         ))}
