@@ -23,7 +23,7 @@ const STRIPS: Strip[] = [
   { l: 92.4, w: 7.6, m: 'haze' },
 ]
 /** Lobes of light, back to front. */
-const LOBES = ['halo', 'upper', 'body', 'lower', 'core'] as const
+const LOBES = ['halo', 'upper', 'body', 'lower', 'flare', 'core'] as const
 /** Hairline highlights where light catches a glass edge. */
 const EDGES = [10.2, 17.6, 39.8, 57.1, 76.4, 92.2]
 
