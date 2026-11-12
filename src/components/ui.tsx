@@ -1,5 +1,5 @@
 import { ChevronLeft, Info, ShieldAlert, X, type LucideIcon } from 'lucide-react'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useApp } from '../store'
 import type { Activity, Category } from '../data/types'
 import { fmtDur } from '../data/time'
@@ -150,19 +150,32 @@ export function ActivityRow({ a, action, onOpen }: { a: Activity; action?: React
   )
 }
 
-/** iOS-style bottom sheet. */
+/** iOS-style bottom sheet. Moves focus into the dialog, keeps Tab inside it, closes on Escape and returns focus to the trigger. */
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
-    const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const prev = document.activeElement as HTMLElement | null
+    const el = ref.current
+    el?.focus()
+    const h = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); return }
+      if (e.key !== 'Tab' || !el) return
+      const f = [...el.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])')]
+      if (!f.length) { e.preventDefault(); return }
+      const first = f[0], last = f[f.length - 1], cur = document.activeElement
+      if (e.shiftKey && (cur === first || cur === el)) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && cur === last) { e.preventDefault(); first.focus() }
+      else if (!el.contains(cur)) { e.preventDefault(); first.focus() }
+    }
     window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
+    return () => { window.removeEventListener('keydown', h); prev?.focus?.() }
   }, [open, onClose])
   if (!open) return null
   return (
     <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-[3px]" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
-        className="glass anim-sheet max-h-[85dvh] w-full max-w-[480px] overflow-y-auto rounded-t-[2rem] !border-b-0 pb-[calc(env(safe-area-inset-bottom)+1rem)] text-ink">
+      <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
+        className="glass anim-sheet max-h-[85dvh] w-full max-w-[480px] overflow-y-auto rounded-t-[2rem] !border-b-0 pb-[calc(env(safe-area-inset-bottom)+1rem)] text-ink focus:outline-none">
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-gradient-to-b from-[#2e221f] via-[#2e221f]/90 to-transparent px-5 pb-3 pt-3">
           <span className="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-white/30" />
           <h2 className="mt-3 min-w-0 text-h2 font-bold">{title}</h2>

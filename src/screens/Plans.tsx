@@ -18,7 +18,7 @@ export function Plans() {
       <LargeTitle>My plans</LargeTitle>
       <div className="px-5">
         {plansState.status === 'loading' ? (
-          <p role="status" className="py-8 text-center text-body text-muted-text">Loading…</p>
+          <p role="status" className="py-8 text-center text-body text-muted-text">Loading your plans…</p>
         ) : plansState.status === 'error' ? (
           <Notice tone="warn"><p className="font-semibold">We could not load your plans</p>
             <p>Check your connection and try again.</p>
@@ -61,7 +61,7 @@ export function Plans() {
 export function PlanDetail({ id }: { id: string }) {
   const { plans, plansState, setDraft, go, back } = useApp()
   const p = plans.find((x) => x.id === id)
-  if (!p) return <div><Header title="Plan" /><p className="p-6 text-center text-muted-text">{plansState.status === 'loading' ? 'Loading…' : 'This plan is not available.'}</p></div>
+  if (!p) return <div><Header title="Plan" /><p className="p-6 text-center text-muted-text">{plansState.status === 'loading' ? 'Loading your plan…' : 'This plan is not available.'}</p></div>
   const items = itemsOf(p)
   const ap = getAirport(p.airport)
   const mins = layoverMinutesAt(p.arrival, p.departure, ap.timezone)
