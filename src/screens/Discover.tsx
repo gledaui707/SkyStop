@@ -77,7 +77,9 @@ export function Home() {
       <div className="mt-5 px-5">
         {trip ? (
           <>
-            <TripTicket plan={trip} onView={() => go({ name: 'plan', id: trip.id })} onAdd={() => go({ name: 'booking' })} />
+            <TripTicket plan={trip} onView={() => go({ name: 'plan', id: trip.id })} />
+            <Button type="button" variant="ghost" className="mt-3 w-full border border-accent-dark"
+              onClick={() => go({ name: 'booking' })}>New layover</Button>
             {plans.length > 1 && (
               <button onClick={() => switchTab('plans')} className="mt-1 flex min-h-11 w-full items-center justify-between px-1 text-body font-medium text-accent-dark">
                 {plans.length - 1} more {plans.length === 2 ? 'trip' : 'trips'} in My Plans<ChevronRight size={18} /></button>)}
