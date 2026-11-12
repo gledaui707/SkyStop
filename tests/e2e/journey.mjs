@@ -284,29 +284,61 @@ try {
   const box = (await o.page.locator('[aria-roledescription="carousel"]').boundingBox());
   await o.page.mouse.move(box.width * 0.8, box.height * 0.45); await o.page.mouse.down(); await o.page.mouse.move(box.width * 0.2, box.height * 0.47, { steps: 8 }); await o.page.mouse.up();
   await o.page.getByText('Make every minute count.').waitFor();
-  check('onboarding: swipe left -> screen 3 with "Plan a layover" and no Skip', await o.page.getByRole('button', { name: /Plan a layover/ }).isVisible() && !(await o.page.getByRole('button', { name: 'Skip' }).isVisible()));
+  check('onboarding: swipe left -> screen 3 with "Get started" and no Skip', await o.page.getByRole('button', { name: /Get started/ }).isVisible() && !(await o.page.getByRole('button', { name: 'Skip' }).isVisible()));
   await o.page.getByRole('button', { name: 'Back' }).click();
   check('onboarding: Back -> screen 2', await o.page.getByText('Discover what’s possible.').isVisible());
   await o.page.keyboard.press('ArrowLeft');
   check('onboarding: keyboard ArrowLeft -> screen 1', await o.page.getByText('Your layover, reimagined.').isVisible());
   await o.page.getByRole('button', { name: 'Skip' }).click();
-  await o.page.waitForTimeout(400);
-  check('onboarding: Skip opens the planning flow', (await o.page.getByRole('heading', { level: 1 }).first().innerText()).includes('Plan a layover') || await visible(o.page, 'Find your journey'));
+  await o.page.getByRole('button', { name: 'Create account' }).waitFor();
+  check('onboarding: Skip opens Account Access (Create account, Sign in, Continue as guest)', await o.page.getByRole('heading', { name: 'SkyStop', level: 1 }).isVisible() && await o.page.getByRole('button', { name: 'Sign in' }).isVisible() && await o.page.getByRole('button', { name: /Continue as guest/ }).isVisible());
+  check('access: decorative layers ignore pointer events; glass uses a real backdrop blur', await o.page.evaluate(() => getComputedStyle(document.querySelector('.access__stage')).pointerEvents === 'none' && /blur/.test(getComputedStyle(document.querySelector('.access__strip')).backdropFilter)));
+  check('access: no account is created by viewing it', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
+  await o.page.reload();
+  await o.page.getByRole('button', { name: 'Create account' }).waitFor();
+  check('access: leaving without choosing shows it again on the next launch', !(await visible(o.page, 'Discover what’s possible.')));
+  await o.page.getByRole('button', { name: /Continue as guest/ }).click();
+  await o.page.getByRole('button', { name: /^Add flight/ }).first().waitFor();
+  check('access: Continue as guest opens Home without creating an account', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
   await o.page.reload();
   await o.page.waitForTimeout(800);
-  check('onboarding: returning visitor is not shown it again', !(await visible(o.page, 'Your layover, reimagined.')));
+  check('onboarding + access: a returning guest is not shown either again', !(await visible(o.page, 'Your layover, reimagined.')) && await o.page.getByRole('button', { name: /^Add flight/ }).first().isVisible());
   await o.page.getByRole('button', { name: 'Profile' }).click();
   await o.page.getByRole('button', { name: 'Replay introduction' }).click();
   await o.page.getByText('Your layover, reimagined.').waitFor();
   for (let k = 0; k < 2; k++) await o.page.getByRole('button', { name: 'Next' }).click();
-  await o.page.getByRole('button', { name: /Plan a layover/ }).click();
+  await o.page.getByRole('button', { name: /Get started/ }).click();
   await o.page.waitForTimeout(400);
-  check('onboarding: replay from Home works and its final CTA opens the planning flow', (await o.page.getByRole('heading', { level: 1 }).first().innerText()).includes('Plan a layover') || await visible(o.page, 'Find your journey'));
+  check('onboarding: replay from Home works and its final CTA opens the planning flow (no second Account Access)', (await o.page.getByRole('heading', { level: 1 }).first().innerText()).includes('Plan a layover') || await visible(o.page, 'Find your journey'));
   await o.ctx.close();
+  // Account Access -> the existing email-link forms on Profile
+  for (const [action, submit] of [['Create account', 'Send confirmation link'], ['Sign in', 'Send sign-in link']]) {
+    const a = await newGuest(undefined, { firstVisit: true });
+    await a.page.goto(BASE); await a.page.getByRole('button', { name: 'Skip' }).click();
+    await a.page.getByRole('button', { name: action }).click();
+    await a.page.getByRole('button', { name: submit }).waitFor();
+    check(`access: ${action} opens the existing email-link form on Profile`, await a.page.getByRole('textbox', { name: 'Email' }).isVisible() && await a.page.getByRole('button', { name: 'Home' }).isVisible());
+    await a.ctx.close();
+  }
+  {
+    // A visitor who left Account Access without choosing, but has a session by the next launch (e.g. an email link) skips it.
+    const guestId = '00000000-0000-4000-8000-0000000acc55';
+    fake.accounts.set(guestId, { id: guestId, aud: 'authenticated', role: 'authenticated', is_anonymous: true, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() });
+    const s = await browser.newContext({ ...devices['iPhone 13'] });
+    await s.addInitScript((t) => { localStorage.setItem('skystop.onboarded.v2', '1'); localStorage.setItem('skystop.access.v1', 'pending'); localStorage.setItem('sb-sgwbtgwccskqamzttczz-auth-token', t) }, JSON.stringify(fake.sessionFor(guestId)));
+    await s.route('**://*.supabase.co/**', fake.handler);
+    const P = await s.newPage(); await P.goto(BASE);
+    await P.getByRole('button', { name: /^Add flight/ }).first().waitFor();
+    await P.waitForTimeout(300);
+    check('access: a browser with an existing session goes straight to Home', !(await P.getByRole('button', { name: 'Create account' }).isVisible()));
+    await s.close();
+  }
   const rm = await newGuest(undefined, { firstVisit: true, reducedMotion: 'reduce' });
   await rm.page.goto(BASE); await rm.page.getByText('Your layover, reimagined.').waitFor();
   const dur = await rm.page.evaluate(() => getComputedStyle(document.querySelector('[aria-roledescription="carousel"] .flex')).transitionDuration);
   check('onboarding: reduced motion removes the slide transition', parseFloat(dur) < 0.01, dur);
+  await rm.page.getByRole('button', { name: 'Skip' }).click(); await rm.page.getByRole('button', { name: 'Create account' }).waitFor();
+  check('access: reduced motion shows a still composition', await rm.page.evaluate(() => [...document.querySelectorAll('.access__blob, .access__strip')].every((e) => getComputedStyle(e).animationName === 'none')));
   await rm.ctx.close();
 
   // ---- 4c. Changi constraint-aware itinerary (scenarios A–F)

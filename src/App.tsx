@@ -12,12 +12,14 @@ import { Builder } from './screens/Builder'
 import { Plans, PlanDetail } from './screens/Plans'
 import { MyFlights } from './screens/MyFlights'
 import { Profile } from './screens/Profile'
+import { AccountAccess } from './features/access/AccountAccess'
 import { cx } from './components/ui'
 
 function Screen() {
   const { route: r } = useApp()
   switch (r.name) {
     case 'welcome': return <Welcome />
+    case 'access': return <AccountAccess />
     case 'discover': return <Home />
     case 'find': return <FindFlight />
     case 'trip': return <Trip key={(r.airport ?? '') + (r.templateId ?? '')} airport={r.airport} templateId={r.templateId} />
@@ -84,7 +86,7 @@ function Shell() {
   )
   // Re-keying on the route plays a short entrance transition on every navigation (disabled under reduced motion).
   const key = Object.entries(route).map(([k, v]) => `${k}:${typeof v === 'object' || typeof v === 'function' ? '' : String(v)}`).join('|')
-  if (route.name === 'welcome') return <div className="mx-auto max-w-[480px]"><main key={key} className="anim-fade"><Screen /></main></div>
+  if (route.name === 'welcome' || route.name === 'access') return <div className="mx-auto max-w-[480px]"><main key={key} className="anim-fade"><Screen /></main></div>
   return (
     <div className="mx-auto min-h-dvh max-w-[480px] pb-[var(--nav-h)]">
       <main key={key} className="anim-screen"><Screen /></main>

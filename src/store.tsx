@@ -7,12 +7,15 @@ import { getSupabase } from './api/client'
 import { getAccount, type Account } from './api/account'
 import { getProfile, type DataError } from './api/repositories'
 import type { TravelerProfileRow } from './types/database.types'
+import { accessStore, resumeAccessOnLaunch, shouldOfferAccess } from './features/access/accessState'
 
 export type LoadState = { status: 'loading' | 'ready' | 'error'; error?: string }
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export type Route =
   | { name: 'welcome' }
+  /** Account Access: Create account / Sign in / Continue as guest, once after onboarding. */
+  | { name: 'access' }
   | { name: 'discover' }
   | { name: 'find' }
   | { name: 'trip'; airport?: string; templateId?: string }
@@ -29,12 +32,13 @@ export type Route =
   | { name: 'plan'; id: string }
   /** All saved flight journeys (upcoming and past). */
   | { name: 'flights' }
-  | { name: 'profile' }
+  /** `auth` opens the account form directly (from Account Access). */
+  | { name: 'profile'; auth?: 'create' | 'signin' }
 
 export type Tab = 'home' | 'airports' | 'plans'
 export const tabOf = (r: Route): Tab | null => {
   switch (r.name) {
-    case 'welcome': return null
+    case 'welcome': case 'access': return null
     case 'discover': case 'flights': case 'profile': case 'find': case 'trip': case 'booking': case 'journey': case 'results': case 'flight': case 'compare': return 'home'
     case 'airports': case 'airport': return 'airports'
     case 'plans': case 'plan': case 'builder': return 'plans'
@@ -78,6 +82,8 @@ interface Ctx {
   setNotice: (n: string | null) => void
   welcomed: boolean
   finishWelcome: (to: Route) => void
+  /** Leaves Account Access for good: Home, with `to` (e.g. the account form) opened on top. */
+  finishAccess: (to?: Route) => void
   /** Shows the onboarding again (from Home's "How SkyStop works"). */
   replayOnboarding: () => void
   hint: HintStage
@@ -92,17 +98,18 @@ export const useApp = () => useContext(C)
 function init() {
   // ?state=new shows the first-visit welcome again. Saved plans always come from the database.
   const q = new URLSearchParams(window.location.search).get('state')
-  if (q === 'new') { guestStore.reset(); try { sessionStorage.removeItem(HINT_KEY) } catch { /* ignore */ } }
+  if (q === 'new') { guestStore.reset(); accessStore.reset(); try { sessionStorage.removeItem(HINT_KEY) } catch { /* ignore */ } }
   let hint: HintStage = 1
   try { const v = sessionStorage.getItem(HINT_KEY); if (v) hint = v === 'done' ? 'done' : (Number(v) as HintStage) } catch { /* ignore */ }
-  return { hint, welcomed: guestStore.hasWelcomed() }
+  const welcomed = guestStore.hasWelcomed()
+  return { hint, welcomed, access: resumeAccessOnLaunch(welcomed, accessStore.get()) }
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const refreshAccountRef = useRef<(() => Promise<void>) | null>(null)
   const [boot] = useState(init)
   const [welcomed, setWelcomed] = useState(boot.welcomed)
-  const [stack, setStack] = useState<Route[]>([{ name: boot.welcomed ? 'discover' : 'welcome' }])
+  const [stack, setStack] = useState<Route[]>([{ name: !boot.welcomed ? 'welcome' : boot.access ? 'access' : 'discover' }])
   const [plans, setPlans] = useState<Plan[]>([])
   const [catalogue, setCatalogue] = useState<LoadState>({ status: 'loading' })
   const [plansState, setPlansState] = useState<LoadState>({ status: 'loading' })
@@ -174,14 +181,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /** Leaves the onboarding for good. It is replaced by Home, and the chosen route opens on top of Home. */
   const finishWelcome = (to: Route) => {
     guestStore.markWelcomed(); setWelcomed(true)
-    setStack(to.name === 'discover' ? [to] : [{ name: 'discover' }, to]); window.scrollTo(0, 0)
+    if (shouldOfferAccess(accessStore.get(), account.status)) { accessStore.set('pending'); setStack([{ name: 'access' }]) }
+    else setStack(to.name === 'discover' ? [to] : [{ name: 'discover' }, to])
+    window.scrollTo(0, 0)
   }
+  const finishAccess = useCallback((to?: Route) => {
+    accessStore.set('done'); setNotice(null)
+    setStack(to ? [{ name: 'discover' }, to] : [{ name: 'discover' }]); window.scrollTo(0, 0)
+  }, [])
   const replayOnboarding = () => { setNotice(null); setStack((s) => [...s, { name: 'welcome' }]); window.scrollTo(0, 0) }
   const advanceHint = (to: 2 | 3) => { if (hint !== 'done' && hint < to) setHint(to) }
   const nextHint = () => { if (hint === 'done') return; setHint(hint >= 3 ? 'done' : ((hint + 1) as HintStage)) }
   const skipHints = () => setHint('done')
   return (
-    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
+    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, finishAccess, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
       {children}
     </C.Provider>
   )

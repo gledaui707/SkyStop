@@ -76,7 +76,7 @@ export function Welcome() {
   const start = useRef<{ x: number; y: number } | null>(null)
   const last = i === SLIDES.length - 1
   const go = (n: number) => setI(Math.max(0, Math.min(SLIDES.length - 1, n)))
-  // Both Skip and the final call to action continue into planning.
+  // Both Skip and the final call to action finish onboarding: first-time visitors continue to Account Access, others into planning.
   const done = () => finishWelcome({ name: 'booking' })
 
   useEffect(() => {
@@ -139,7 +139,7 @@ export function Welcome() {
           </div>
           {last
             ? <button onClick={done} className="btn-coral press flex min-h-14 shrink-0 items-center gap-2 rounded-full pl-6 pr-2 text-[1.0625rem] font-bold">
-                Plan a layover<span aria-hidden="true" className="grid size-10 place-items-center rounded-full bg-white/20"><ArrowRight size={20} /></span></button>
+                Get started<span aria-hidden="true" className="grid size-10 place-items-center rounded-full bg-white/20"><ArrowRight size={20} /></span></button>
             : <button onClick={() => go(i + 1)} className="btn-coral press flex min-h-14 shrink-0 items-center gap-2 rounded-full pl-6 pr-2 text-[1.0625rem] font-bold">
                 Next<span aria-hidden="true" className="grid size-10 place-items-center rounded-full bg-white/20"><ArrowRight size={20} /></span></button>}
         </div>

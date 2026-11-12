@@ -176,3 +176,12 @@ Not done: real-device iPhone check, Safari backdrop-filter rendering, production
 2026-11-14 | same | simulated API, Chromium | `npm run test:layout` incl. home-with-trip, my-flights, profile, home-flight-stack at 320/375/390/430 | 0 issues | 0 | PASS | screenshots | Chromium only
 2026-11-15 | name + profile picture | hosted Supabase | apply 202611150001_avatars | private bucket + 4 owner policies | bucket avatars (private, 1 MB); policies select/insert/update/delete | PASS | query output | upload not exercised on hosted
 2026-11-15 | same | simulated API, Chromium | `npm run test:e2e` name save, email shown, upload to own folder, display, persist, remove | pass | 113/113 | PASS | console | simulated storage
+
+### Account Access screen (after onboarding)
+
+- `npm run build` (tsc + vite) passed. `npx vitest run`: 122 passed, one hosted test skipped (includes 4 new access-decision tests).
+- `npm run test:e2e` (simulated Supabase, Chromium): 123/123 after rebasing onto 174a1b4. New checks: Skip opens Account Access; no account created by viewing it; leaving without choosing shows it again on the next launch; Continue as guest opens Home with no signup call; a returning guest sees neither onboarding nor Account Access; replay uses the planning flow without a second Account Access; Create account and Sign in open the existing email-link forms on Profile; a browser with an existing session skips to Home; reduced motion stops every glow and glass animation; decorative layers ignore pointer events; glass uses a real `backdrop-filter` blur.
+- `npm run test:layout`: 0 issues (existing screens; unchanged).
+- Separate Chromium captures at 320×568, 375×667, 390×844 and 430×932: no horizontal scroll, no overlapping controls, glow transform measured changing over 4 s (motion), static composition under reduced motion, desktop device frame and fullscreen inspected.
+- Contrast sampled over the moving glow for 30 s: tagline (charcoal) ≥ 9.7:1. The white "SkyStop" wordmark is 1.4–1.7:1 (brand logotype, as in the reference; WCAG 1.4.3 exempts logotypes).
+- Not tested: Safari/WebKit and real iPhones (Chromium only), real frame rate or battery, real email delivery.

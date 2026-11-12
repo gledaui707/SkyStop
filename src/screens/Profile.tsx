@@ -35,10 +35,10 @@ const Section = ({ title, action, children }: { title: string; action?: React.Re
 )
 
 export function Profile() {
-  const { account, refreshAccount, profile, setProfile, plans, replayOnboarding } = useApp()
+  const { account, refreshAccount, profile, setProfile, plans, replayOnboarding, route } = useApp()
   const countries = useMemo(countryNames, [])
   const [email, setEmail] = useState('')
-  const [mode, setMode] = useState<'create' | 'signin' | null>(null)
+  const [mode, setMode] = useState<'create' | 'signin' | null>(route.name === 'profile' ? route.auth ?? null : null)
   const [sent, setSent] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
