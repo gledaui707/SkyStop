@@ -1,6 +1,9 @@
 name: Hosted database ownership check
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/tender-keller-cxp9ac]
+    paths: ['tests/hosted/**', '.github/workflows/hosted-db-check.yml']
 jobs:
   ownership:
     runs-on: ubuntu-latest
