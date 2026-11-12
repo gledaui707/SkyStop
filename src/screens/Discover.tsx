@@ -246,7 +246,9 @@ export function Airports() {
               <Photo img={a.image} w={420} h={304} className="absolute inset-0 size-full" />
               <span className="photo-fade absolute inset-x-0 bottom-0 h-[70%]" />
               <span className="glass-dark absolute left-4 top-4 rounded-full px-3 py-1 text-sub font-bold tracking-wide">{a.code}</span>
-              <span className="glass-dark absolute right-4 top-4 rounded-full px-3 py-1 text-cap font-medium">{a.country}</span>
+              <span className="glass-dark absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-cap font-medium">
+                <MapPin size={14} className="shrink-0" aria-hidden="true" />{a.country}
+              </span>
               <span className="absolute bottom-5 left-5 right-5 block">
                 <span className="block text-h1 font-bold leading-tight">{a.name}</span>
                 <span className="mt-1 block text-sub text-white/80">{getActivities(a.code).length} activities · {getTemplates(a.code).length} curated itinerary</span>
