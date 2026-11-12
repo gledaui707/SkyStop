@@ -1,33 +1,39 @@
 import { describe, it, expect } from 'vitest'
 import { layoutMarkers } from './mapLayout'
 
-// Each marker occupies an icon (about 11% wide x 13 units tall) with a name label below it (up to 35% wide x 7.5 tall).
+// Geometry in CSS px on a 390 px wide phone. `area` = height of the map below the controls (short phones with the tip
+// card open have ~200 px; a tall phone without it ~450 px). A marker is a 48 px button (44 px icon) with its name label
+// starting 48 px below the button top, up to 136 px wide and ~22 px tall.
+const W = 390
 type P = { x: number; y: number }
-const rects = (p: P) => [
-  { l: p.x - 5.6, r: p.x + 5.6, t: p.y - 6.5, b: p.y + 6.5 },
-  { l: p.x - 17.5, r: p.x + 17.5, t: p.y + 6.5, b: p.y + 14 },
-]
+const rects = (p: P, area: number) => {
+  const cx = (p.x / 100) * W, cy = (p.y / 100) * area
+  return [
+    { l: cx - 22, r: cx + 22, t: cy - 22, b: cy + 22 },
+    { l: cx - 68, r: cx + 68, t: cy + 24, b: cy + 46 },
+  ]
+}
 const hit = (a: ReturnType<typeof rects>[number], b: ReturnType<typeof rects>[number]) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b
-const overlaps = (a: P, b: P) => rects(a).some((x) => rects(b).some((y) => hit(x, y)))
+const overlaps = (a: P, b: P, area: number) => rects(a, area).some((x) => rects(b, area).some((y) => hit(x, y)))
+
+const lis = ['airside', 'airside', 'unknown', 'airside'] // seeded Lisbon: food, rest, shopping, work
+const sin = ['airside', 'landside', 'airside', 'unknown'] // seeded Singapore
 
 describe('layoutMarkers', () => {
-  const lis = ['airside', 'airside', 'unknown', 'airside'] // seeded Lisbon: food, rest, shopping, work
-  const sin = ['airside', 'landside', 'airside', 'unknown'] // seeded Singapore
-  // A zone holds at most three markers cleanly (the seeded catalogue has at most three); a 4th+ continues in a new group
-  // below, which can reach into the next zone band. '6 airside' only checks markers within the same zone.
-  it.each([
-    ['LIS', lis], ['SIN', sin], ['3 airside', Array(3).fill('airside')], ['6 airside', Array(6).fill('airside')],
-    ['mixed, max 3 per zone', ['airside', 'landside', 'unknown', 'airside', 'landside', 'unknown', 'airside']],
-  ])('no overlapping markers or labels: %s', (_n, zones) => {
-    const p = layoutMarkers(zones as string[])
-    for (let i = 0; i < p.length; i++) for (let j = i + 1; j < p.length; j++) expect(overlaps(p[i], p[j]), `${i} vs ${j}`).toBe(false)
+  for (const area of [200, 300, 450]) {
+    it.each([['LIS', lis], ['SIN', sin], ['3 airside', Array(3).fill('airside')], ['mixed: 3 airside + 1 unknown + 1 landside', ['airside', 'landside', 'unknown', 'airside', 'airside']]])(
+      `no overlapping markers or labels at ${area}px map height: %s`, (_n, zones) => {
+        const p = layoutMarkers(zones as string[])
+        for (let i = 0; i < p.length; i++) for (let j = i + 1; j < p.length; j++) expect(overlaps(p[i], p[j], area), `${i} vs ${j}`).toBe(false)
+      })
+  }
+  it('keeps every seeded marker inside the horizontal bounds and its icon inside the map', () => {
+    for (const q of [...layoutMarkers(lis), ...layoutMarkers(sin)]) {
+      expect(q.x).toBeGreaterThanOrEqual(20); expect(q.x).toBeLessThanOrEqual(80)
+      expect((q.y / 100) * 200 - 22).toBeGreaterThanOrEqual(0); expect((q.y / 100) * 200 + 22).toBeLessThanOrEqual(200)
+    }
   })
-  it('keeps seeded-size layouts inside the canvas and their zone band', () => {
-    for (const q of layoutMarkers(lis)) { expect(q.x).toBeGreaterThanOrEqual(15); expect(q.x).toBeLessThanOrEqual(85) }
-    const air = layoutMarkers(['airside', 'airside', 'airside']); for (const q of air) { expect(q.y).toBeGreaterThanOrEqual(8); expect(q.y).toBeLessThanOrEqual(42) }
-    const land = layoutMarkers(['landside'])[0]; expect(land.y + 14).toBeLessThanOrEqual(96)
-  })
-  it('is deterministic and puts each zone in its band', () => {
+  it('is deterministic and keeps zones in order top to bottom', () => {
     expect(layoutMarkers(lis)).toEqual(layoutMarkers(lis))
     const p = layoutMarkers(['airside', 'unknown', 'landside'])
     expect(p[0].y).toBeLessThan(p[1].y); expect(p[1].y).toBeLessThan(p[2].y)

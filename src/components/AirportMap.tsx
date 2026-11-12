@@ -6,9 +6,12 @@ export type Zone = 'all' | 'Airside' | 'Landside'
 
 const ICONS: Record<Category, LucideIcon> = { Food: Utensils, Rest: Bed, Shopping: ShoppingBag, Work: Laptop, City: TramFront }
 
-/** Data space is 0-100; the top 24% of the canvas is reserved for floating controls. */
-const Y = (y: number) => `${24 + y * 0.72}%`
-const H = (h: number) => `${h * 0.72}%`
+/** Data space is 0-100. The floating controls (back, Map/List, category chips) take a fixed band at the top, so the
+ *  markers use only the space below it. A percentage band (as in the Figma export) slid markers under the chips on
+ *  short phone screens, where they could not be tapped. */
+export const MAP_TOP_REM = 10.75
+const Y = (y: number) => `calc(${MAP_TOP_REM}rem + (100% - ${MAP_TOP_REM}rem) * ${y / 100})`
+const H = (h: number) => `calc((100% - ${MAP_TOP_REM}rem) * ${h / 100})`
 
 const ZONES = [
   { key: 'Airside', label: 'Airside zone', top: 8, h: 42, cls: 'border-accent/50 bg-white/[0.07]' },

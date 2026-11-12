@@ -10,7 +10,7 @@ const PROXY = process.env.PROXY || process.env.HTTPS_PROXY;
 let failed = 0; const results = [];
 const check = (name, ok, detail = '') => { results.push(name); if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  -> ' + detail : ''}`); };
 const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
-const shot = async (page, name) => { if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${name}.png` }); } };
+const shot = async (page, name) => { await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {}); if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${name}.png` }); } };
 const visible = (page, t) => page.getByText(t, { exact: false }).first().isVisible();
 
 const browser = await chromium.launch(PROXY ? { proxy: { server: PROXY } } : {});
@@ -51,9 +51,15 @@ try {
   await page.getByRole('button', { name: 'Add Demo quiet rest' }).click();
   await page.getByRole('button', { name: 'Add Demo gift browse' }).click();
   await page.getByRole('button', { name: 'Remove Demo gift browse' }).click();
-  await page.getByRole('button', { name: 'Build itinerary (2)' }).click();
+  await page.getByRole('button', { name: 'Add Demo extended work break' }).click();
+  await page.getByRole('button', { name: 'Build itinerary (3)' }).click();
+  const over = (await page.getByLabel('Time budget').innerText()).replace(/\n/g, ' ');
+  check('over budget: 100 + 180 = 280 min against 210 usable -> over by 1h 10m, with a warning', over.includes('Over your usable time by') && over.includes('1h 10m') && over.includes('This plan does not fit'), over.slice(0, 70));
+  check('over-budget plan can still be saved ("Save plan anyway")', await page.getByRole('button', { name: 'Save plan anyway' }).isVisible());
+  await shot(page, '06a-builder-over-budget');
+  await page.getByRole('button', { name: 'Remove Demo extended work break' }).click();
   const hero = (await page.getByLabel('Time budget').innerText()).replace(/\n/g, ' ');
-  check('builder: remaining time 3h 30m - 1h 40m = 1h 50m', hero.includes('1h 50m'), hero.slice(0, 60));
+  check('builder: after removing it, remaining time is 3h 30m - 1h 40m = 1h 50m', hero.includes('1h 50m') && !hero.includes('does not fit'), hero.slice(0, 60));
   await shot(page, '06-builder');
 
   await page.getByRole('button', { name: 'Save plan' }).click();
