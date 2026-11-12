@@ -29,13 +29,14 @@ export function FindJourney() {
   return (
     <div className="pb-[calc(var(--nav-h)+2rem)]">
       <Header title="Add flight" />
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 px-5 pt-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 px-5 pt-6">
         <div>
           <h1 className="text-title font-bold">Find your journey</h1>
-          <p className="mt-2 text-body text-muted-text">Enter a sample booking reference to see the connection and available layover time.</p>
+          <p className="mt-3 text-body leading-relaxed text-muted-text">Enter a sample booking reference to see the connection and available layover time.</p>
         </div>
 
-        <form className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-[1.75rem] p-4" onSubmit={(e) => { e.preventDefault(); submit() }} noValidate>
+        <form className="panel grid grid-cols-[minmax(0,1fr)] gap-6 rounded-[1.75rem] p-5" onSubmit={(e) => { e.preventDefault(); submit() }} noValidate>
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-2.5">
           <label htmlFor="booking-ref" className="text-sub font-semibold text-ink">Booking reference</label>
           <div className={cx('flex min-h-16 items-center gap-3 rounded-2xl border bg-white px-4 transition-colors focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15', error ? 'border-error' : 'border-[rgb(35_26_23/0.16)]')}>
             <Search size={22} className="shrink-0 text-muted" aria-hidden="true" />
@@ -47,10 +48,14 @@ export function FindJourney() {
           {error
             ? <p id="ref-error" role="alert" className="text-sub font-medium text-error">{error}</p>
             : <p id="ref-help" className="text-cap text-muted-text">6 letters or numbers.</p>}
+          </div>
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
           <Button type="submit" className="w-full" disabled={!ref.trim()}>Find my journey</Button>
-          <Button type="button" variant="ghost" icon={PenLine} className="w-full border border-accent-dark px-3"
-            onClick={() => go({ name: 'trip' })}>Enter flight details manually</Button>
+          </div>
         </form>
+        <button type="button" onClick={() => go({ name: 'trip' })}
+          className="glass press -mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-white/50 text-body font-semibold text-ink backdrop-blur-xl">
+          <PenLine size={18} className="text-accent-dark" />I can't find my flight</button>
 
         {showSamples && (
           <section aria-label="Sample bookings" className="anim-rise grid grid-cols-[minmax(0,1fr)] gap-2">

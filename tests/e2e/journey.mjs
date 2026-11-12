@@ -53,8 +53,8 @@ try {
   check('no guest account created just by opening the app', !fake.calls.some((c) => c.includes('/auth/v1/signup')));
   await page.getByRole('button', { name: /^Add flight/ }).first().click();
   await page.getByRole('heading', { name: 'Find your journey' }).waitFor();
-  check('"Add flight" opens booking-reference entry first', await page.getByLabel('Booking reference').isVisible() && await page.getByRole('button', { name: 'Enter flight details manually' }).isVisible());
-  await page.getByRole('button', { name: 'Enter flight details manually' }).click();
+  check('"Add flight" opens booking-reference entry first', await page.getByLabel('Booking reference').isVisible() && await page.getByRole('button', { name: "I can't find my flight" }).isVisible());
+  await page.getByRole('button', { name: "I can't find my flight" }).click();
   check('setup is one screen with no numbered steps or tips', !(await visible(page, 'Step 1 of')) && !(await visible(page, 'Tip 1 of')));
   check('connecting airport, arrival, departure and buffer are the primary inputs', await page.getByLabel('Connecting airport', { exact: true }).isVisible() && await page.getByLabel('Arrival at the connecting airport (local time)').isVisible() && await page.getByRole('button', { name: '2h' }).isVisible());
   check('manual setup: origin and destination are optional fields', await page.getByLabel('Flying from (optional)').isVisible() && await page.getByLabel('Final destination (optional)').isVisible());
@@ -540,7 +540,7 @@ try {
     const mf = await newGuest(); const M = mf.page;
     await M.goto(BASE);
     await M.getByRole('button', { name: /^Add flight/ }).click();
-    await M.getByRole('button', { name: 'Enter flight details manually' }).click();
+    await M.getByRole('button', { name: "I can't find my flight" }).click();
     await pick(M, 'Flying from (optional)', 'OPO'); await pick(M, 'Final destination (optional)', 'JFK');
     await M.getByRole('button', { name: 'Lisbon LIS' }).click();
     await setTimes(M);

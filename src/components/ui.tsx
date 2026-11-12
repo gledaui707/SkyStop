@@ -18,7 +18,7 @@ export function Header({ title, subtitle, right, onBack }: { title: string; subt
   return (
     <header className="sticky top-0 z-20 px-4 pb-2.5 pt-[calc(var(--safe-top)+0.25rem)]">
       {/* opaque frosted band with a hairline: content scrolls under it without showing through the title */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 border-b border-line bg-canvas/[0.93] backdrop-blur-xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-canvas/[0.93] backdrop-blur-xl" />
       <div className="relative grid grid-cols-[3rem_1fr_3rem] items-center gap-2">
         <button onClick={onBack ?? back} aria-label="Back" className="glass press grid size-12 place-items-center rounded-full text-ink">
           <ChevronLeft size={26} strokeWidth={2.4} />
