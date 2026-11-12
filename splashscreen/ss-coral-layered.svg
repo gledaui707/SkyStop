@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="370 155 610 610" fill="none" role="img" aria-labelledby="title desc">
+<title id="title">Layered SS aviation logo</title>
+<desc id="desc">A coral red S with a left-facing airplane cutout, layered over a plain soft coral S shifted horizontally to the right.</desc>
+<defs>
+<path id="s" d="M510 312H794C794 362 754 402 704 402H510C503 402 500 405 500 408C500 412 504 415 510 415H704C754 415 794 455 794 504H510C460 504 420 464 420 414V402C420 352 460 312 510 312Z M510 518H794C794 567 754 608 704 608H420C420 558 460 518 510 518Z"/>
+<mask id="front-cutout" maskUnits="userSpaceOnUse" x="400" y="300" width="410" height="320"><path fill="white" d="M400 300H810V620H400Z"/><path fill="black" d="M467 408C467 403 495 402 508 399C513 398 516 395 520 390L561 342Q568 334 578 333L549 399L579 400Q584 400 588 395L603 380L612 376L602 401H711V415H602L613 440L603 436L586 420Q582 416 577 416H549L578 480Q568 479 562 472L520 424Q515 418 509 417C493 416 467 414 467 408Z"/></mask>
+<mask id="behind-front" maskUnits="userSpaceOnUse" x="400" y="300" width="550" height="320"><path fill="white" d="M400 300H950V620H400Z"/><use href="#s" fill="black"/><path fill="black" d="M467 408C467 403 495 402 508 399C513 398 516 395 520 390L561 342Q568 334 578 333L549 399L579 400Q584 400 588 395L603 380L612 376L602 401H711V415H602L613 440L603 436L586 420Q582 416 577 416H549L578 480Q568 479 562 472L520 424Q515 418 509 417C493 416 467 414 467 408Z"/></mask>
+</defs>
+
+<g mask="url(#behind-front)"><use href="#s" transform="translate(100 0)" fill="#FFB5A5"/></g>
+<use href="#s" fill="#EA5139" mask="url(#front-cutout)"/>
+</svg>
