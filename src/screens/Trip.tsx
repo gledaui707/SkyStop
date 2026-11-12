@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, Clock, ListChecks, Sparkles, X } from 'lucide-react'
+import { Clock, ListChecks, Sparkles, X } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, AIRPORTS, TEMPLATES, getAirport, isSupported } from '../data/mock'
 import { airportInfo } from '../data/airportDirectory'
@@ -11,16 +11,15 @@ import { ActionBar, Button, Header, Field, Photo, cx, inputCls } from '../compon
 const BUFFERS = [90, 120, 180]
 const split = (v: string) => { const [d = '', t = ''] = v.split('T'); return { date: d, time: t.slice(0, 5) } }
 
-/** Plan a layover: the connection is the primary input. Origin and destination are optional journey details.
+/** Plan a layover: enter the connecting airport and times.
  *  An airport, curated itinerary or activities chosen while exploring are carried in and shown here. */
 export function Trip({ airport, templateId }: { airport?: string; templateId?: string }) {
   const { replace, setDraft, picked, setPicked } = useApp()
-  const [origin, setOrigin] = useState('')
-  const [destination, setDestination] = useState('')
   const [conn, setConn] = useState(airport ?? picked?.airport ?? '')
   const [arr, setArr] = useState('')
   const [dep, setDep] = useState('')
   const [buf, setBuf] = useState(120)
+  const [showBufferHelp, setShowBufferHelp] = useState(false)
   const [tplId, setTplId] = useState(templateId)
 
   const tpl = TEMPLATES.find((t) => t.id === tplId)
@@ -48,16 +47,14 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
   }
   const timesOk = mins > 0 && !timeError
   const b = budget(Math.max(mins, 0), buf, [])
-  const journeyClash = !!conn && (conn === origin || conn === destination) || (!!origin && origin === destination)
-  const ok = !!conn && timesOk && !journeyClash
-  const route = [origin, conn, destination].filter(Boolean).join(' → ')
+  const ok = !!conn && timesOk
 
   const finish = () => {
     if (!ok) return
     const ap = airportInfo(conn)!
     const ids = [...new Set([...(tplApplies ? tpl!.activityIds : []), ...carried])]
     setDraft({ name: tplApplies ? tpl!.name : `${ap.city} layover`, airport: conn, arrival: arr, departure: dep, bufferMin: buf,
-      activityIds: ids, origin: origin || undefined, destination: destination || undefined })
+      activityIds: ids })
     setPicked(null)
     // With an itinerary or activities already chosen (or no activity guide) go straight to the builder;
     // otherwise continue to the airport's list of itineraries and activities.
@@ -115,11 +112,11 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
 
         {/* The connection as one surface: airport, then an arrive → depart rail. */}
         <section aria-label="Connection" className="panel rounded-[1.75rem] p-4">
-          <AirportPicker label="Connecting airport" value={conn} onChange={setConn} exclude={[origin, destination].filter(Boolean)} placeholder="Where do you change planes?" />
+          <AirportPicker label="Connecting airport" value={conn} onChange={setConn} placeholder="Where do you change planes?" />
           {!conn ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-sub text-muted-text">Layover guides:</span>
-              {AIRPORTS.filter((a) => a.code !== origin && a.code !== destination).map((a) => (
+              {AIRPORTS.map((a) => (
                 <button key={a.code} type="button" onClick={() => setConn(a.code)} className="press min-h-11 rounded-full border border-line bg-white px-4 text-sub font-medium">{a.city} {a.code}</button>))}
             </div>
           ) : !supported && <p className="mt-2 text-sub text-muted-text">No activity guide for this airport yet. You can still see your time budget.</p>}
@@ -140,10 +137,22 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           {timeError && <p role="alert" className="mt-3 text-body font-medium text-error">{timeError}</p>}
         </section>
 
-        <fieldset>
-          <legend className="mb-1 text-body font-semibold">Planning buffer</legend>
-          <p id="buffer-help" className="mb-3 text-sub text-muted-text">Time kept free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding. Activities only use what is left.</p>
-          <div className="grid grid-cols-3 gap-1 rounded-full bg-ink-tint p-1 ring-1 ring-line" aria-describedby="buffer-help">
+        <fieldset aria-labelledby="buffer-label">
+          <legend className="w-full">
+            <span className="flex items-center justify-between gap-3">
+              <span id="buffer-label" className="text-body font-semibold">Planning buffer</span>
+              <button type="button" aria-expanded={showBufferHelp} aria-controls="buffer-help"
+                onClick={() => setShowBufferHelp((show) => !show)}
+                className="press min-h-11 shrink-0 text-sub font-semibold text-accent-dark hover:underline">
+                What is this?
+              </button>
+            </span>
+          </legend>
+          <p id="buffer-help" hidden={!showBufferHelp} className="mb-3 text-sub text-muted-text">
+            Time kept free for airport procedures: leaving the aircraft, transfer security or passport control,
+            walking to the gate and boarding. Activities only use what is left.
+          </p>
+          <div className="grid grid-cols-3 gap-1 rounded-full bg-ink-tint p-1 ring-1 ring-line">
             {BUFFERS.map((m) => (
               <button type="button" key={m} aria-pressed={buf === m} onClick={() => setBuf(m)}
                 className={cx('press min-h-12 rounded-full text-body font-semibold transition-colors', buf === m ? 'bg-white text-ink shadow-[0_4px_12px_rgb(70_35_25/0.14)]' : 'text-muted-text')}>{fmtDur(m)}</button>))}
@@ -172,19 +181,6 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
             {isOvernight(new Date(arr), new Date(dep)) && <p className="mt-3 text-sub text-muted-text">Overnight connection: many services may be closed.</p>}
           </section>
         )}
-
-        <details className="panel group rounded-[1.5rem]" open={!!(origin || destination)}>
-          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-2 px-4 text-body font-medium [&::-webkit-details-marker]:hidden">
-            <span>Journey details <span className="font-normal text-muted-text">(optional)</span>{route.includes('→') && <span className="block text-sub font-normal text-accent-dark">{route}</span>}</span>
-            <ChevronDown size={20} className="shrink-0 text-muted-text transition-transform group-open:rotate-180" />
-          </summary>
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 px-4 pb-4">
-            <p className="text-sub text-muted-text">Where your trip starts and ends. Used only to label your plan.</p>
-            <AirportPicker label="Flying from" value={origin} onChange={setOrigin} exclude={[conn, destination].filter(Boolean)} placeholder="City, airport or code, e.g. CGK" />
-            <AirportPicker label="Final destination" value={destination} onChange={setDestination} exclude={[conn, origin].filter(Boolean)} placeholder="City, airport or code, e.g. CDG" />
-          </div>
-        </details>
-        {journeyClash && <p role="alert" className="text-sub font-medium text-error">Origin, connecting airport and destination must be different airports.</p>}
       </div>
       <ActionBar>
         <Button className="w-full" disabled={!ok} onClick={finish}>{cta}</Button>

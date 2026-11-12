@@ -34,7 +34,6 @@ const newGuest = async (viewport, { firstVisit = false, reducedMotion } = {}) =>
 const shot = async (page, name) => { if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${name}.png` }); } };
 const visible = (page, text) => page.getByText(text, { exact: false }).first().isVisible();
 
-const pick = async (page, label, text) => { await page.getByLabel(label, { exact: true }).fill(text); await page.getByRole('option').first().getByRole('button').click(); };
 const setTimes = async (page) => {
   await page.getByLabel('Arrival at the connecting airport (local time)').fill(`${day(7)}T10:00`);
   await page.getByLabel('Onward departure (local time)').fill(`${day(7)}T15:00`);
@@ -57,14 +56,18 @@ try {
   await page.getByRole('button', { name: 'Enter flight details manually' }).click();
   check('setup is one screen with no numbered steps or tips', !(await visible(page, 'Step 1 of')) && !(await visible(page, 'Tip 1 of')));
   check('connecting airport, arrival, departure and buffer are the primary inputs', await page.getByLabel('Connecting airport', { exact: true }).isVisible() && await page.getByLabel('Arrival at the connecting airport (local time)').isVisible() && await page.getByRole('button', { name: '2h' }).isVisible());
-  check('origin/destination are optional and collapsed', !(await page.getByLabel('Flying from', { exact: true }).isVisible()));
+  check('manual setup omits journey details', await page.getByText('Journey details', { exact: false }).count() === 0);
+  const bufferHelp = page.getByRole('button', { name: 'What is this?' });
+  const bufferDescription = page.locator('#buffer-help');
+  check('buffer explanation starts hidden', !(await bufferDescription.isVisible()));
+  await bufferHelp.click();
+  check('buffer explanation opens on tap', await bufferDescription.isVisible() && await bufferHelp.getAttribute('aria-expanded') === 'true');
+  await bufferHelp.click();
+  check('buffer explanation closes on tap', !(await bufferDescription.isVisible()));
   await page.getByRole('button', { name: 'Lisbon LIS' }).click();
   await setTimes(page);
   const breakdown = (await page.getByLabel('Layover time breakdown').innerText()).replace(/\n/g, ' ');
   check('time breakdown: 5h total, 1h 30m buffer, 3h 30m usable', breakdown.includes('5h') && breakdown.includes('3h 30m'), breakdown);
-  await page.getByText('Journey details').click();
-  await pick(page, 'Flying from', 'CGK'); await pick(page, 'Final destination', 'CDG');
-  check('journey summary keeps origin, connection and destination distinct', await visible(page, 'CGK → LIS → CDG'));
   await shot(page, '01-plan-a-layover');
   await page.getByRole('button', { name: 'Explore activities' }).click();
 
@@ -107,7 +110,7 @@ try {
   check('stored UTC instants are Lisbon-local 10:00/15:00', stored.row.arrival_at === `${day(7)}T10:00:00Z` && stored.row.departure_at === `${day(7)}T15:00:00Z`, `${stored.row.arrival_at} → ${stored.row.departure_at}`);
   check('stored buffer 90 and 2 ordered activities', stored.row.buffer_minutes === 90 && stored.items.length === 2 && stored.items[0].activity_id.endsWith('1'));
   const ticket = await page.getByLabel('Upcoming trip').innerText();
-  check('home ticket: CGK, CDG, 2 activities', ticket.includes('CGK') && ticket.includes('CDG') && ticket.includes('2 activities saved'));
+  check('home ticket: LIS, 2 activities', ticket.includes('LIS') && ticket.includes('2 activities saved'));
   await shot(page, '05-home-saved');
 
   await page.reload();
@@ -138,7 +141,7 @@ try {
   await k.page.getByLabel('Booking reference').fill('AB1');
   await k.page.getByRole('button', { name: 'Find my journey' }).click();
   check('booking: malformed reference -> format hint', (await k.page.getByRole('alert').innerText()).includes('6 letters or numbers'));
-  check('booking: disclosure that references are samples, not live bookings', await visible(k.page, 'does not connect to airline reservation systems'));
+  check('booking: reference entry is labeled as sample data', await visible(k.page, 'Enter a sample booking reference'));
   const expect = { AXR7KD: ['SIN', '12h 20m', '2h', '10h 20m'], BQ3LMV: ['LIS', '5h 20m', '1h 30m', '3h 50m'], CJ8NWT: ['LHR', '5h 30m', '2h', '3h 30m'], DH5PRZ: ['DXB', '7h', '2h', '5h'] };
   for (const [ref, [code, total, buf, usable]] of Object.entries(expect)) {
     await k.page.getByLabel('Booking reference').fill(ref.toLowerCase());

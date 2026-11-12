@@ -32,7 +32,7 @@ export function FindJourney() {
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 px-5 pt-2">
         <div>
           <h1 className="text-title font-bold">Find your journey</h1>
-          <p className="mt-2 text-body text-muted-text">Enter your booking reference to see your connection and how much time you will have.</p>
+          <p className="mt-2 text-body text-muted-text">Enter a sample booking reference to see the connection and available layover time.</p>
         </div>
 
         <form className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-[1.75rem] p-4" onSubmit={(e) => { e.preventDefault(); submit() }} noValidate>
@@ -46,7 +46,7 @@ export function FindJourney() {
           </div>
           {error
             ? <p id="ref-error" role="alert" className="text-sub font-medium text-error">{error}</p>
-            : <p id="ref-help" className="text-cap text-muted-text">6 letters or numbers, as shown on your booking.</p>}
+            : <p id="ref-help" className="text-cap text-muted-text">6 letters or numbers.</p>}
           <Button type="submit" className="w-full" disabled={!ref.trim()}>Find my journey</Button>
           <button type="button" onClick={() => setShowSamples(!showSamples)} aria-expanded={showSamples}
             className="mx-auto flex min-h-11 items-center gap-1.5 px-3 text-sub font-semibold text-accent-dark"><Sparkles size={16} />Try a sample booking</button>
@@ -70,11 +70,6 @@ export function FindJourney() {
             })}
           </section>
         )}
-
-        <p className="flex gap-2.5 rounded-2xl bg-ink-tint px-4 py-3 text-cap text-muted-text">
-          <Info size={16} className="mt-px shrink-0" />
-          <span>SkyStop does not connect to airline reservation systems. These references open sample journeys, not real bookings or live flight data.</span>
-        </p>
 
         <div className="flex items-center gap-3 text-cap font-semibold uppercase tracking-[0.1em] text-muted"><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
         <Button variant="secondary" icon={PenLine} className="w-full" onClick={() => go({ name: 'trip' })}>Enter flight details manually</Button>

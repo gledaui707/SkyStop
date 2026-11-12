@@ -28,7 +28,6 @@ try {
   await shot(page, '01-welcome');
   await page.getByRole('button', { name: 'Plan a layover' }).click();
 
-  const pick = async (label, text) => { await page.getByLabel(label, { exact: true }).fill(text); await page.getByRole('option').first().getByRole('button').click(); };
   await page.getByRole('button', { name: 'Lisbon LIS' }).click();
   await page.getByLabel('Arrival at the connecting airport (local time)').fill(`${day(7)}T10:00`);
   await page.getByLabel('Onward departure (local time)').fill(`${day(7)}T15:00`);
@@ -36,8 +35,6 @@ try {
   const bd = (await page.getByLabel('Layover time breakdown').innerText()).replace(/\n/g, ' ');
   check('time breakdown: 5h total, 3h 30m usable', bd.includes('5h') && bd.includes('3h 30m'), bd);
   await shot(page, '02-plan-a-layover');
-  await page.getByText('Journey details').click();
-  await pick('Flying from', 'CGK'); await pick('Final destination', 'CDG');
   await shot(page, '03-journey-details');
   await page.getByRole('button', { name: 'Explore activities' }).click();
 
@@ -64,7 +61,7 @@ try {
   check('save succeeded: Home shows the personalised upcoming trip and a save confirmation', (await page.getByRole('status').innerText()).includes('is saved'));
   check('guest was created on save (one sign-up) and RPC save_plan answered 200', api.filter((a) => a.includes('/auth/v1/signup')).length === 1 && api.some((a) => a.startsWith('200 POST /rest/v1/rpc/save_plan')), api.filter((a) => a.includes('save_plan') || a.includes('signup')).join(' | '));
   const t1 = (await page.getByLabel('Upcoming trip').innerText()).replace(/\n/g, ' ');
-  check('ticket shows CGK/CDG, 10:00-15:00, 3h 30m usable, 2 activities', ['CGK', 'CDG', '10:00', '15:00', '3h 30m', '2 activities saved'].every((x) => t1.includes(x)), t1.slice(0, 110));
+  check('ticket shows LIS, 10:00-15:00, 3h 30m usable, 2 activities', ['LIS', '10:00', '15:00', '3h 30m', '2 activities saved'].every((x) => t1.includes(x)), t1.slice(0, 110));
   await shot(page, '07-home-upcoming-trip');
 
   await page.reload({ waitUntil: 'domcontentloaded' });

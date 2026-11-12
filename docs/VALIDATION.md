@@ -155,3 +155,8 @@ Not done: real-device iPhone check, Safari backdrop-filter rendering, production
 - No hosted database checks were run.
 
 - Size and timing adjustment: reduced logo width by about 20% and set duration to 2 seconds. Build, 118 tests (one hosted skip), and the focused Chromium checks at 320, 375 and 390 px passed.
+
+### Manual setup and booking entry cleanup
+
+- Build passed. Unit suite: 118 passed, one hosted test skipped.
+- Headless Chromium with simulated Supabase: 42/42 checks passed across the manual and sample booking journeys, including the buffer help toggle and save/reopen behavior. The hosted browser script was updated for the manual form and was not run.
