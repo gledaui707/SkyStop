@@ -6,7 +6,7 @@
   "scripts": {
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "test:hosted": "RUN_HOSTED=1 vitest run src/data/hosted.journey.test.ts"
+    "test:hosted": "RUN_HOSTED=1 vitest run src/api/hosted.journey.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

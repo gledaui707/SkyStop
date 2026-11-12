@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { createPlannerStore, type PlannerRepo } from './store';
 import { getUpcomingTrip } from '../home/upcoming';
 import { instantToLocal } from '../../domain';
-import { loadResource } from '../../data/resource';
+import { loadResource } from '../../api/resource';
 import type { ActivityRow, AirportRow } from '../../types/database.types';
-import type { Plan, PlanDraft, Template } from '../../data/repositories';
+import type { Plan, PlanDraft, Template } from '../../api/repositories';
 
 const LIS: AirportRow = { id: 'LIS', name: 'Lisbon Airport', timezone: 'Europe/Lisbon', dataset_label: 'demo' };
 const SIN: AirportRow = { id: 'SIN', name: 'Singapore Changi', timezone: 'Asia/Singapore', dataset_label: 'demo' };

@@ -1,7 +1,7 @@
 // Headless planner state for the whole journey (no UI). Wire into React with:
 //   const state = useSyncExternalStore(store.subscribe, store.getState)
 import type { ActivityRow, AirportRow } from '../../types/database.types';
-import type { Plan, PlanDraft, Template } from '../../data/repositories';
+import type { Plan, PlanDraft, Template } from '../../api/repositories';
 import {
   DEFAULT_BUFFER_MINUTES, validateLayover, instantToLocal, type LayoverResult,
   computeBudget, MAX_PLAN_ACTIVITIES, type PlanBudget,

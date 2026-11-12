@@ -1,4 +1,4 @@
-import type { Plan } from '../../data/repositories';
+import type { Plan } from '../../api/repositories';
 import type { AirportRow } from '../../types/database.types';
 import { instantToLocal } from '../../domain';
 
