@@ -17,7 +17,7 @@ await check('Migrations execute in order', async()=>{
 });
 await check('Seed is repeatable; exact catalogue counts',async()=>{
  const seed=readFileSync(new URL('supabase/seed.sql',root),'utf8'); await db.exec(seed); await db.exec(seed);
- for(const [t,n] of [['airports',2],['activities',8],['itinerary_templates',2],['template_items',4]]) assert.equal((await db.query(`select count(*)::int n from public.${t}`)).rows[0].n,n);
+ for(const [t,n] of [['airports',4],['activities',29],['itinerary_templates',5],['template_items',10]]) assert.equal((await db.query(`select count(*)::int n from public.${t}`)).rows[0].n,n);
 });
 const plan='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const a1='10000000-0000-4000-8000-000000000001', a2='10000000-0000-4000-8000-000000000002', foreign='20000000-0000-4000-8000-000000000001';
@@ -25,7 +25,7 @@ function save(rev,ids=[a1,a2],opts={}) {return `select * from public.save_plan('
 async function identity(role,uid='') {await db.exec(`reset role; set role ${role}; select set_config('request.jwt.claim.sub','${uid}',false);`);}
 const A='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',B='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 await identity('anon');
-await check('Public catalogue reads work; unauthenticated plan access/write denied',async()=>{assert.equal((await db.query('select * from public.airports')).rows.length,2);await fail('select * from public.layovers','42501');await fail(save(0),'42501');});
+await check('Public catalogue reads work; unauthenticated plan access/write denied',async()=>{assert.equal((await db.query('select * from public.airports')).rows.length,4);await fail('select * from public.layovers','42501');await fail(save(0),'42501');});
 await identity('authenticated',A);
 await check('Guest A creates and retrieves ordered snapshot',async()=>{await db.exec(save(0));const x=await db.query('select * from public.plan_items order by position');assert.deepEqual(x.rows.map(r=>r.duration_minutes),[40,60]);assert.equal((await db.query('select revision from public.layovers')).rows[0].revision,1);});
 await check('Direct client writes and catalogue changes denied',async()=>{await fail("update public.layovers set buffer_minutes=1",'42501');await fail("delete from public.plan_items",'42501');await fail("update public.activities set duration_minutes=1",'42501');});

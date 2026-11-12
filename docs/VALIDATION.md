@@ -134,3 +134,10 @@ Presentation-only change: no store, data-access, Supabase, schema or domain-logi
 `npm run build`: PASS. `npx vitest run`: 76 passed, 1 skipped. `npm run build && npm run test:e2e` (simulated API, real Chromium): **41/41**, including builder layout at 320×568 / 375×667 / 390×664 (content clears save bar and tab bar, no sideways scroll, no clipped bar text).
 Screenshot review (Playwright, 390×844 and 320×568, photos substituted locally because Unsplash is blocked in the build sandbox; also checked with photos blocked to verify the gradient fallbacks): welcome, home (empty and with saved trip), airports, airport list and map, plan-a-layover form, builder, activity sheet, My Plans, plan detail, compare form, results, flight details. No horizontal overflow found.
 Not done: real-device iPhone check, Safari backdrop-filter rendering, production deploy verification of this commit, hosted tests (not rerun, by instruction).
+
+2026-11-12 | Phase 1–4 (mobile UX, onboarding, booking ref, catalogue) | local + hosted | `npm test -- --run` | all pass | 84 passed, 1 skipped | PASS | console | —
+2026-11-12 | same | local PGlite | `npm test --prefix tests/database` (now includes migration 202611120001) | 15 pass; 4 airports / 29 activities / 5 templates / 10 items | 15 PASS | PASS | console | not a full Supabase stack
+2026-11-12 | same | simulated API, Chromium | `npm run test:e2e` | 64 checks | 64/64 | PASS | screenshots in scratch | simulated API, not the hosted DB
+2026-11-12 | same | simulated API, Chromium | `npm run test:layout` (13 screens × 320/375/390/430) | 0 issues | 0 issues | PASS | console | Chromium only; no WebKit / real iPhone
+2026-11-12 | same | hosted Supabase (management API) | apply migration 202611120001 twice; read counts | additive, idempotent; saved plans intact | 4/29/5/10; layovers 5, plan_items 6 before and after | PASS | query output | —
+2026-11-12 | `dfb8384`+ | production https://skystop.vercel.app | read-only: onboarding → CJ8NWT → Explore London → venue sheet | LHR venues, itinerary, source link, no "Demo", no JS errors | as expected | PASS | prod screenshots | no plan saved on production in this pass

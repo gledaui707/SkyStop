@@ -13,11 +13,11 @@ begin;
 alter table public.activities add column if not exists source_url text;
 
 insert into public.airports(id,name,timezone,dataset_label) values
+ ('LIS','Lisbon Airport','Europe/Lisbon','Venues from lisbonairport.pt, checked Nov 2026'),
+ ('SIN','Singapore Changi Airport','Asia/Singapore','Venues from changiairport.com and jewelchangiairport.com, checked Nov 2026'),
  ('LHR','London Heathrow Airport','Europe/London','Venues from heathrow.com, checked Nov 2026'),
  ('DXB','Dubai International Airport','Asia/Dubai','Venues from dubaiairports.ae, checked Nov 2026')
 on conflict(id) do update set name=excluded.name, timezone=excluded.timezone, dataset_label=excluded.dataset_label;
-update public.airports set dataset_label='Venues from lisbonairport.pt, checked Nov 2026' where id='LIS';
-update public.airports set dataset_label='Venues from changiairport.com and jewelchangiairport.com, checked Nov 2026' where id='SIN';
 
 insert into public.activities(id,airport_id,name,description,category,terminal,access_zone,duration_minutes,budget_label,is_demo,source_url) values
 -- Lisbon (Humberto Delgado)
@@ -72,6 +72,13 @@ insert into public.template_items(template_id,airport_id,activity_id,position) v
  ('30000000-0000-4000-8000-000000000004','LHR','40000000-0000-4000-8000-000000000006',2),
  ('30000000-0000-4000-8000-000000000005','DXB','50000000-0000-4000-8000-000000000004',1),
  ('30000000-0000-4000-8000-000000000005','DXB','50000000-0000-4000-8000-000000000002',2)
+on conflict do nothing;
+-- the two original itineraries' items (already present on the hosted DB; included so a fresh database is complete)
+insert into public.template_items(template_id,airport_id,activity_id,position) values
+ ('30000000-0000-4000-8000-000000000001','LIS','10000000-0000-4000-8000-000000000001',1),
+ ('30000000-0000-4000-8000-000000000001','LIS','10000000-0000-4000-8000-000000000002',2),
+ ('30000000-0000-4000-8000-000000000002','SIN','20000000-0000-4000-8000-000000000001',1),
+ ('30000000-0000-4000-8000-000000000002','SIN','20000000-0000-4000-8000-000000000003',2)
 on conflict do nothing;
 
 commit;

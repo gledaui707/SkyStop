@@ -28,7 +28,7 @@ const CATEGORY: Record<ActivityRow['category'], Category> = { food: 'Food', rest
 const PHOTO: Record<string, Partial<Record<ActivityRow['category'], Img>>> = {
   LIS: { food: IMAGES.activities.l1, rest: IMAGES.activities.l3, shopping: IMAGES.activities.l4, culture: IMAGES.activities.l2, work: IMAGES.activities.s4 },
   SIN: { food: IMAGES.activities.s1, rest: IMAGES.activities.s3, shopping: IMAGES.activities.l4, culture: IMAGES.activities.s2, work: IMAGES.activities.s4 },
-  LHR: { food: IMAGES.activities.l1, rest: IMAGES.activities.s3, shopping: IMAGES.activities.l4, culture: IMAGES.activities.l4, work: IMAGES.activities.s4 },
+  LHR: { food: IMAGES.activities.s1, rest: IMAGES.activities.s3, shopping: IMAGES.activities.l4, culture: IMAGES.activities.l4, work: IMAGES.activities.s4 },
   DXB: { food: IMAGES.activities.s1, rest: IMAGES.activities.l3, shopping: IMAGES.activities.l4, culture: IMAGES.activities.l4, work: IMAGES.activities.s4 },
 }
 
