@@ -7,7 +7,7 @@
   place-items: center;
   overflow: hidden;
   isolation: isolate;
-  background: linear-gradient(145deg, #d84129, #a92d1c);
+  background: linear-gradient(155deg, #e35332 0%, #cc432c 62%, #b93727 100%);
   animation: skystop-reveal var(--splash-duration) linear both;
 }
 
@@ -15,20 +15,17 @@
   content: "";
   position: absolute;
   z-index: -1;
-  top: 17%;
-  left: 8%;
-  width: 78%;
-  height: 62%;
-  border-radius: 62% 38% 44% 56% / 48% 62% 38% 52%;
-  background: radial-gradient(ellipse at 40% 35%, #f98b3c, #ee652c 56%, #df4828);
-  opacity: .8;
-  filter: blur(clamp(22px, 6vmin, 64px));
+  inset: -34% -44% auto auto;
+  width: 138%;
+  height: 110%;
+  background: radial-gradient(ellipse at 52% 45%, #ff9b51 0%, #ff7c42 31%, transparent 72%);
+  opacity: .88;
   animation: skystop-blob-drift var(--splash-duration) ease-in-out both;
 }
 
 @keyframes skystop-blob-drift {
-  from { transform: translate(-9%, -8%) rotate(-8deg); }
-  to { transform: translate(21%, 12%) rotate(9deg); }
+  from { transform: translate(6%, -4%) rotate(-22deg); }
+  to { transform: translate(-12%, 14%) rotate(-30deg); }
 }
 
 .launch-splash__logo {
