@@ -4,6 +4,7 @@ import { useApp } from '../store'
 import { ACTIVITIES, getAirport } from '../data/mock'
 import { budget, fmtDur, isOvernight, layoverMinutesAt } from '../data/time'
 import type { Plan } from '../data/types'
+import { computeItinerary } from '../data/itinerary'
 import { BudgetHero } from '../components/BudgetHero'
 import { ActivityRow, Button, DemoNote, Header, LargeTitle, Notice, Photo, SectionTitle, cx } from '../components/ui'
 
@@ -34,7 +35,7 @@ export function Plans() {
           <ul className="grid gap-4">
             {plans.map((p, i) => {
               const ap = getAirport(p.airport)
-              const b = budget(layoverMinutesAt(p.arrival, p.departure, ap.timezone), p.bufferMin, itemsOf(p))
+              const r = computeItinerary(p).hero, b = { over: r.remaining < 0, remaining: r.remaining }
               return (
                 <li key={p.id} className="anim-rise" style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}>
                   <button onClick={() => go({ name: 'plan', id: p.id })} className="ph press relative block h-44 w-full overflow-hidden rounded-[1.75rem] text-left text-white">
@@ -86,12 +87,12 @@ export function PlanDetail({ id }: { id: string }) {
           <span aria-hidden="true" className="btn-coral grid size-9 place-items-center rounded-full"><Plane size={16} /></span>
           <div className="text-right"><p className="text-cap text-muted-text">Depart</p><p className="text-body font-semibold">{when(p.departure)}</p></div>
         </div>
-        <BudgetHero b={b} overnight={isOvernight(new Date(p.arrival), new Date(p.departure))} />
+        <BudgetHero n={computeItinerary(p).hero} overnight={isOvernight(new Date(p.arrival), new Date(p.departure))} />
         <SectionTitle>Activities ({items.length})</SectionTitle>
         {items.length ? <ul className="grid gap-3">{items.map((a) => <ActivityRow key={a.id} a={a} />)}</ul>
           : <p className="text-body text-muted-text">No activities yet. Edit the plan to add some.</p>}
         <Button icon={Pencil} className="mt-3" onClick={() => {
-          setDraft({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination })
+          setDraft({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination, arrivalLocation: p.arrivalLocation, departureLocation: p.departureLocation })
           go({ name: 'builder' })
         }}>Edit plan</Button>
       </div>

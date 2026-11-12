@@ -1,7 +1,7 @@
 // Illustrative flight comparison data + guest UI flags. The catalogue (airports, activities, itineraries)
 // and saved plans are NOT mocked: they come from Supabase via ./catalogue and ./plans.
 import type { Flight } from './types'
-export { AIRPORTS, ACTIVITIES, TEMPLATES, isSupported, getAirport, getActivities, getTemplates } from './catalogue'
+export { AIRPORTS, ACTIVITIES, TEMPLATES, GRAPHS, isSupported, getAirport, getActivities, getTemplates } from './catalogue'
 
 export const CITIES = [
   { code: 'CGK', name: 'Jakarta, Indonesia' },

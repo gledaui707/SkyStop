@@ -1,9 +1,9 @@
 # Database tables as implemented (generated from the live Supabase project)
 
-Source: `information_schema` / `pg_constraint` of project `sgwbtgwccskqamzttczz`, queried read-only on 2026-11-12. Regenerate rather than edit by hand. All columns are NOT NULL unless marked.
+Source: `information_schema` / `pg_constraint` / `pg_policies` of project `sgwbtgwccskqamzttczz`, queried read-only on 2026-11-13. Regenerate rather than edit by hand. Migrations: `supabase/migrations/` (latest: `202611130001_transfer_graph.sql`, additive).
 
 ## `airports`
-Airport identity and IANA time zone (the zone all layover times are entered in).
+Airport identity, IANA time zone, and the official immigration guidance link for the country.
 
 | # | Column | Type | Null? | Default |
 |---|---|---|---|---|
@@ -11,14 +11,17 @@ Airport identity and IANA time zone (the zone all layover times are entered in).
 | 2 | `name` | text | no |  |
 | 3 | `timezone` | text | no |  |
 | 4 | `dataset_label` | text | no | `'Illustrative demo catalogue; not travel guidance'::text` |
+| 5 | `entry_guidance_url` | text | yes |  |
 
 | Kind | Constraint |
 |---|---|
-| Primary key | `PRIMARY KEY (id)` |
 | Check | `CHECK ((id ~ '^[A-Z]{3}$'::text))` |
+| Primary key | `PRIMARY KEY (id)` |
+
+Row-level security policies: `catalogue_read` (SELECT to {anon,authenticated})
 
 ## `activities`
-Illustrative layover activities per airport (category, access zone, duration, budget wording).
+Venues at each airport (catalogue).
 
 | # | Column | Type | Null? | Default |
 |---|---|---|---|---|
@@ -32,18 +35,21 @@ Illustrative layover activities per airport (category, access zone, duration, bu
 | 8 | `duration_minutes` | integer | no |  |
 | 9 | `budget_label` | text | no | `'Unknown'::text` |
 | 10 | `is_demo` | boolean | no | `true` |
+| 11 | `source_url` | text | yes |  |
 
 | Kind | Constraint |
 |---|---|
-| Primary key | `PRIMARY KEY (id)` |
-| Foreign key | `FOREIGN KEY (airport_id) REFERENCES airports(id)` |
-| Unique | `UNIQUE (id, airport_id)` |
+| Check | `CHECK (((duration_minutes >= 1) AND (duration_minutes <= 1440)))` |
 | Check | `CHECK ((access_zone = ANY (ARRAY['airside'::text, 'landside'::text, 'unknown'::text])))` |
 | Check | `CHECK ((category = ANY (ARRAY['food'::text, 'rest'::text, 'shopping'::text, 'culture'::text, 'work'::text])))` |
-| Check | `CHECK (((duration_minutes >= 1) AND (duration_minutes <= 1440)))` |
+| Foreign key | `FOREIGN KEY (airport_id) REFERENCES airports(id)` |
+| Primary key | `PRIMARY KEY (id)` |
+| Unique | `UNIQUE (id, airport_id)` |
+
+Row-level security policies: `catalogue_read` (SELECT to {anon,authenticated})
 
 ## `itinerary_templates`
-Curated itinerary headers per airport.
+Curated itineraries per airport.
 
 | # | Column | Type | Null? | Default |
 |---|---|---|---|---|
@@ -54,12 +60,14 @@ Curated itinerary headers per airport.
 
 | Kind | Constraint |
 |---|---|
-| Primary key | `PRIMARY KEY (id)` |
 | Foreign key | `FOREIGN KEY (airport_id) REFERENCES airports(id)` |
+| Primary key | `PRIMARY KEY (id)` |
 | Unique | `UNIQUE (id, airport_id)` |
 
+Row-level security policies: `catalogue_read` (SELECT to {anon,authenticated})
+
 ## `template_items`
-Ordered activities that make up each curated itinerary.
+Ordered venues in a curated itinerary.
 
 | # | Column | Type | Null? | Default |
 |---|---|---|---|---|
@@ -70,40 +78,44 @@ Ordered activities that make up each curated itinerary.
 
 | Kind | Constraint |
 |---|---|
-| Primary key | `PRIMARY KEY (template_id, "position")` |
+| Check | `CHECK ((("position" >= 1) AND ("position" <= 20)))` |
 | Foreign key | `FOREIGN KEY (activity_id, airport_id) REFERENCES activities(id, airport_id)` |
 | Foreign key | `FOREIGN KEY (template_id, airport_id) REFERENCES itinerary_templates(id, airport_id) ON DELETE CASCADE` |
+| Primary key | `PRIMARY KEY (template_id, "position")` |
 | Unique | `UNIQUE (template_id, activity_id)` |
-| Check | `CHECK ((("position" >= 1) AND ("position" <= 20)))` |
+
+Row-level security policies: `catalogue_read` (SELECT to {anon,authenticated})
 
 ## `layovers`
-A guest's saved layover: airport, arrival/departure instants (UTC), buffer, revision. Owned by the anonymous guest.
+Saved plans (owned by the anonymous guest).
 
 | # | Column | Type | Null? | Default |
 |---|---|---|---|---|
 | 1 | `id` | uuid | no |  |
 | 2 | `owner_id` | uuid | no |  |
 | 3 | `airport_id` | text | no |  |
-| 4 | `arrival_at` | timestamptz | no |  |
-| 5 | `departure_at` | timestamptz | no |  |
+| 4 | `arrival_at` | timestamp with time zone | no |  |
+| 5 | `departure_at` | timestamp with time zone | no |  |
 | 6 | `buffer_minutes` | integer | no |  |
 | 7 | `revision` | integer | no | `1` |
-| 8 | `created_at` | timestamptz | no | `now()` |
-| 9 | `updated_at` | timestamptz | no | `now()` |
+| 8 | `created_at` | timestamp with time zone | no | `now()` |
+| 9 | `updated_at` | timestamp with time zone | no | `now()` |
 
 | Kind | Constraint |
 |---|---|
-| Primary key | `PRIMARY KEY (id)` |
+| Check | `CHECK (((buffer_minutes >= 0) AND (buffer_minutes <= 1440)))` |
+| Check | `CHECK (((departure_at > arrival_at) AND (departure_at <= (arrival_at + '48:00:00'::interval))))` |
+| Check | `CHECK ((isfinite(arrival_at) AND isfinite(departure_at)))` |
+| Check | `CHECK ((revision > 0))` |
 | Foreign key | `FOREIGN KEY (airport_id) REFERENCES airports(id)` |
 | Foreign key | `FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE` |
+| Primary key | `PRIMARY KEY (id)` |
 | Unique | `UNIQUE (id, airport_id)` |
-| Check | `CHECK (((buffer_minutes >= 0) AND (buffer_minutes <= 1440)))` |
-| Check | `CHECK ((isfinite(arrival_at) AND isfinite(departure_at)))` |
-| Check | `CHECK (((departure_at > arrival_at) AND (departure_at <= (arrival_at + '48:00:00'::interval))))` |
-| Check | `CHECK ((revision > 0))` |
+
+Row-level security policies: `owner_read` (SELECT to {authenticated})
 
 ## `plan_items`
-Ordered activities in a saved layover, with the duration copied at save time.
+Ordered venues in a saved plan, with a duration snapshot.
 
 | # | Column | Type | Null? | Default |
 |---|---|---|---|---|
@@ -115,40 +127,90 @@ Ordered activities in a saved layover, with the duration copied at save time.
 
 | Kind | Constraint |
 |---|---|
-| Primary key | `PRIMARY KEY (layover_id, "position")` |
+| Check | `CHECK ((("position" >= 1) AND ("position" <= 20)))` |
+| Check | `CHECK (((duration_minutes >= 1) AND (duration_minutes <= 1440)))` |
 | Foreign key | `FOREIGN KEY (activity_id, airport_id) REFERENCES activities(id, airport_id)` |
 | Foreign key | `FOREIGN KEY (layover_id, airport_id) REFERENCES layovers(id, airport_id) ON DELETE CASCADE` |
+| Primary key | `PRIMARY KEY (layover_id, "position")` |
 | Unique | `UNIQUE (layover_id, activity_id)` |
-| Check | `CHECK (((duration_minutes >= 1) AND (duration_minutes <= 1440)))` |
-| Check | `CHECK ((("position" >= 1) AND ("position" <= 20)))` |
 
-## Relationships
-```mermaid
-erDiagram
-  AIRPORTS ||--o{ ACTIVITIES : has
-  AIRPORTS ||--o{ ITINERARY_TEMPLATES : offers
-  ITINERARY_TEMPLATES ||--o{ TEMPLATE_ITEMS : orders
-  ACTIVITIES ||--o{ TEMPLATE_ITEMS : used_in
-  AUTH_USERS ||--o{ LAYOVERS : owns
-  AIRPORTS ||--o{ LAYOVERS : at
-  LAYOVERS ||--o{ PLAN_ITEMS : contains
-  ACTIVITIES ||--o{ PLAN_ITEMS : chosen
-```
+Row-level security policies: `owner_read` (SELECT to {authenticated})
 
-## Indexes
-| Table | Index |
+## `airport_locations`
+NEW (2026-11-13). Places a traveller moves between: transit areas, public areas such as Jewel. Zone = airside/landside.
+
+| # | Column | Type | Null? | Default |
+|---|---|---|---|---|
+| 1 | `id` | text | no |  |
+| 2 | `airport_id` | text | no |  |
+| 3 | `name` | text | no |  |
+| 4 | `kind` | text | no |  |
+| 5 | `zone` | text | no |  |
+| 6 | `terminal` | text | yes |  |
+| 7 | `source_url` | text | yes |  |
+
+| Kind | Constraint |
 |---|---|
-| `activities` | `activities_airport` |
-| `activities` | `activities_id_airport_id_key` |
-| `activities` | `activities_pkey` |
-| `airports` | `airports_pkey` |
-| `itinerary_templates` | `itinerary_templates_id_airport_id_key` |
-| `itinerary_templates` | `itinerary_templates_pkey` |
-| `itinerary_templates` | `templates_airport` |
-| `layovers` | `layovers_id_airport_id_key` |
-| `layovers` | `layovers_owner_updated` |
-| `layovers` | `layovers_pkey` |
-| `plan_items` | `plan_items_layover_id_activity_id_key` |
-| `plan_items` | `plan_items_pkey` |
-| `template_items` | `template_items_pkey` |
-| `template_items` | `template_items_template_id_activity_id_key` |
+| Check | `CHECK ((id ~ '^[A-Z]{3}-[A-Z0-9-]+$'::text))` |
+| Check | `CHECK ((kind = ANY (ARRAY['transit_area'::text, 'public_area'::text, 'terminal'::text, 'concourse'::text, 'checkpoint'::text, 'transport'::text])))` |
+| Check | `CHECK ((zone = ANY (ARRAY['airside'::text, 'landside'::text, 'unknown'::text])))` |
+| Foreign key | `FOREIGN KEY (airport_id) REFERENCES airports(id)` |
+| Primary key | `PRIMARY KEY (id)` |
+| Unique | `UNIQUE (id, airport_id)` |
+
+Row-level security policies: `catalogue_read` (SELECT to {anon,authenticated})
+
+## `airport_transfers`
+NEW (2026-11-13). Directed connections between locations: minute range, mode, checkpoints involved (arrival immigration; departure checks; through-check), verification (official / planning_estimate) and source.
+
+| # | Column | Type | Null? | Default |
+|---|---|---|---|---|
+| 1 | `id` | text | no |  |
+| 2 | `airport_id` | text | no |  |
+| 3 | `from_location` | text | no |  |
+| 4 | `to_location` | text | no |  |
+| 5 | `mode` | text | no |  |
+| 6 | `min_minutes` | integer | no |  |
+| 7 | `max_minutes` | integer | no |  |
+| 8 | `requires_immigration` | boolean | no | `false` |
+| 9 | `requires_departure_checks` | boolean | no | `false` |
+| 10 | `requires_through_check` | boolean | no | `false` |
+| 11 | `verification` | text | no |  |
+| 12 | `source_url` | text | yes |  |
+| 13 | `note` | text | no | `''::text` |
+
+| Kind | Constraint |
+|---|---|
+| Check | `CHECK (((max_minutes >= 0) AND (max_minutes <= 600)))` |
+| Check | `CHECK (((min_minutes >= 0) AND (min_minutes <= 600)))` |
+| Check | `CHECK ((from_location <> to_location))` |
+| Check | `CHECK ((max_minutes >= min_minutes))` |
+| Check | `CHECK ((mode = ANY (ARRAY['walk'::text, 'skytrain_or_walk'::text, 'shuttle_bus'::text, 'link_bridge_walk'::text])))` |
+| Check | `CHECK ((verification = ANY (ARRAY['official'::text, 'planning_estimate'::text])))` |
+| Foreign key | `FOREIGN KEY (from_location, airport_id) REFERENCES airport_locations(id, airport_id)` |
+| Foreign key | `FOREIGN KEY (to_location, airport_id) REFERENCES airport_locations(id, airport_id)` |
+| Primary key | `PRIMARY KEY (id)` |
+
+Row-level security policies: `catalogue_read` (SELECT to {anon,authenticated})
+
+## `activity_locations`
+NEW (2026-11-13). Which location(s) each venue is in; a venue may be in several terminals.
+
+| # | Column | Type | Null? | Default |
+|---|---|---|---|---|
+| 1 | `activity_id` | uuid | no |  |
+| 2 | `airport_id` | text | no |  |
+| 3 | `location_id` | text | no |  |
+
+| Kind | Constraint |
+|---|---|
+| Foreign key | `FOREIGN KEY (activity_id, airport_id) REFERENCES activities(id, airport_id)` |
+| Foreign key | `FOREIGN KEY (location_id, airport_id) REFERENCES airport_locations(id, airport_id)` |
+| Primary key | `PRIMARY KEY (activity_id, location_id)` |
+
+Row-level security policies: `catalogue_read` (SELECT to {anon,authenticated})
+
+## Notes
+- Catalogue tables (airports, activities, templates, transfer graph) are read-only for `anon`/`authenticated`; nothing in the client can write them.
+- Saved plans reference activities only, never locations or transfers, so the transfer graph can change without affecting saved plans.
+- A plan's arrival/departure terminal is a browser-side label (like its name), not a database column. No passport or immigration answer is stored anywhere.

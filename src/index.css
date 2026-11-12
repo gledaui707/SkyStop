@@ -27,6 +27,7 @@
   --color-error: #c4321f;
   --color-error-tint: #fde7e3;
   --color-success: #1d7f45;
+  --color-success-tint: #e3f3e8;
 
   /* iOS type scale in rem so it follows system/browser text size */
   --text-title: 2.125rem;

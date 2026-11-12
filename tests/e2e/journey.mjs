@@ -82,11 +82,7 @@ try {
   check('map: real-map view shows the Terminal 1 pin with the 2 planned activities and the time left', /6 of 6 venues, 2 in your itinerary/.test(await page.getByRole('button', { name: /^Terminal 1: / }).getAttribute('aria-label')) && await visible(page, '2 planned') && await visible(page, '1h 50m left') && await visible(page, 'OpenStreetMap'));
   await page.getByRole('button', { name: /^Terminal 1: / }).click();
   check('map: tapping a terminal lists its venues', await visible(page, 'Terminal 1 · Lisbon') && await page.getByRole('button', { name: /ANA Lounge/ }).first().isVisible());
-  await page.waitForTimeout(900);
-  check('map: zoomed into the terminal, each venue has its own pin (approximate spot), planned ones marked', await page.getByRole('button', { name: /^ANA Lounge, Rest, Terminal 1 \(approximate location\), in your itinerary/ }).isVisible() && await page.getByRole('button', { name: /^LEGO Store, Shopping, Terminal 1 \(approximate location\)$/ }).isVisible());
-  await page.getByRole('button', { name: /^LEGO Store, Shopping/ }).click();
-  check('map: tapping a venue pin opens its preview', await visible(page, 'map pin approximate') && await page.getByRole('button', { name: 'Close preview' }).isVisible());
-  await page.getByRole('button', { name: 'Close preview' }).click();
+  check('map: venues are not given invented indoor positions (terminal pins only)', (await page.getByRole('button', { name: /approximate location/ }).count()) === 0);
   await shot(page, '03-airport-map');
   await page.getByRole('tab', { name: 'list' }).click();
   check('back in list: selection unchanged', (await page.getByRole('button', { name: 'Remove ANA Lounge' }).getAttribute('aria-pressed')) === 'true' && await page.getByRole('button', { name: 'Build itinerary (2)' }).isVisible());
@@ -286,6 +282,91 @@ try {
   const dur = await rm.page.evaluate(() => getComputedStyle(document.querySelector('[aria-roledescription="carousel"] .flex')).transitionDuration);
   check('onboarding: reduced motion removes the slide transition', parseFloat(dur) < 0.01, dur);
   await rm.ctx.close();
+
+  // ---- 4c. Changi constraint-aware itinerary (scenarios A–F)
+  {
+    const c = await newGuest();
+    const P = c.page;
+    const hero = async () => (await P.getByLabel('Time budget').innerText()).replace(/\s+/g, ' ');
+    const itin = async () => (await P.getByLabel('Itinerary').innerText()).replace(/\s+/g, ' ');
+    await P.goto(BASE);
+    await P.getByRole('button', { name: /Plan a layover/ }).first().click();
+    await P.getByLabel('Booking reference').fill('AXR7KD');
+    await P.getByRole('button', { name: 'Find my journey' }).click();
+    await P.getByRole('button', { name: 'Explore Singapore' }).click();
+    await P.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
+    await P.getByRole('button', { name: 'Add Butterfly Garden' }).click();
+    await P.getByRole('button', { name: "Add Harry's" }).click();
+    await P.getByRole('button', { name: 'Build itinerary (2)' }).click();
+    await P.getByLabel('Time budget').waitFor();
+    // D (terminals unknown): transfers cannot be estimated, so feasibility is not claimed
+    check('D: terminals not set -> "Cannot verify feasibility" and the transfer asks for a terminal', (await hero()).includes('Cannot verify feasibility') && (await itin()).includes('choose your terminal to estimate'));
+    await P.getByRole('button', { name: 'Arriving at Terminal 3 transit area' }).click();
+    await P.getByRole('button', { name: 'Departing from Terminal 3 transit area' }).click();
+    // A: two airside activities in T3: 620 usable − 70 activities − 3 × 10 (within-area planning estimates) = 520 = 8h 40m
+    const ha = await hero();
+    check('A: airside-only plan fits; remaining = 10h 20m − 1h 10m activities − 30m transfers = 8h 40m', ha.includes('Fits within estimated time budget') && ha.includes('8h 40m') && ha.includes('30m transfers') && (await visible(P, 'Stays in the transit area')), ha.slice(0, 160));
+    check('A: each transfer is shown and labelled as a planning estimate', (await P.getByText('Estimated transfer: 2–10m').count()) === 2 && (await P.getByText('Return transfer: 2–10m').count()) === 1 && await visible(P, 'Planning estimate, not airport data'));
+    await shot(P, '07-changi-airside');
+    // E: reorder and remove update everything at once
+    await P.getByRole('button', { name: 'Reorder' }).click();
+    await P.getByRole('button', { name: "Move Harry's earlier" }).click();
+    await P.getByRole('button', { name: 'Done' }).click();
+    check('E: reorder keeps the new order (Harry\'s first)', (await itin()).indexOf("Harry's") < (await itin()).indexOf('Butterfly Garden'));
+    // B: add Jewel (landside)
+    await P.getByRole('button', { name: 'Add activities' }).click();
+    await P.getByRole('button', { name: 'Add Jewel Rain Vortex' }).click();
+    await P.getByRole('button', { name: 'Build itinerary (3)' }).click();
+    await P.getByLabel('Entry check').waitFor();
+    const hb = await hero(), entry = (await P.getByLabel('Entry check').innerText()).replace(/\s+/g, ' ');
+    check('B: Jewel triggers "Entry verification required" with the zone transition explained', entry.includes('Entry verification required') && entry.includes('Jewel Rain Vortex is outside the transit area') && entry.includes('arrival immigration'));
+    check('B: immigration and re-entry steps shown on the transfers, time not included', await visible(P, 'Immigration required · time not included') && await visible(P, 'Check-in, departure immigration and security · time not included'));
+    check('B: feasibility is not claimed while immigration time is unknown', hb.includes('Cannot verify feasibility') && hb.includes('Immigration and re-entry checks are not included'));
+    check('B: links to ICA, the official authority', (await P.getByRole('link', { name: /Check entry requirements with Immigration & Checkpoints Authority/ }).getAttribute('href')).startsWith('https://www.ica.gov.sg/'));
+    await P.getByLabel('Passport nationality (optional)').fill('Indonesian');
+    await P.getByRole('button', { name: "I'm not sure" }).click();
+    const said = (await P.locator('body').innerText());
+    check('B: answers give guidance only; no eligibility decision is made', said.includes('Check the official guidance before you travel') && !/visa (approved|eligible)|guaranteed entry|safe to leave/i.test(said));
+    check('B: nationality is not stored', !(await P.evaluate(() => JSON.stringify(localStorage))).includes('Indonesian'));
+    await shot(P, '08-changi-jewel');
+    await P.getByRole('button', { name: 'Remove landside activity' }).click();
+    check('E: removing the landside activity clears the access warning and restores the estimate', (await P.getByLabel('Entry check').count()) === 0 && await visible(P, 'Stays in the transit area') && (await hero()).includes('8h 40m'));
+    // F: persistence of order and terminals across save, refresh, reopen, edit, save
+    await P.getByRole('button', { name: 'Save plan' }).click();
+    await P.getByLabel('Upcoming trip').waitFor();
+    const sp = [...fake.plans.values()].find((x) => x.row.airport_id === 'SIN' && x.items.length === 2);
+    check('F: saved with the chosen order (Harry\'s, then Butterfly Garden)', !!sp && sp.items[0].activity_id.endsWith('08') && sp.items[1].activity_id.endsWith('04'));
+    await P.reload();
+    await P.getByRole('button', { name: 'View layover' }).click();
+    await P.getByRole('button', { name: 'Edit plan' }).click();
+    await P.getByLabel('Time budget').waitFor();
+    check('F: reopened plan keeps its terminals and the same estimate', (await P.getByRole('button', { name: 'Arriving at Terminal 3 transit area' }).getAttribute('aria-pressed')) === 'true' && (await hero()).includes('8h 40m'));
+    await P.getByRole('button', { name: 'Departing from Terminal 1 transit area' }).click();
+    const hf = await hero();
+    check('F: changing the departure terminal adds the Skytrain transfer (official 5–10 min)', hf.includes('8h 40m') && await visible(P, 'Range published by the airport'), hf.slice(0, 120));
+    await P.getByRole('button', { name: 'Save changes' }).click();
+    await P.getByText('All changes saved').waitFor();
+    await P.reload();
+    await P.getByRole('button', { name: 'View layover' }).click();
+    await P.getByRole('button', { name: 'Edit plan' }).click();
+    check('F: after refresh the edited departure terminal persists', (await P.getByRole('button', { name: 'Departing from Terminal 1 transit area' }).getAttribute('aria-pressed')) === 'true');
+    await c.ctx.close();
+  }
+  // C: over budget at Changi (manual times: 5 h layover, 1 h 30 m buffer → 3 h 30 m usable)
+  {
+    const o = await newGuest();
+    await o.page.goto(BASE);
+    await o.page.getByRole('button', { name: 'Airports', exact: true }).click();
+    await o.page.getByRole('button', { name: /Singapore Changi/ }).first().click();
+    for (const n of ['Free Singapore Tour', 'Rooftop pool with jacuzzi']) await o.page.getByRole('button', { name: `Select ${n}` }).click();
+    await o.page.getByRole('button', { name: /Set layover times/ }).click();
+    await setTimes(o.page);
+    await o.page.getByRole('button', { name: 'Build my itinerary' }).click();
+    await o.page.getByLabel('Time budget').waitFor();
+    const hc = (await o.page.getByLabel('Time budget').innerText()).replace(/\s+/g, ' ');
+    check('C: 2h 30m + 1h activities exceed 3h 30m usable → "Exceeds available time", explained', hc.includes('Exceeds available time') && hc.includes('This plan does not fit') && await visible(o.page, 'exceeds your estimated available time'), hc.slice(0, 140));
+    await o.ctx.close();
+  }
 
   // ---- 5. Illustrative flight comparison still works
   const b = await newGuest();

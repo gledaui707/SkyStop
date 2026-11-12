@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { ActivityRow, AirportRow, LayoverRow, PlanItemRow, SavePlanArgs, TemplateItemRow, TemplateRow } from '../types/database.types';
+import type { ActivityLocationRow, ActivityRow, AirportRow, LocationRow, TransferRow, LayoverRow, PlanItemRow, SavePlanArgs, TemplateItemRow, TemplateRow } from '../types/database.types';
 import { ensureGuestSession } from './session';
 
 export class DataError extends Error {
@@ -15,6 +15,16 @@ export const listAirports = async (sb: SupabaseClient): Promise<AirportRow[]> =>
 
 export const listActivities = async (sb: SupabaseClient, airportId: string): Promise<ActivityRow[]> =>
   ok(await sb.from('activities').select('*').eq('airport_id', airportId).order('name'));
+
+/** Transfer graph for one airport (empty arrays where no routing data is recorded). */
+export async function listTransferGraph(sb: SupabaseClient, airportId: string) {
+  const [locations, transfers, activityLocations] = await Promise.all([
+    sb.from('airport_locations').select('*').eq('airport_id', airportId).order('id'),
+    sb.from('airport_transfers').select('*').eq('airport_id', airportId).order('id'),
+    sb.from('activity_locations').select('*').eq('airport_id', airportId),
+  ])
+  return { locations: ok(locations) as LocationRow[], transfers: ok(transfers) as TransferRow[], activityLocations: ok(activityLocations) as ActivityLocationRow[] }
+}
 
 export interface Template extends TemplateRow { items: TemplateItemRow[] }
 export async function listTemplates(sb: SupabaseClient, airportId: string): Promise<Template[]> {

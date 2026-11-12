@@ -1,6 +1,6 @@
 // Saved plans: Supabase is the source of truth (layovers + plan_items, owned by the anonymous guest).
-// The database has no columns for a plan's display name or origin/destination, so those cosmetic labels
-// are remembered per browser only; times, airport, buffer and activities always come from the database.
+// The database has no columns for a plan's display name, origin/destination or arrival/departure terminal, so
+// those are remembered per browser only (like the guest session itself); times, airport, buffer and activities always come from the database.
 import type { Draft, Plan } from './types'
 import { AIRPORTS, getAirport } from './catalogue'
 import { getSupabase } from '../api/client'
@@ -8,7 +8,7 @@ import { hasGuestSession } from '../api/session'
 import * as repo from '../api/repositories'
 import { instantToLocal, validateLayover } from '../domain'
 
-interface Meta { name?: string; origin?: string; destination?: string; bookingRef?: string }
+interface Meta { name?: string; origin?: string; destination?: string; bookingRef?: string; arrivalLocation?: string | null; departureLocation?: string | null }
 const META_KEY = 'skystop.planmeta.v1'
 const readMeta = (): Record<string, Meta> => { try { return JSON.parse(localStorage.getItem(META_KEY) || '{}') } catch { return {} } }
 const writeMeta = (id: string, m: Meta) => { try { localStorage.setItem(META_KEY, JSON.stringify({ ...readMeta(), [id]: m })) } catch { /* labels are optional */ } }
@@ -22,6 +22,7 @@ export function toUiPlan(row: repo.Plan): Plan {
     arrival: local(row.arrival_at), departure: local(row.departure_at), bufferMin: row.buffer_minutes,
     activityIds: [...row.plan_items].sort((a, b) => a.position - b.position).map((i) => i.activity_id),
     updatedAt: row.updated_at, revision: row.revision, origin: meta.origin, destination: meta.destination, bookingRef: meta.bookingRef,
+    arrivalLocation: meta.arrivalLocation ?? null, departureLocation: meta.departureLocation ?? null,
   }
 }
 
@@ -56,7 +57,8 @@ export async function saveDraft(d: Draft): Promise<Plan> {
     if (!existing) throw friendly(e)
     try { saved = await repo.savePlan(sb, payload, existing.revision) } catch (e2) { throw friendly(e2) }
   }
-  writeMeta(id, { name: d.name.trim() || undefined, origin: d.origin, destination: d.destination, bookingRef: d.bookingRef })
+  writeMeta(id, { name: d.name.trim() || undefined, origin: d.origin, destination: d.destination, bookingRef: d.bookingRef,
+    arrivalLocation: d.arrivalLocation ?? null, departureLocation: d.departureLocation ?? null })
   return toUiPlan(saved)
 }
 

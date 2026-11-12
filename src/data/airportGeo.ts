@@ -69,28 +69,3 @@ export function terminalKeyOf(airport: string, terminal?: string): string | null
   const keys = terminalKeysOf(airport, terminal)
   return keys.length === 1 ? keys[0] : null
 }
-
-export interface VenueSpot { id: string; key: string; activityId: string; terminal: string; lat: number; lng: number }
-
-/** Map positions for venues. Sources give a venue's terminal (sometimes its gates), not an exact spot, so each venue
- *  is placed at an APPROXIMATE position inside its terminal: spread evenly around the terminal's published point,
- *  deterministic (same place every time). A venue in several terminals gets one spot per terminal. */
-export function venueSpots(airport: string, venues: { id: string; terminal?: string }[]): VenueSpot[] {
-  const geo = AIRPORT_GEO[airport]
-  if (!geo) return []
-  const out: VenueSpot[] = []
-  for (const t of geo.terminals) {
-    const here = venues.filter((v) => terminalKeysOf(airport, v.terminal).includes(t.key)).sort((a, b) => a.id.localeCompare(b.id))
-    const n = here.length
-    // two staggered columns around the terminal point (names go on the outer side of each column)
-    const rows = Math.ceil(n / 2)
-    here.forEach((v, i) => {
-      const col = n === 1 ? 0 : i % 2 === 0 ? -1 : 1
-      const row = Math.floor(i / 2) - (rows - 1) / 2 + (col === 1 ? 0.35 : 0)
-      const dx = col * 22, dy = row * 30 // metres east, south
-      out.push({ id: `${v.id}@${t.key}`, key: t.key, activityId: v.id, terminal: t.name,
-        lat: t.lat - dy / 111_320, lng: t.lng + dx / (111_320 * Math.cos((t.lat * Math.PI) / 180)) })
-    })
-  }
-  return out
-}

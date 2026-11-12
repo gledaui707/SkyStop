@@ -1,31 +1,35 @@
 // In-browser stand-in for the Supabase HTTP API, used ONLY by the UI journey test.
 // It mirrors the hosted seed (verified 2026-11-12) and the save_plan contract. It is not evidence about the real database.
-// Generated from the hosted catalogue after migration 202611120001 (read-only query, 2026-11-12).
+// Generated from the hosted catalogue after migration 202611130001 (read-only query, 2026-11-13).
 export const SEED = {
  "airports": [
   {
    "id": "DXB",
    "name": "Dubai International Airport",
    "timezone": "Asia/Dubai",
-   "dataset_label": "Venues from dubaiairports.ae, checked Nov 2026"
+   "dataset_label": "Venues from dubaiairports.ae, checked Nov 2026",
+   "entry_guidance_url": "https://u.ae/en/information-and-services/visa-and-emirates-id/Visa-information/do-you-need-an-entry-permit-or-a-visa-to-enter-the-uae"
   },
   {
    "id": "LHR",
    "name": "London Heathrow Airport",
    "timezone": "Europe/London",
-   "dataset_label": "Venues from heathrow.com, checked Nov 2026"
+   "dataset_label": "Venues from heathrow.com, checked Nov 2026",
+   "entry_guidance_url": "https://www.gov.uk/transit-visa"
   },
   {
    "id": "LIS",
    "name": "Lisbon Airport",
    "timezone": "Europe/Lisbon",
-   "dataset_label": "Venues from lisbonairport.pt, checked Nov 2026"
+   "dataset_label": "Venues from lisbonairport.pt, checked Nov 2026",
+   "entry_guidance_url": "https://vistos.mne.gov.pt/en/short-stay-visas-schengen/general-information/who-needs-a-visa"
   },
   {
    "id": "SIN",
    "name": "Singapore Changi Airport",
    "timezone": "Asia/Singapore",
-   "dataset_label": "Venues from changiairport.com and jewelchangiairport.com, checked Nov 2026"
+   "dataset_label": "Venues from changiairport.com and jewelchangiairport.com, checked Nov 2026",
+   "entry_guidance_url": "https://www.ica.gov.sg/enter-transit-depart/entering-singapore/visa_requirements"
   }
  ],
  "activities": [
@@ -499,6 +503,387 @@ export const SEED = {
    "airport_id": "DXB",
    "activity_id": "50000000-0000-4000-8000-000000000002",
    "position": 2
+  }
+ ],
+ "airport_locations": [
+  {
+   "id": "SIN-JEWEL",
+   "airport_id": "SIN",
+   "name": "Jewel (public area)",
+   "kind": "public_area",
+   "zone": "landside",
+   "terminal": null,
+   "source_url": "https://www.jewelchangiairport.com/en/getting-to-jewel.html"
+  },
+  {
+   "id": "SIN-T1-TRANSIT",
+   "airport_id": "SIN",
+   "name": "Terminal 1 transit area",
+   "kind": "transit_area",
+   "zone": "airside",
+   "terminal": "T1",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html"
+  },
+  {
+   "id": "SIN-T2-TRANSIT",
+   "airport_id": "SIN",
+   "name": "Terminal 2 transit area",
+   "kind": "transit_area",
+   "zone": "airside",
+   "terminal": "T2",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html"
+  },
+  {
+   "id": "SIN-T3-TRANSIT",
+   "airport_id": "SIN",
+   "name": "Terminal 3 transit area",
+   "kind": "transit_area",
+   "zone": "airside",
+   "terminal": "T3",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html"
+  },
+  {
+   "id": "SIN-T4-TRANSIT",
+   "airport_id": "SIN",
+   "name": "Terminal 4 transit area",
+   "kind": "transit_area",
+   "zone": "airside",
+   "terminal": "T4",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html"
+  }
+ ],
+ "airport_transfers": [
+  {
+   "id": "SIN-JWT1",
+   "airport_id": "SIN",
+   "from_location": "SIN-JEWEL",
+   "to_location": "SIN-T1-TRANSIT",
+   "mode": "walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": false,
+   "requires_departure_checks": true,
+   "requires_through_check": false,
+   "verification": "planning_estimate",
+   "source_url": "https://www.jewelchangiairport.com/en/getting-to-jewel.html",
+   "note": "Walk to Terminal 1, then check-in, departure immigration and security. No walking time is published."
+  },
+  {
+   "id": "SIN-JWT2",
+   "airport_id": "SIN",
+   "from_location": "SIN-JEWEL",
+   "to_location": "SIN-T2-TRANSIT",
+   "mode": "link_bridge_walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": false,
+   "requires_departure_checks": true,
+   "requires_through_check": false,
+   "verification": "official",
+   "source_url": "https://www.jewelchangiairport.com/en/getting-to-jewel.html",
+   "note": "Link bridge to the T2 Departure Hall, then check-in, departure immigration and security before the transit area."
+  },
+  {
+   "id": "SIN-JWT3",
+   "airport_id": "SIN",
+   "from_location": "SIN-JEWEL",
+   "to_location": "SIN-T3-TRANSIT",
+   "mode": "link_bridge_walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": false,
+   "requires_departure_checks": true,
+   "requires_through_check": false,
+   "verification": "official",
+   "source_url": "https://www.jewelchangiairport.com/en/getting-to-jewel.html",
+   "note": "Link bridge to the T3 Departure Hall, then check-in, departure immigration and security before the transit area."
+  },
+  {
+   "id": "SIN-T1JW",
+   "airport_id": "SIN",
+   "from_location": "SIN-T1-TRANSIT",
+   "to_location": "SIN-JEWEL",
+   "mode": "walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": true,
+   "requires_departure_checks": false,
+   "requires_through_check": false,
+   "verification": "planning_estimate",
+   "source_url": "https://www.jewelchangiairport.com/en/getting-to-jewel.html",
+   "note": "After arrival immigration: Jewel is directly connected to the T1 Arrival Hall. No walking time is published."
+  },
+  {
+   "id": "SIN-T1T2",
+   "airport_id": "SIN",
+   "from_location": "SIN-T1-TRANSIT",
+   "to_location": "SIN-T2-TRANSIT",
+   "mode": "skytrain_or_walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": false,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Skytrain 05:00–02:00; travellators 24 hours."
+  },
+  {
+   "id": "SIN-T1T3",
+   "airport_id": "SIN",
+   "from_location": "SIN-T1-TRANSIT",
+   "to_location": "SIN-T3-TRANSIT",
+   "mode": "skytrain_or_walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": false,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Skytrain 05:00–02:00; travellators 24 hours."
+  },
+  {
+   "id": "SIN-T1T4",
+   "airport_id": "SIN",
+   "from_location": "SIN-T1-TRANSIT",
+   "to_location": "SIN-T4-TRANSIT",
+   "mode": "shuttle_bus",
+   "min_minutes": 10,
+   "max_minutes": 18,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": true,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Transit shuttle bus; only for passengers through-checked to their final destination."
+  },
+  {
+   "id": "SIN-T2JW",
+   "airport_id": "SIN",
+   "from_location": "SIN-T2-TRANSIT",
+   "to_location": "SIN-JEWEL",
+   "mode": "link_bridge_walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": true,
+   "requires_departure_checks": false,
+   "requires_through_check": false,
+   "verification": "official",
+   "source_url": "https://www.jewelchangiairport.com/en/getting-to-jewel.html",
+   "note": "After arrival immigration: link bridge from the T2 Departure Hall (Level 2, near row 1). Time from immigration to the hall is not published."
+  },
+  {
+   "id": "SIN-T2T1",
+   "airport_id": "SIN",
+   "from_location": "SIN-T2-TRANSIT",
+   "to_location": "SIN-T1-TRANSIT",
+   "mode": "skytrain_or_walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": false,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Skytrain 05:00–02:00; travellators 24 hours."
+  },
+  {
+   "id": "SIN-T2T3",
+   "airport_id": "SIN",
+   "from_location": "SIN-T2-TRANSIT",
+   "to_location": "SIN-T3-TRANSIT",
+   "mode": "skytrain_or_walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": false,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Skytrain 05:00–02:00; travellators 24 hours."
+  },
+  {
+   "id": "SIN-T2T4",
+   "airport_id": "SIN",
+   "from_location": "SIN-T2-TRANSIT",
+   "to_location": "SIN-T4-TRANSIT",
+   "mode": "shuttle_bus",
+   "min_minutes": 10,
+   "max_minutes": 18,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": true,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Transit shuttle bus; only for passengers through-checked to their final destination."
+  },
+  {
+   "id": "SIN-T3JW",
+   "airport_id": "SIN",
+   "from_location": "SIN-T3-TRANSIT",
+   "to_location": "SIN-JEWEL",
+   "mode": "link_bridge_walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": true,
+   "requires_departure_checks": false,
+   "requires_through_check": false,
+   "verification": "official",
+   "source_url": "https://www.jewelchangiairport.com/en/getting-to-jewel.html",
+   "note": "After arrival immigration: link bridge from the T3 Departure Hall (Level 2, near row 11). Time from immigration to the hall is not published."
+  },
+  {
+   "id": "SIN-T3T1",
+   "airport_id": "SIN",
+   "from_location": "SIN-T3-TRANSIT",
+   "to_location": "SIN-T1-TRANSIT",
+   "mode": "skytrain_or_walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": false,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Skytrain 05:00–02:00; travellators 24 hours."
+  },
+  {
+   "id": "SIN-T3T2",
+   "airport_id": "SIN",
+   "from_location": "SIN-T3-TRANSIT",
+   "to_location": "SIN-T2-TRANSIT",
+   "mode": "skytrain_or_walk",
+   "min_minutes": 5,
+   "max_minutes": 10,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": false,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Skytrain 05:00–02:00; travellators 24 hours."
+  },
+  {
+   "id": "SIN-T3T4",
+   "airport_id": "SIN",
+   "from_location": "SIN-T3-TRANSIT",
+   "to_location": "SIN-T4-TRANSIT",
+   "mode": "shuttle_bus",
+   "min_minutes": 10,
+   "max_minutes": 18,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": true,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Transit shuttle bus; only for passengers through-checked to their final destination."
+  },
+  {
+   "id": "SIN-T4T1",
+   "airport_id": "SIN",
+   "from_location": "SIN-T4-TRANSIT",
+   "to_location": "SIN-T1-TRANSIT",
+   "mode": "shuttle_bus",
+   "min_minutes": 10,
+   "max_minutes": 18,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": true,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Transit shuttle bus; only for passengers through-checked to their final destination."
+  },
+  {
+   "id": "SIN-T4T2",
+   "airport_id": "SIN",
+   "from_location": "SIN-T4-TRANSIT",
+   "to_location": "SIN-T2-TRANSIT",
+   "mode": "shuttle_bus",
+   "min_minutes": 10,
+   "max_minutes": 18,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": true,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Transit shuttle bus; only for passengers through-checked to their final destination."
+  },
+  {
+   "id": "SIN-T4T3",
+   "airport_id": "SIN",
+   "from_location": "SIN-T4-TRANSIT",
+   "to_location": "SIN-T3-TRANSIT",
+   "mode": "shuttle_bus",
+   "min_minutes": 10,
+   "max_minutes": 18,
+   "requires_immigration": false,
+   "requires_departure_checks": false,
+   "requires_through_check": true,
+   "verification": "official",
+   "source_url": "https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html",
+   "note": "Transit shuttle bus; only for passengers through-checked to their final destination."
+  }
+ ],
+ "activity_locations": [
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000001",
+   "airport_id": "SIN",
+   "location_id": "SIN-T3-TRANSIT"
+  },
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000002",
+   "airport_id": "SIN",
+   "location_id": "SIN-JEWEL"
+  },
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000003",
+   "airport_id": "SIN",
+   "location_id": "SIN-T1-TRANSIT"
+  },
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000003",
+   "airport_id": "SIN",
+   "location_id": "SIN-T2-TRANSIT"
+  },
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000003",
+   "airport_id": "SIN",
+   "location_id": "SIN-T3-TRANSIT"
+  },
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000003",
+   "airport_id": "SIN",
+   "location_id": "SIN-T4-TRANSIT"
+  },
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000004",
+   "airport_id": "SIN",
+   "location_id": "SIN-T3-TRANSIT"
+  },
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000005",
+   "airport_id": "SIN",
+   "location_id": "SIN-JEWEL"
+  },
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000006",
+   "airport_id": "SIN",
+   "location_id": "SIN-T1-TRANSIT"
+  },
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000007",
+   "airport_id": "SIN",
+   "location_id": "SIN-T2-TRANSIT"
+  },
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000007",
+   "airport_id": "SIN",
+   "location_id": "SIN-T3-TRANSIT"
+  },
+  {
+   "activity_id": "20000000-0000-4000-8000-000000000008",
+   "airport_id": "SIN",
+   "location_id": "SIN-T3-TRANSIT"
   }
  ]
 };

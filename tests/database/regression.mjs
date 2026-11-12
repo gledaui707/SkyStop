@@ -47,4 +47,17 @@ await check('Exception after child deletion rolls back entire RPC',async()=>{
  await identity('authenticated',A);await fail(save(3,[a1]),'P0001');assert.equal((await db.query('select revision from public.layovers')).rows[0].revision,3);
  await db.exec('reset role; drop trigger test_failure on public.plan_items; drop function public.test_failure();');
 });
+await check('Transfer graph: migration is re-runnable, Changi rows present, catalogue-style access',async()=>{
+ await db.exec('reset role');
+ await db.exec(readFileSync(new URL('supabase/migrations/202611130001_transfer_graph.sql',root),'utf8'));
+ for(const [t,n] of [['airport_locations',5],['airport_transfers',18],['activity_locations',12]]) assert.equal((await db.query(`select count(*)::int n from public.${t}`)).rows[0].n,n);
+ await fail(`insert into public.airport_transfers(id,airport_id,from_location,to_location,mode,min_minutes,max_minutes,verification) values ('x','SIN','SIN-T1-TRANSIT','SIN-T1-TRANSIT','walk',1,2,'official')`,'23514');
+ await fail(`insert into public.airport_transfers(id,airport_id,from_location,to_location,mode,min_minutes,max_minutes,verification) values ('y','LIS','SIN-T1-TRANSIT','SIN-T2-TRANSIT','walk',1,2,'official')`,'23503');
+ await identity('anon');
+ assert.equal((await db.query('select * from public.airport_transfers')).rows.length,18);
+ await fail("insert into public.airport_locations(id,airport_id,name,kind,zone) values ('SIN-X','SIN','x','terminal','airside')",'42501');
+ await identity('authenticated',A);
+ await fail("delete from public.airport_transfers",'42501');
+ await db.exec('reset role');
+});
 await db.close(); console.log(`${passed} database checks passed. Hosted Supabase/Auth/browser checks remain required.`);

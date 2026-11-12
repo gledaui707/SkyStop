@@ -3,13 +3,16 @@
 import type { Activity, Airport, Category, Template } from './types'
 import { IMAGES, type Img } from './images'
 import { getSupabase } from '../api/client'
-import { listAirports, listActivities, listTemplates } from '../api/repositories'
+import { listAirports, listActivities, listTemplates, listTransferGraph } from '../api/repositories'
+import type { TransferGraph } from '../domain/itinerary'
 import type { ActivityRow, AirportRow } from '../types/database.types'
 import { layoutMarkers } from './mapLayout'
 
 export const AIRPORTS: Airport[] = []
 export const ACTIVITIES: Activity[] = []
 export const TEMPLATES: Template[] = []
+/** Transfer graph per airport code; only airports with recorded routing data have one. */
+export const GRAPHS: Record<string, TransferGraph> = {}
 
 // Presentation details the database does not hold. Photos and map positions are illustrative.
 const PLACE: Record<string, { city: string; country: string }> = {
@@ -44,7 +47,7 @@ const costLabel = (label: string) => {
 function toAirport(r: AirportRow): Airport {
   const place = PLACE[r.id] ?? { city: r.name.replace(/\s+Airport$/i, ''), country: '' }
   return { code: r.id, name: r.name, timezone: r.timezone, ...place, image: IMAGES.airports[r.id] ?? IMAGES.results,
-    terminals: TERMINALS[r.id] ?? 'Terminal details to be confirmed with the airport.', note: r.dataset_label }
+    terminals: TERMINALS[r.id] ?? 'Terminal details to be confirmed with the airport.', note: r.dataset_label, entryGuidanceUrl: r.entry_guidance_url ?? undefined }
 }
 function toActivities(rows: ActivityRow[]): Activity[] {
   const pos = layoutMarkers(rows.map((r) => r.access_zone))
@@ -55,7 +58,7 @@ function toActivities(rows: ActivityRow[]): Activity[] {
       access: r.access_zone === 'airside' ? 'Airside' : r.access_zone === 'landside' ? 'Landside' : 'Unverified',
       terminal: r.terminal === 'Unverified' ? undefined : r.terminal, sourceUrl: r.source_url ?? undefined, image: PHOTO[r.airport_id]?.[r.category] ?? IMAGES.results, note: r.description,
       leavesAirport: r.access_zone === 'landside',
-      map: pos[i],
+      map: pos[i], locationIds: [],
     }
   })
 }
@@ -65,10 +68,23 @@ export async function loadCatalogue(): Promise<void> {
   const sb = getSupabase()
   const airports = await listAirports(sb)
   const perAirport = await Promise.all(airports.map(async (a) => ({
-    activities: await listActivities(sb, a.id), templates: await listTemplates(sb, a.id),
+    activities: await listActivities(sb, a.id), templates: await listTemplates(sb, a.id), graph: await listTransferGraph(sb, a.id),
   })))
   AIRPORTS.splice(0, AIRPORTS.length, ...airports.map(toAirport))
-  ACTIVITIES.splice(0, ACTIVITIES.length, ...perAirport.flatMap((p) => toActivities(p.activities)))
+  ACTIVITIES.splice(0, ACTIVITIES.length, ...perAirport.flatMap((p) => toActivities(p.activities).map((a) => ({
+    ...a, locationIds: p.graph.activityLocations.filter((l) => l.activity_id === a.id).map((l) => l.location_id),
+  }))))
+  for (const k of Object.keys(GRAPHS)) delete GRAPHS[k]
+  airports.forEach((a, i) => {
+    const g = perAirport[i].graph
+    if (!g.locations.length) return
+    GRAPHS[a.id] = {
+      locations: g.locations.map((l) => ({ id: l.id, name: l.name, zone: l.zone, terminal: l.terminal, kind: l.kind })),
+      transfers: g.transfers.map((t) => ({ id: t.id, from: t.from_location, to: t.to_location, mode: t.mode, min: t.min_minutes, max: t.max_minutes,
+        immigration: t.requires_immigration, departureChecks: t.requires_departure_checks, throughCheck: t.requires_through_check,
+        verification: t.verification, source: t.source_url, note: t.note })),
+    }
+  })
   TEMPLATES.splice(0, TEMPLATES.length, ...perAirport.flatMap((p) => p.templates.map((t) => ({
     id: t.id, airport: t.airport_id, name: t.name, blurb: t.description, activityIds: t.items.map((i) => i.activity_id),
   }))))

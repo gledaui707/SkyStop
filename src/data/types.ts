@@ -11,6 +11,8 @@ export interface Airport {
   country: string
   image: Img
   terminals: string
+  /** Official immigration guidance for the airport's country. */
+  entryGuidanceUrl?: string
   note: string
 }
 export interface Activity {
@@ -29,6 +31,8 @@ export interface Activity {
   image: Img
   note: string
   leavesAirport?: boolean
+  /** Transfer-graph locations this venue is in (empty when the airport has no routing data). */
+  locationIds: string[]
   /** Position on the illustrative schematic map, in percent. Not a real coordinate. */
   map: { x: number; y: number }
 }
@@ -66,6 +70,9 @@ export interface Plan {
   destination?: string
   /** Sample booking reference the plan was started from, if any (label only). */
   bookingRef?: string
+  /** Transfer-graph location ids of the arrival and departure terminals (airports with routing data). */
+  arrivalLocation?: string | null
+  departureLocation?: string | null
 }
 export interface Draft {
   planId?: string
@@ -82,4 +89,6 @@ export interface Draft {
   origin?: string
   destination?: string
   bookingRef?: string
+  arrivalLocation?: string | null
+  departureLocation?: string | null
 }

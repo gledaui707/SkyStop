@@ -92,6 +92,16 @@ for (const [w, h] of WIDTHS) {
     await visit('home-with-trip');
     await click('button', 'My Plans'); await visit('plans');
     await page.getByRole('button', { name: /layover/ }).first().click(); await visit('plan-detail');
+    // Changi builder with transfers, terminals and the entry-check panel (landside activity)
+    await page.goto(BASE); await page.waitForTimeout(800);
+    await click('button', /Plan a layover|New layover/); await page.getByLabel('Booking reference').fill('AXR7KD');
+    await click('button', 'Find my journey'); await click('button', 'Explore Singapore');
+    await page.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
+    for (const n of ['Add Butterfly Garden', 'Add Jewel Rain Vortex']) await click('button', n);
+    await click('button', 'Build itinerary (2)'); await page.getByLabel('Entry check').waitFor();
+    await click('button', 'Arriving at Terminal 3 transit area'); await click('button', 'Departing from Terminal 3 transit area');
+    await click('button', "I'm not sure");
+    await visit('builder-changi-entry');
   } catch (e) { total++; console.log(`CRASH ${w}px: ${e.message.split('\n')[0]}`); }
   await ctx.close();
 }
