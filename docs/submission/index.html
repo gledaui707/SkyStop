@@ -1,0 +1,711 @@
+<!doctype html><meta charset='utf-8'><title>SkyStop Assignment 2 (draft)</title><base href='../'><style>
+@page { size: A4; margin: 16mm 14mm; }
+body { font: 10.5pt/1.45 -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #202124; }
+h1 { font-size: 20pt; } h2, h3 { break-after: avoid; page-break-after: avoid; } h2 { font-size: 14pt; margin-top: 18pt; border-bottom: 1px solid #ddd; padding-bottom: 3pt; } h3 { font-size: 11.5pt; }
+table { border-collapse: collapse; width: 100%; margin: 6pt 0; font-size: 8.8pt; page-break-inside: avoid; }
+th, td { border: 1px solid #ccc; padding: 3pt 5pt; text-align: left; vertical-align: top; } th { background: #f1f3f4; }
+code { font-size: 8.6pt; background: #f4f4f4; padding: 0 2px; word-break: break-word; }
+pre { background: #f4f4f4; padding: 6pt; font-size: 8pt; white-space: pre-wrap; }
+.fig { break-inside: avoid; page-break-inside: avoid; }
+img { display: block; max-height: 150mm; max-width: 62mm; margin: 4pt 0 10pt; border: 1px solid #ddd; border-radius: 6px; }
+p strong:first-child { page-break-after: avoid; }
+</style><h1>SkyStop — Assignment 2 MVP (draft for the PDF)</h1>
+<p><strong>Status: DRAFT assembled by Claude Code on 2026-11-12 from the running application and the live database. The student must review it, complete the items marked ✏️, and verify the final PDF before uploading to Moodle.</strong></p>
+<p>Public application: <strong>https://skystop.vercel.app</strong> · Source: https://github.com/gledaui707/SkyStop (branch <code>main</code>) · Individual work.</p>
+<h2>1. What the application does</h2>
+<p>SkyStop helps a traveller see how much usable time a layover really offers and plan it. The traveller enters a booked connection (route, connecting airport, arrival and departure in airport-local time, a reserved airport buffer), explores illustrative activities for two airports (Lisbon LIS and Singapore SIN) on a map or list, picks a curated itinerary or individual activities, sees the remaining time recalculated at once (total − buffer − planned), saves the plan, and later retrieves and edits it. Saved plans live in PostgreSQL and belong to an anonymous guest session of the browser. No account form is needed.</p>
+<p>Illustrative, not travel advice: all activities, durations, budget wording, access zones and map positions are demo data (marked as such in the app). Flight comparison screens use illustrative sample schedules and prices.</p>
+<h2>2. Architecture</h2>
+<p>React + TypeScript + Vite (frontend from the Figma Make export, wired to real data) → Supabase (PostgreSQL, anonymous Auth, PostgREST) → deployed on Vercel. No custom server. Domain logic (time zones, budget arithmetic, daylight-saving handling) is a separate pure module (<code>src/domain</code>) with its own tests. All writes go through one server-side function <code>save_plan</code> that checks the guest's identity and ownership and saves a plan and its items in one transaction; the browser has no direct write access to tables.</p>
+<h2>3. Database</h2>
+<p>Six tables (live definitions generated from the running Supabase project): <code>airports</code>, <code>activities</code>, <code>itinerary_templates</code>, <code>template_items</code>, <code>layovers</code>, <code>plan_items</code>. Row-level security is enabled on all six: catalogue tables are readable by everyone; <code>layovers</code> and <code>plan_items</code> are readable only by their owner (the anonymous guest). Direct INSERT/UPDATE/DELETE by browser roles is not granted; <code>save_plan</code> is executable only by signed-in guests. Seed data: 2 airports, 8 activities, 2 curated itineraries, 4 itinerary items.</p>
+<h3><code>airports</code></h3>
+<p>Airport identity and IANA time zone (the zone all layover times are entered in).</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Column</th>
+<th>Type</th>
+<th>Null?</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>id</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>name</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>timezone</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>dataset_label</code></td>
+<td>text</td>
+<td>no</td>
+<td><code>'Illustrative demo catalogue; not travel guidance'::text</code></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary key</td>
+<td><code>PRIMARY KEY (id)</code></td>
+</tr>
+<tr>
+<td>Check</td>
+<td><code>CHECK ((id ~ '^[A-Z]{3}$'::text))</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>activities</code></h3>
+<p>Illustrative layover activities per airport (category, access zone, duration, budget wording).</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Column</th>
+<th>Type</th>
+<th>Null?</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>id</code></td>
+<td>uuid</td>
+<td>no</td>
+<td><code>gen_random_uuid()</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>airport_id</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>name</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>description</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>category</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>terminal</code></td>
+<td>text</td>
+<td>no</td>
+<td><code>'Unverified'::text</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>access_zone</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>duration_minutes</code></td>
+<td>integer</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>budget_label</code></td>
+<td>text</td>
+<td>no</td>
+<td><code>'Unknown'::text</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>is_demo</code></td>
+<td>boolean</td>
+<td>no</td>
+<td><code>true</code></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary key</td>
+<td><code>PRIMARY KEY (id)</code></td>
+</tr>
+<tr>
+<td>Foreign key</td>
+<td><code>FOREIGN KEY (airport_id) REFERENCES airports(id)</code></td>
+</tr>
+<tr>
+<td>Unique</td>
+<td><code>UNIQUE (id, airport_id)</code></td>
+</tr>
+<tr>
+<td>Check</td>
+<td><code>CHECK ((access_zone = ANY (ARRAY['airside'::text, 'landside'::text, 'unknown'::text])))</code></td>
+</tr>
+<tr>
+<td>Check</td>
+<td><code>CHECK ((category = ANY (ARRAY['food'::text, 'rest'::text, 'shopping'::text, 'culture'::text, 'work'::text])))</code></td>
+</tr>
+<tr>
+<td>Check</td>
+<td><code>CHECK (((duration_minutes &gt;= 1) AND (duration_minutes &lt;= 1440)))</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>itinerary_templates</code></h3>
+<p>Curated itinerary headers per airport.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Column</th>
+<th>Type</th>
+<th>Null?</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>id</code></td>
+<td>uuid</td>
+<td>no</td>
+<td><code>gen_random_uuid()</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>airport_id</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>name</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>description</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary key</td>
+<td><code>PRIMARY KEY (id)</code></td>
+</tr>
+<tr>
+<td>Foreign key</td>
+<td><code>FOREIGN KEY (airport_id) REFERENCES airports(id)</code></td>
+</tr>
+<tr>
+<td>Unique</td>
+<td><code>UNIQUE (id, airport_id)</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>template_items</code></h3>
+<p>Ordered activities that make up each curated itinerary.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Column</th>
+<th>Type</th>
+<th>Null?</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>template_id</code></td>
+<td>uuid</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>airport_id</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>activity_id</code></td>
+<td>uuid</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>position</code></td>
+<td>integer</td>
+<td>no</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary key</td>
+<td><code>PRIMARY KEY (template_id, "position")</code></td>
+</tr>
+<tr>
+<td>Foreign key</td>
+<td><code>FOREIGN KEY (activity_id, airport_id) REFERENCES activities(id, airport_id)</code></td>
+</tr>
+<tr>
+<td>Foreign key</td>
+<td><code>FOREIGN KEY (template_id, airport_id) REFERENCES itinerary_templates(id, airport_id) ON DELETE CASCADE</code></td>
+</tr>
+<tr>
+<td>Unique</td>
+<td><code>UNIQUE (template_id, activity_id)</code></td>
+</tr>
+<tr>
+<td>Check</td>
+<td><code>CHECK ((("position" &gt;= 1) AND ("position" &lt;= 20)))</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>layovers</code></h3>
+<p>A guest's saved layover: airport, arrival/departure instants (UTC), buffer, revision. Owned by the anonymous guest.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Column</th>
+<th>Type</th>
+<th>Null?</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>id</code></td>
+<td>uuid</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>owner_id</code></td>
+<td>uuid</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>airport_id</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>arrival_at</code></td>
+<td>timestamptz</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>departure_at</code></td>
+<td>timestamptz</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>buffer_minutes</code></td>
+<td>integer</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>revision</code></td>
+<td>integer</td>
+<td>no</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>created_at</code></td>
+<td>timestamptz</td>
+<td>no</td>
+<td><code>now()</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>updated_at</code></td>
+<td>timestamptz</td>
+<td>no</td>
+<td><code>now()</code></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary key</td>
+<td><code>PRIMARY KEY (id)</code></td>
+</tr>
+<tr>
+<td>Foreign key</td>
+<td><code>FOREIGN KEY (airport_id) REFERENCES airports(id)</code></td>
+</tr>
+<tr>
+<td>Foreign key</td>
+<td><code>FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE</code></td>
+</tr>
+<tr>
+<td>Unique</td>
+<td><code>UNIQUE (id, airport_id)</code></td>
+</tr>
+<tr>
+<td>Check</td>
+<td><code>CHECK (((buffer_minutes &gt;= 0) AND (buffer_minutes &lt;= 1440)))</code></td>
+</tr>
+<tr>
+<td>Check</td>
+<td><code>CHECK ((isfinite(arrival_at) AND isfinite(departure_at)))</code></td>
+</tr>
+<tr>
+<td>Check</td>
+<td><code>CHECK (((departure_at &gt; arrival_at) AND (departure_at &lt;= (arrival_at + '48:00:00'::interval))))</code></td>
+</tr>
+<tr>
+<td>Check</td>
+<td><code>CHECK ((revision &gt; 0))</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>plan_items</code></h3>
+<p>Ordered activities in a saved layover, with the duration copied at save time.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Column</th>
+<th>Type</th>
+<th>Null?</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>layover_id</code></td>
+<td>uuid</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>airport_id</code></td>
+<td>text</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>activity_id</code></td>
+<td>uuid</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>position</code></td>
+<td>integer</td>
+<td>no</td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>duration_minutes</code></td>
+<td>integer</td>
+<td>no</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary key</td>
+<td><code>PRIMARY KEY (layover_id, "position")</code></td>
+</tr>
+<tr>
+<td>Foreign key</td>
+<td><code>FOREIGN KEY (activity_id, airport_id) REFERENCES activities(id, airport_id)</code></td>
+</tr>
+<tr>
+<td>Foreign key</td>
+<td><code>FOREIGN KEY (layover_id, airport_id) REFERENCES layovers(id, airport_id) ON DELETE CASCADE</code></td>
+</tr>
+<tr>
+<td>Unique</td>
+<td><code>UNIQUE (layover_id, activity_id)</code></td>
+</tr>
+<tr>
+<td>Check</td>
+<td><code>CHECK (((duration_minutes &gt;= 1) AND (duration_minutes &lt;= 1440)))</code></td>
+</tr>
+<tr>
+<td>Check</td>
+<td><code>CHECK ((("position" &gt;= 1) AND ("position" &lt;= 20)))</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Relationships</h3>
+<pre><code class="language-mermaid">erDiagram
+  AIRPORTS ||--o{ ACTIVITIES : has
+  AIRPORTS ||--o{ ITINERARY_TEMPLATES : offers
+  ITINERARY_TEMPLATES ||--o{ TEMPLATE_ITEMS : orders
+  ACTIVITIES ||--o{ TEMPLATE_ITEMS : used_in
+  AUTH_USERS ||--o{ LAYOVERS : owns
+  AIRPORTS ||--o{ LAYOVERS : at
+  LAYOVERS ||--o{ PLAN_ITEMS : contains
+  ACTIVITIES ||--o{ PLAN_ITEMS : chosen
+</code></pre>
+<h3>Indexes</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Index</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>activities</code></td>
+<td><code>activities_airport</code></td>
+</tr>
+<tr>
+<td><code>activities</code></td>
+<td><code>activities_id_airport_id_key</code></td>
+</tr>
+<tr>
+<td><code>activities</code></td>
+<td><code>activities_pkey</code></td>
+</tr>
+<tr>
+<td><code>airports</code></td>
+<td><code>airports_pkey</code></td>
+</tr>
+<tr>
+<td><code>itinerary_templates</code></td>
+<td><code>itinerary_templates_id_airport_id_key</code></td>
+</tr>
+<tr>
+<td><code>itinerary_templates</code></td>
+<td><code>itinerary_templates_pkey</code></td>
+</tr>
+<tr>
+<td><code>itinerary_templates</code></td>
+<td><code>templates_airport</code></td>
+</tr>
+<tr>
+<td><code>layovers</code></td>
+<td><code>layovers_id_airport_id_key</code></td>
+</tr>
+<tr>
+<td><code>layovers</code></td>
+<td><code>layovers_owner_updated</code></td>
+</tr>
+<tr>
+<td><code>layovers</code></td>
+<td><code>layovers_pkey</code></td>
+</tr>
+<tr>
+<td><code>plan_items</code></td>
+<td><code>plan_items_layover_id_activity_id_key</code></td>
+</tr>
+<tr>
+<td><code>plan_items</code></td>
+<td><code>plan_items_pkey</code></td>
+</tr>
+<tr>
+<td><code>template_items</code></td>
+<td><code>template_items_pkey</code></td>
+</tr>
+<tr>
+<td><code>template_items</code></td>
+<td><code>template_items_template_id_activity_id_key</code></td>
+</tr>
+</tbody>
+</table>
+<h2>4. Application screenshots (real, from the deployed app)</h2>
+<p>Captured on 2026-11-12 from https://skystop.vercel.app in a phone-sized browser (iPhone 13 viewport) while running the complete journey against the live database (files in <code>docs/screenshots/</code>). Photos are illustrative Unsplash images.</p>
+<div class="fig"><p><strong>Figure — Welcome screen (first visit): one action to add a flight.</strong></p>
+<p><img alt="Welcome screen (first visit): one action to add a flight." src="screenshots/01-welcome.png" /></p></div>
+<div class="fig"><p><strong>Figure — Step 1: the traveller enters the booked route (origin and destination airports).</strong></p>
+<p><img alt="Step 1: the traveller enters the booked route (origin and destination airports)." src="screenshots/02-trip-step1.png" /></p></div>
+<div class="fig"><p><strong>Figure — Step 2: connecting airport (Lisbon, from the database), arrival and departure in airport-local time, reserved buffer, and the live time breakdown (5 h − 1 h 30 m = 3 h 30 m usable).</strong></p>
+<p><img alt="Step 2: connecting airport (Lisbon, from the database), arrival and departure in airport-local time, reserved buffer, and the live time breakdown (5 h − 1 h 30 m = 3 h 30 m usable)." src="screenshots/03-trip-step2-times.png" /></p></div>
+<div class="fig"><p><strong>Figure — Airport map view: schematic of airside / to-be-confirmed / landside zones with activities from the database (illustrative positions).</strong></p>
+<p><img alt="Airport map view: schematic of airside / to-be-confirmed / landside zones with activities from the database (illustrative positions)." src="screenshots/04-airport-map.png" /></p></div>
+<div class="fig"><p><strong>Figure — Airport list view: airport facts and curated itineraries read from PostgreSQL.</strong></p>
+<p><img alt="Airport list view: airport facts and curated itineraries read from PostgreSQL." src="screenshots/05-airport-list.png" /></p></div>
+<div class="fig"><p><strong>Figure — Itinerary builder when the plan does not fit: 280 min planned against 210 usable gives "Over your usable time by 1 h 10 m" with a clear warning.</strong></p>
+<p><img alt="Itinerary builder when the plan does not fit: 280 min planned against 210 usable gives &quot;Over your usable time by 1 h 10 m&quot; with a clear warning." src="screenshots/06a-builder-over-budget.png" /></p></div>
+<div class="fig"><p><strong>Figure — Itinerary builder after removing the long activity: 1 h 50 m of usable time remaining; timeline from arrival to departure; Save plan.</strong></p>
+<p><img alt="Itinerary builder after removing the long activity: 1 h 50 m of usable time remaining; timeline from arrival to departure; Save plan." src="screenshots/06-builder.png" /></p></div>
+<div class="fig"><p><strong>Figure — After saving: Home shows the personalised "Next connection" ticket, only because this guest has a saved trip in the database.</strong></p>
+<p><img alt="After saving: Home shows the personalised &quot;Next connection&quot; ticket, only because this guest has a saved trip in the database." src="screenshots/07-home-upcoming-trip.png" /></p></div>
+<div class="fig"><p><strong>Figure — Retrieved after a page refresh: the saved plan read back from the database (times, budget, ordered activities).</strong></p>
+<p><img alt="Retrieved after a page refresh: the saved plan read back from the database (times, budget, ordered activities)." src="screenshots/08-plan-detail.png" /></p></div>
+<div class="fig"><p><strong>Figure — Edit: an activity is removed and the remaining time recalculates (2 h 30 m).</strong></p>
+<p><img alt="Edit: an activity is removed and the remaining time recalculates (2 h 30 m)." src="screenshots/09-edit-plan.png" /></p></div>
+<div class="fig"><p><strong>Figure — My Plans after editing, saved again and refreshing: the edited plan is retrieved (1 activity, 2 h 30 m left).</strong></p>
+<p><img alt="My Plans after editing, saved again and refreshing: the edited plan is retrieved (1 activity, 2 h 30 m left)." src="screenshots/10-my-plans.png" /></p></div>
+<h2>5. Testing and verification (what was actually run)</h2>
+<table>
+<thead>
+<tr>
+<th>What</th>
+<th>How</th>
+<th>Result (2026-11-12)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Domain logic and data layer (time zones, overnight, daylight-saving gap/overlap, 48 h limit, zero usable time, budget, filters, map layout)</td>
+<td><code>npm test -- --run</code></td>
+<td>70 passed (1 hosted test skipped by default)</td>
+</tr>
+<tr>
+<td>Database rules (tables, RLS, ownership, atomic save, rollback) in an in-memory PostgreSQL</td>
+<td><code>npm test --prefix tests/database</code></td>
+<td>15/15 passed</td>
+</tr>
+<tr>
+<td>Full user journey in a real browser (phone viewport) against a <strong>simulated</strong> API: add flight → explore → build → fail/retry save → save → refresh → retrieve → edit → second guest sees nothing → curated itinerary → error and retry states</td>
+<td><code>npm run build &amp;&amp; npm run test:e2e</code></td>
+<td>24/24 passed</td>
+</tr>
+<tr>
+<td>Full user journey in a real browser on the <strong>deployed app and live database</strong> (add flight → explore → over-budget warning → build → save → refresh → retrieve → edit → refresh)</td>
+<td><code>npm run test:live</code></td>
+<td>16/16 passed; all Supabase responses HTTP 200</td>
+</tr>
+<tr>
+<td>Real-database journey through the app's own data layer, including a second guest who cannot see or open the first guest's plan</td>
+<td><code>npm run test:hosted</code> (run once on the fresh project)</td>
+<td>passed</td>
+</tr>
+<tr>
+<td>Production build</td>
+<td><code>npm run build</code></td>
+<td>passed</td>
+</tr>
+<tr>
+<td>AI review of the key screens from phone-sized screenshots was done on 2026-11-12 (findings and fixes in docs/UI_REVIEW.md). Desktop widths, keyboard/accessibility checks and a real-phone check were <strong>not</strong> done. ✏️ Add your own manual check on a real phone.</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2>6. Known limitations (honest status)</h2>
+<ul>
+<li><strong>Revision conflicts are not part of the demo and were not exercised on the live API.</strong> The server function reports a conflict (stale edit, or re-creating an existing plan) with error code <code>PT409</code>; this is verified only in the local database tests. An earlier version used SQLSTATE <code>40001</code>; during testing, calls that hit that path never returned on the hosted API, and the first Supabase project later became unhealthy (the cause was not confirmed; retrying of <code>40001</code> is the leading hypothesis). The project was replaced with a fresh one and the code now uses <code>PT409</code>.</li>
+<li>Guest sessions: plans are reachable only from the browser that created them; clearing browser data loses access (shown in the app).</li>
+<li>The map is a schematic with illustrative positions; the database has no coordinates. Flight comparison, plan name and origin/destination labels are frontend-only (the schema has no columns for them); the plan name and labels are remembered per browser.</li>
+<li>No delete function for plans (deliberate); no bookings, payments, live flight data or visa checks.</li>
+<li>Photos are illustrative stock images and do not necessarily show the named place.</li>
+</ul>
+<h2>7. Planning, AI-assisted development and review (Assignment 2 §2, §5)</h2>
+<p>Architecture, folder structure, database design, SPEC and <code>AGENTS.md</code> / <code>CLAUDE.md</code> rules were written before implementation (docs/ARCHITECTURE.md, docs/DATABASE.md, SPEC.md, AGENTS.md). Implementation was done with Claude Code; every claim above is backed by a command in docs/VALIDATION.md. UI review: docs/UI_REVIEW.md. ✏️ Add your comparison of the running app with your Assignment 1 mockups.</p>
+<h2>8. Items only the student can complete ✏️</h2>
+<ul>
+<li>Map each provisional story US1–US6 (SPEC.md) to the real Assignment 1 story IDs: US1 ____, US2 ____, US3 ____, US4 ____, US5 ____, US6 ____.</li>
+<li>Compare the app with your Assignment 1 mockups and record the differences (docs/UI_REVIEW.md).</li>
+<li>Credit the original team's HCI research separately from this individual implementation (see docs/SOURCES_AND_DECISIONS.md for the source documents and authors).</li>
+<li>Upload the PDF and the app link to Moodle before Nov 15 23:59 (Europe/Lisbon), keep the receipt; book the live-demo slot; rehearse twice (docs/DEMO_SCRIPT.md).</li>
+</ul>
+<h2>9. Photo credits (Unsplash, illustrative)</h2>
+<p>Ankur Khandelwal (https://unsplash.com/@iamankurkhandelwal); Blake Guidry (https://unsplash.com/@blakeguidry); Coleen Rivas (https://unsplash.com/@coleenr); Dennis Gecaj (https://unsplash.com/@dannis); Henry Ren (https://unsplash.com/@henryren); Hugo Silva (https://unsplash.com/@hugomigueldasilva); Johny Goerend (https://unsplash.com/@johnygoerend); Magdalena Raczka (https://unsplash.com/@magda_raczka); Michael Stevanus Hartono (https://unsplash.com/@michaelstevanus); Rach Teo (https://unsplash.com/@rachteo); Rayhan Fahmi (https://unsplash.com/@rayhn_f); Scribbling Geek (https://unsplash.com/@scribblinggeek).</p>

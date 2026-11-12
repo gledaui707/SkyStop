@@ -5,7 +5,7 @@ As of architecture handoff, 2026-11-11. Update with evidence, not optimism.
 - [x] Define scope, provisional stories, architecture and folders.
 - [x] Write AGENTS.md / CLAUDE.md and ordered handoff.
 - [x] Prepare six-table schema, RLS, atomic save RPC and demo seed.
-- [ ] Apply migrations and seed to verified Supabase project.
+- [x] Apply migrations and seed to verified Supabase project. (fresh project sgwbtgwccskqamzttczz, 2026-11-12; old project abandoned)
 - [~] Hosted anonymous Auth and two-user isolation verified (30/33, run 43136585630); conflict path fix pending apply; abuse controls/CAPTCHA not configured.
 - [x] Integrate Figma Make export into one React app. (baseline in figma-export/, app in src/)
 - [x] Implement domain logic and automated unit tests. (35 passing, docs/VALIDATION.md 2026-11-12)
@@ -13,8 +13,8 @@ As of architecture handoff, 2026-11-11. Update with evidence, not optimism.
 - [x] Implement automated browser critical-flow tests. (tests/e2e/journey.mjs, simulated API)
 - [ ] Complete manual every-screen and AI UI review; student compares A1 mockups.
 - [ ] Map provisional stories to actual Assignment 1 stories.
-- [ ] Deploy and verify production read/write/refresh/isolation.
-- [ ] Produce final real-screenshot PDF and submit URL/PDF on Moodle.
+- [~] Deploy and verify production read/write/refresh/isolation. (live journey 16/16 on https://skystop.vercel.app; two-guest isolation verified once through the data layer on the fresh project; no conflict/ownership stress tests by instruction)
+- [~] Produce final real-screenshot PDF and submit URL/PDF on Moodle. (DRAFT PDF with real screenshots generated; student must review, complete ✏️ items and upload)
 - [ ] Book demo and rehearse twice in five minutes.
 Database harness results and limits: docs/VALIDATION.md.
 

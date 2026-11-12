@@ -129,6 +129,23 @@ try {
   await shot(b.page, '08-flights');
   await b.ctx.close();
 
+  // ---- Curated itinerary path: Airports -> Lisbon -> List -> Customize itinerary -> dates -> builder with the template
+  const d = await newGuest();
+  await d.page.goto(BASE);
+  await d.page.getByRole('button', { name: 'Skip' }).click();
+  await d.page.getByRole('button', { name: 'Airports', exact: true }).click();
+  await d.page.getByRole('button', { name: /Lisbon Airport/ }).first().click();
+  await d.page.getByRole('tab', { name: 'list' }).click();
+  await d.page.getByRole('button', { name: 'Customize itinerary' }).click();
+  await d.page.getByLabel('Arrival at connecting airport (local time)').fill(`${day(7)}T10:00`);
+  await d.page.getByLabel('Onward departure (local time)').fill(`${day(7)}T15:00`);
+  await d.page.getByRole('button', { name: '1h 30m' }).click();
+  await d.page.getByRole('button', { name: 'See what I can do' }).click();
+  await d.page.getByRole('heading', { name: 'Timeline' }).waitFor();
+  const tpl = (await d.page.getByLabel('Time budget').innerText()).replace(/\n/g, ' ');
+  check('curated itinerary: template copied into the builder (100 min planned, 1h 50m left)', tpl.includes('1h 50m') && await visible(d.page, 'Demo Portuguese snack break') && await visible(d.page, 'Demo quiet rest'), tpl.slice(0, 60));
+  await d.ctx.close();
+
   // ---- Catalogue failure → error state with retry
   const c = await newGuest();
   fake.failNext['rest/v1/airports'] = 1;

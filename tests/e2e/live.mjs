@@ -10,7 +10,7 @@ const PROXY = process.env.PROXY || process.env.HTTPS_PROXY;
 let failed = 0; const results = [];
 const check = (name, ok, detail = '') => { results.push(name); if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  -> ' + detail : ''}`); };
 const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
-const shot = async (page, name) => { await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {}); if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${name}.png` }); } };
+const shot = async (page, name) => { await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {}); await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 8000 }).catch(() => {}); await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(500); if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${name}.png` }); } };
 const visible = (page, t) => page.getByText(t, { exact: false }).first().isVisible();
 
 const browser = await chromium.launch(PROXY ? { proxy: { server: PROXY } } : {});

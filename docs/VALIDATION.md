@@ -114,3 +114,11 @@ Set up from the repo files only, in order: `001_schema.sql`, `002_security_and_s
 | Unit tests / production build | 55 passed, 1 skipped / PASS; built bundle contains only the new project URL |
 | Real-database happy path (`src/api/hosted.journey.test.ts`, run once): guest sign-in → catalogue → template → save → reload → homepage upcoming-trip data → edit (revision 2) → reload → second guest sees no plans and cannot open it | PASS (8.4 s) |
 Not run, by instruction: conflict/ownership stress tests. The PT409 conflict path is verified only in the local database harness and by inspecting the deployed function definition; it has not been exercised over the hosted API.
+
+## 2026-11-12 (later) — production verification and UI fixes
+Production: `skystop.vercel.app` served commit `06e4725` (checked through the Vercel API, state READY, target production, branch `claude/tender-keller-cxp9ac` = `main` content) and the live bundle contained only the new Supabase project.
+`npm run test:live` (real Chromium, iPhone 13 viewport, deployed app + live database), run three times in total while retaking screenshots (final run on 06e4725): **16/16 PASS** each time; 28 Supabase calls, all HTTP 200: catalogue GETs, one anonymous sign-up on first save, `save_plan` ×2, plan GETs. Covers add flight → connection details → map and list → curated itinerary fit → over-budget (280 vs 210 min → over by 1h 10m, "Save plan anyway") → build → save → home ticket → refresh → retrieve → edit → save → refresh → My Plans (1 activity, 2h 30m left). Each run left one synthetic guest and one synthetic plan in the new project.
+`npm run test:e2e` (simulated API): 24/24 PASS, including the curated-itinerary path (Airports → Lisbon → List → Customize itinerary → dates → builder with the template: 1h 50m left).
+`npm test -- --run`: 70 passed, 1 skipped. Production build passes.
+Map fixes with geometry tests: see docs/UI_REVIEW.md.
+Not done: real-phone check, desktop widths, keyboard/accessibility audit, hosted conflict-path (`PT409`) exercise, Safari.
