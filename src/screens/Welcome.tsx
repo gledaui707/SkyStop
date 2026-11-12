@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, useTransform, animate, type Transition, type Variants } from 'motion/react'
-import { ArrowLeft, ArrowRight, Clock, Plane, ShoppingBag, Sparkles, Utensils } from 'lucide-react'
+import { Clock, Plane, ShoppingBag, Sparkles, Utensils } from 'lucide-react'
 import { useApp } from '../store'
 import { IMAGES, sized, type Img } from '../data/images'
 import { cx } from '../components/ui'
 import { SSMark } from '../components/SSMark'
+import { guestStore } from '../data/mock'
+import { accessStore } from '../features/access/accessState'
 
 /** First-visit onboarding: three photographic screens. Skippable, swipeable, keyboard-operable.
  *  The floating previews are clearly marked examples; no personal or live flight data is shown.
@@ -105,7 +107,7 @@ const EXTRA: Variants = {
 const NONE: Variants = { enter: {}, show: {}, exit: {} }
 
 export function Welcome() {
-  const { finishWelcome } = useApp()
+  const { finishWelcome, go: navigate, account } = useApp()
   const reduce = !!useReducedMotion()
   const [i, setI] = useState(0)
   const [dir, setDir] = useState(1)
@@ -120,8 +122,15 @@ export function Welcome() {
     if (next === i) return
     setDir(next > i ? 1 : -1); setI(next)
   }
-  // Both Skip and the final call to action finish onboarding: first-time visitors continue to Account Access, others into planning.
+  // Skip, and Get started on the last step, finish onboarding: first-time visitors continue to Account Access, others into planning.
   const done = () => finishWelcome({ name: 'booking' })
+  // Sign in: the email sign-in form on the account screen (one sign-in flow). Not now returns here. Onboarding counts as seen,
+  // and the account screen stays pending, so a visitor who leaves without signing in sees it again next launch.
+  const signInNow = () => {
+    guestStore.markWelcomed()
+    if (accessStore.get() !== 'done') accessStore.set('pending')
+    navigate({ name: 'access', auth: 'signin' })
+  }
   const v = (x: Variants) => (reduce ? NONE : x)
   const spring = reduce ? { duration: 0 } : SPRING
 
@@ -170,8 +179,8 @@ export function Welcome() {
 
       <div className="pointer-events-none relative flex flex-1 flex-col px-6 pb-[calc(var(--safe-bottom)+1.25rem)] pt-[calc(var(--safe-top)+0.5rem)]">
         <div className="pointer-events-auto flex min-h-11 items-center justify-between">
-          <span className="flex min-h-11 items-center">
-            <SSMark className="h-8 w-auto drop-shadow-[0_2px_8px_rgb(0_0_0/0.35)]" /></span>
+          <span className="flex min-h-11 items-center gap-2.5 text-[1.375rem] font-bold tracking-[-0.02em] [text-shadow:0_1px_8px_rgb(0_0_0/0.35)]">
+            <SSMark className="h-8 w-auto drop-shadow-[0_2px_8px_rgb(0_0_0/0.35)]" />SkyStop</span>
           <AnimatePresence initial={false}>
             {!last && (
               <motion.button key="skip" onClick={done} className="glass-dark press min-h-11 rounded-full px-5 text-sub font-semibold"
@@ -183,7 +192,7 @@ export function Welcome() {
 
         <motion.div className="mt-auto" style={{ x: dragX, opacity: dragFade }}>
           {/* The card: one object that stays on screen and morphs between steps. */}
-          <div className={cx('relative mb-6 w-[min(19rem,100%)]', slide.compact && 'h-[8.5rem]')}>
+          <div className={cx('relative mb-6 w-[min(19rem,100%)] [@media(max-height:640px)]:mb-4', slide.compact && 'h-[8.5rem] [@media(max-height:640px)]:h-[7.75rem]')}>
             <motion.div layout transition={spring} style={{ borderRadius: 24 }}
               className={cx('glass-dark relative overflow-hidden text-white', slide.compact ? 'w-[13rem] p-3' : 'w-full p-4')}>
               <AnimatePresence mode="popLayout" initial={false} custom={dir}>
@@ -205,42 +214,31 @@ export function Welcome() {
           <div className="relative" aria-live="polite">
             <AnimatePresence mode="popLayout" initial={false} custom={dir}>
               <motion.div key={i} initial="enter" animate="show" exit="exit" custom={dir} variants={NONE}>
-                <motion.h1 custom={dir} variants={v(HEADLINE)} className="text-[2.375rem] font-bold leading-[1.05] tracking-[-0.03em]">{slide.headline}</motion.h1>
-                <motion.p custom={dir} variants={v(BODY)} className="mt-3 max-w-[21rem] text-body text-white/85">{slide.body}</motion.p>
+                <motion.h1 custom={dir} variants={v(HEADLINE)} className="text-[2.375rem] font-bold leading-[1.05] tracking-[-0.03em] [@media(max-height:640px)]:text-[1.875rem]">{slide.headline}</motion.h1>
+                <motion.p custom={dir} variants={v(BODY)} className="mt-3 max-w-[21rem] text-body text-white/85 [@media(max-height:640px)]:mt-2 [@media(max-height:640px)]:text-sub">{slide.body}</motion.p>
               </motion.div>
             </AnimatePresence>
           </div>
         </motion.div>
 
-        <div className="pointer-events-auto mt-7 flex items-center gap-3 max-[360px]:gap-2">
-          <AnimatePresence initial={false} mode="popLayout">
-            {i > 0 && (
-              <motion.button key="back" onClick={() => go(i - 1)} aria-label="Back" className="glass-dark press grid size-14 shrink-0 place-items-center rounded-full max-[360px]:size-12"
-                variants={v({ enter: { opacity: 0, scale: 0.7, filter: 'blur(6px)' }, show: { opacity: 1, scale: 1, filter: 'blur(0px)', transition: SPRING }, exit: { opacity: 0, scale: 0.7, filter: 'blur(6px)', transition: OUT } })}
-                initial="enter" animate="show" exit="exit"><ArrowLeft size={22} /></motion.button>
-            )}
-          </AnimatePresence>
-          <motion.div layout="position" transition={spring} className="flex flex-1 items-center justify-center gap-2" role="tablist" aria-label="Onboarding progress">
-            {SLIDES.map((s, n) => (
-              <button key={s.headline} role="tab" aria-selected={n === i} aria-label={`Screen ${n + 1} of ${SLIDES.length}`} onClick={() => go(n)}
-                className="grid h-11 place-items-center px-0.5">
-                <motion.span className="block h-2 rounded-full" initial={false} transition={spring}
-                  animate={{ width: n === i ? 28 : 8, backgroundColor: n === i ? 'rgb(255 255 255 / 1)' : 'rgb(255 255 255 / 0.4)' }} />
-              </button>
-            ))}
-          </motion.div>
-          {/* One button that reshapes from Next to Get started; its accessible name is set explicitly so a fading label never doubles it. */}
-          <motion.button layout transition={spring} onClick={last ? done : () => go(i + 1)} aria-label={last ? 'Get started' : 'Next'}
-            style={{ borderRadius: 999 }}
-            className="btn-coral press flex min-h-14 shrink-0 items-center gap-2 overflow-hidden pl-6 pr-2 text-[1.0625rem] font-bold max-[360px]:min-h-12 max-[360px]:px-5 max-[360px]:text-base">
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.span key={last ? 'start' : 'next'} layout="position" className="whitespace-nowrap"
-                variants={v({ enter: { opacity: 0, y: 10, filter: 'blur(4px)' }, show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.35, delay: 0.1, ease: EASE_OUT } }, exit: { opacity: 0, y: -10, filter: 'blur(4px)', transition: { duration: 0.2 } } })}
-                initial="enter" animate="show" exit="exit">{last ? 'Get started' : 'Next'}</motion.span>
-            </AnimatePresence>
-            {/* Narrow phones: label only, so Back, the dots and Get started fit on one line. */}
-            <motion.span layout="position" aria-hidden="true" className="grid size-10 place-items-center rounded-full bg-white/20 max-[360px]:hidden"><ArrowRight size={20} /></motion.span>
-          </motion.button>
+        <motion.div layout="position" transition={spring} className="pointer-events-auto mt-4 flex items-center justify-center gap-2 [@media(max-height:640px)]:mt-1" role="tablist" aria-label="Onboarding progress">
+          {SLIDES.map((s, n) => (
+            <button key={s.headline} role="tab" aria-selected={n === i} aria-label={`Screen ${n + 1} of ${SLIDES.length}`} onClick={() => go(n)}
+              className="grid h-11 place-items-center px-0.5">
+              <motion.span className="block h-2 rounded-full" initial={false} transition={spring}
+                animate={{ width: n === i ? 28 : 8, backgroundColor: n === i ? 'rgb(255 255 255 / 1)' : 'rgb(255 255 255 / 0.4)' }} />
+            </button>
+          ))}
+        </motion.div>
+        {/* Both choices on every step: Get started moves through onboarding (and finishes it on the last step); Sign in opens
+            the email sign-in form. Same pills as the app's action bar. A signed-in visitor replaying onboarding sees no Sign in. */}
+        <div className="pointer-events-auto mt-2 grid grid-cols-[minmax(0,1fr)] gap-2.5 [@media(max-height:640px)]:mt-0 [@media(max-height:640px)]:gap-2">
+          <button type="button" onClick={last ? done : () => go(i + 1)}
+            className="btn-coral press flex min-h-[3.25rem] w-full items-center justify-center rounded-full text-[1.125rem] font-bold">Get started</button>
+          {account.status !== 'registered' && (
+            <button type="button" onClick={signInNow}
+              className="press flex min-h-[3.25rem] w-full items-center justify-center rounded-full border border-white bg-white/90 text-body font-semibold text-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.9)] backdrop-blur-xl">Sign in</button>
+          )}
         </div>
       </div>
     </div>

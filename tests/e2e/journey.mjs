@@ -279,15 +279,15 @@ try {
   await o.page.getByText('Your layover, reimagined.').waitFor();
   check('onboarding: first visit shows screen 1 with Skip and 3 progress dots', await o.page.getByRole('button', { name: 'Skip' }).isVisible() && (await o.page.getByRole('tab', { name: /Screen \d of 3/ }).count()) === 3);
   check('onboarding: no account is created by viewing it', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
-  await o.page.getByRole('button', { name: 'Next' }).click();
-  check('onboarding: Next -> screen 2', await o.page.getByText('Discover what’s possible.').isVisible());
+  await o.page.getByRole('button', { name: 'Get started' }).click();
+  check('onboarding: Get started -> screen 2', await o.page.getByText('Discover what’s possible.').isVisible());
   {
     // Transition: the card is one persistent element that morphs; text crossfades through a blur; nothing slides sideways.
     const card = () => o.page.evaluate(() => { const c = document.querySelector('[aria-roledescription="carousel"] .glass-dark.overflow-hidden'); const r = c.getBoundingClientRect(); return { w: Math.round(r.width), tagged: c.dataset.probe === '1' }; });
     await o.page.waitForTimeout(1200);
     const settled2 = await card();
     await o.page.evaluate(() => { document.querySelector('[aria-roledescription="carousel"] .glass-dark.overflow-hidden').dataset.probe = '1'; });
-    await o.page.getByRole('button', { name: 'Back' }).click();
+    await o.page.getByRole('tab', { name: 'Screen 1 of 3' }).click();
     await o.page.waitForTimeout(120);
     const mid = await o.page.evaluate(() => [...document.querySelectorAll('[aria-roledescription="carousel"] h1')].map((h) => ({ t: h.textContent, blur: parseFloat((/blur\(([\d.]+)px\)/.exec(getComputedStyle(h).filter) || [0, 0])[1]) })));
     const midCard = await card();
@@ -298,15 +298,15 @@ try {
     check('onboarding transition: the same card element morphs between steps (compact tile <-> full card)', midCard.tagged && settled1.tagged && settled2.w < settled1.w && midCard.w > settled2.w && midCard.w < settled1.w, JSON.stringify({ settled2, midCard, settled1 }));
     check('onboarding transition: settles to a single headline', h1s === 1 && await o.page.getByText('Your layover, reimagined.').isVisible());
     check('onboarding transition: no horizontal photo strip', await o.page.evaluate(() => document.querySelectorAll('[aria-roledescription="carousel"] img').length === 1));
-    await o.page.getByRole('button', { name: 'Next' }).click();
+    await o.page.getByRole('button', { name: 'Get started' }).click();
   }
   const box = (await o.page.locator('[aria-roledescription="carousel"]').boundingBox());
   await o.page.mouse.move(box.width * 0.8, box.height * 0.45); await o.page.mouse.down(); await o.page.mouse.move(box.width * 0.2, box.height * 0.47, { steps: 8 }); await o.page.mouse.up();
   await o.page.getByText('Make every minute count.').waitFor();
   await o.page.getByRole('button', { name: 'Skip' }).waitFor({ state: 'detached' });
-  check('onboarding: swipe left -> screen 3 with "Get started" and no Skip', await o.page.getByRole('button', { name: /Get started/ }).isVisible() && !(await o.page.getByRole('button', { name: 'Skip' }).isVisible()));
-  await o.page.getByRole('button', { name: 'Back' }).click();
-  check('onboarding: Back -> screen 2', await o.page.getByText('Discover what’s possible.').isVisible());
+  check('onboarding: swipe left -> screen 3 with Get started + Sign in and no Skip', await o.page.getByRole('button', { name: 'Get started' }).isVisible() && await o.page.getByRole('button', { name: 'Sign in' }).isVisible() && !(await o.page.getByRole('button', { name: 'Skip' }).isVisible()));
+  await o.page.getByRole('tab', { name: 'Screen 2 of 3' }).click();
+  check('onboarding: progress dot -> back to screen 2', await o.page.getByText('Discover what’s possible.').isVisible());
   await o.page.keyboard.press('ArrowLeft');
   check('onboarding: keyboard ArrowLeft -> screen 1', await o.page.getByText('Your layover, reimagined.').isVisible());
   await o.page.getByRole('button', { name: 'Skip' }).click();
@@ -326,8 +326,8 @@ try {
   await o.page.getByRole('button', { name: 'Profile' }).click();
   await o.page.getByRole('button', { name: 'Replay introduction' }).click();
   await o.page.getByText('Your layover, reimagined.').waitFor();
-  for (let k = 0; k < 2; k++) await o.page.getByRole('button', { name: 'Next' }).click();
-  await o.page.getByRole('button', { name: /Get started/ }).click();
+  for (let k = 0; k < 2; k++) { await o.page.getByRole('button', { name: 'Get started' }).click(); await o.page.waitForTimeout(250); }
+  await o.page.getByRole('button', { name: 'Get started' }).click();
   await o.page.waitForTimeout(400);
   check('onboarding: replay from Home works and its final CTA opens the planning flow (no second Account Access)', (await o.page.getByRole('heading', { level: 1 }).first().innerText()).includes('Plan a layover') || await visible(o.page, 'Find your journey'));
   await o.ctx.close();
@@ -355,10 +355,31 @@ try {
   }
   const rm = await newGuest(undefined, { firstVisit: true, reducedMotion: 'reduce' });
   await rm.page.goto(BASE); await rm.page.getByText('Your layover, reimagined.').waitFor();
-  await rm.page.getByRole('button', { name: 'Next' }).click();
+  await rm.page.getByRole('button', { name: 'Get started' }).click();
   await rm.page.waitForTimeout(60);
   const rmState = await rm.page.evaluate(() => [...document.querySelectorAll('[aria-roledescription="carousel"] h1')].map((h) => `${h.textContent}|${getComputedStyle(h).opacity}|${getComputedStyle(h).filter}`));
   check('onboarding: reduced motion changes steps instantly (no crossfade, blur or scaling)', rmState.length === 1 && rmState[0].startsWith('Discover') && /\|1\|(none|blur\(0px\))$/.test(rmState[0]), JSON.stringify(rmState));
+  {
+    // Sign in on every onboarding step opens the email sign-in form; Not now comes back; the account screen then resumes on launch.
+    const si = await newGuest(undefined, { firstVisit: true });
+    await si.page.goto(BASE); await si.page.getByText('Your layover, reimagined.').waitFor();
+    const onEvery = [];
+    for (let k = 0; k < 3; k++) {
+      onEvery.push(await si.page.getByRole('button', { name: 'Get started' }).isVisible() && await si.page.getByRole('button', { name: 'Sign in' }).isVisible());
+      if (k < 2) { await si.page.getByRole('button', { name: 'Get started' }).click(); await si.page.waitForTimeout(250); }
+    }
+    check('onboarding: Get started and Sign in on every step; SkyStop name beside the SS', onEvery.every(Boolean) && await si.page.locator('[aria-roledescription="carousel"]').getByText('SkyStop', { exact: true }).isVisible(), JSON.stringify(onEvery));
+    await si.page.getByRole('tab', { name: 'Screen 1 of 3' }).click();
+    await si.page.getByRole('button', { name: 'Sign in' }).click();
+    await si.page.getByRole('button', { name: 'Send sign-in link' }).waitFor();
+    check('onboarding: Sign in opens the email sign-in form', await si.page.getByLabel('Email').isVisible());
+    await si.page.getByRole('button', { name: 'Not now' }).click();
+    await si.page.getByText('Your layover, reimagined.').waitFor();
+    check('onboarding: Not now returns to onboarding', await si.page.getByRole('button', { name: 'Get started' }).isVisible());
+    await si.page.reload(); await si.page.waitForTimeout(800);
+    check('onboarding: after choosing Sign in, the next launch resumes at the account screen', await si.page.getByRole('button', { name: 'Create account' }).isVisible() && !(await visible(si.page, 'Your layover, reimagined.')));
+    await si.ctx.close();
+  }
   await rm.page.getByRole('button', { name: 'Skip' }).click(); await rm.page.getByRole('button', { name: 'Create account' }).waitFor();
   check('access: reduced motion shows a still composition', await rm.page.evaluate(() => [...document.querySelectorAll('.access__orbit, .access__blob, .access__strip')].every((e) => getComputedStyle(e).animationName === 'none')));
   await rm.ctx.close();
