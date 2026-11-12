@@ -1,4 +1,4 @@
-import { ArrowRight, Plane } from 'lucide-react'
+import { Plane } from 'lucide-react'
 import type { Plan } from '../data/types'
 import { ACTIVITIES, getAirport } from '../data/mock'
 import { airportInfo } from '../data/airportDirectory'
@@ -20,15 +20,27 @@ export function TripTicket({ plan, onView, onAdd }: Props) {
         <p className="flex items-center gap-1.5 text-cap font-bold uppercase tracking-wide text-accent-dark">
           <Plane size={14} aria-hidden="true" /> Next connection
         </p>
-        {o && d ? (
-          <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-            <div><p className="truncate text-sub text-muted-text">{o.city}</p><p className="text-[2rem] font-bold leading-tight tracking-tight">{o.code}</p></div>
-            <ArrowRight size={22} className="text-accent-dark" aria-hidden="true" />
-            <div className="text-right"><p className="truncate text-sub text-muted-text">{d.city}</p><p className="text-[2rem] font-bold leading-tight tracking-tight">{d.code}</p></div>
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+          <div>
+            <p className="text-cap font-semibold uppercase tracking-wide text-muted-text">From</p>
+            {plan.origin ? (
+              <>
+                <p className="text-[2rem] font-bold leading-tight tracking-tight">{o?.code ?? plan.origin}</p>
+                {o && <p className="break-words text-sub text-muted-text">{o.name}</p>}
+              </>
+            ) : <p className="mt-1 text-sub text-muted-text">Not provided</p>}
           </div>
-        ) : (
-          <div className="mt-3"><p className="text-sub text-muted-text">{ap.city}</p><p className="text-[2rem] font-bold leading-tight tracking-tight">{ap.code}</p></div>
-        )}
+          <Plane size={22} className="rotate-90 text-accent-dark" aria-hidden="true" />
+          <div className="text-right">
+            <p className="text-cap font-semibold uppercase tracking-wide text-muted-text">To</p>
+            {plan.destination ? (
+              <>
+                <p className="text-[2rem] font-bold leading-tight tracking-tight">{d?.code ?? plan.destination}</p>
+                {d && <p className="break-words text-sub text-muted-text">{d.name}</p>}
+              </>
+            ) : <p className="mt-1 text-sub text-muted-text">Not provided</p>}
+          </div>
+        </div>
       </div>
       <div aria-hidden="true" className="flex h-6 items-center bg-white px-5" style={{
         mask: 'radial-gradient(circle at left center, transparent 11px, black 12px) left / 51% 100% no-repeat, radial-gradient(circle at right center, transparent 11px, black 12px) right / 51% 100% no-repeat',
