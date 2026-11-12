@@ -73,7 +73,7 @@ try {
 
   await page.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
   check('airport discovery opens in List view', (await page.getByRole('tab', { name: 'list' }).getAttribute('aria-selected')) === 'true');
-  check('list shows usable time and the itinerary fit', await visible(page, 'checked against your') && await visible(page, 'Fits with 1h 50m to spare'));
+  check('list shows usable time and the itinerary fit', await visible(page, '3h 30m usable time') && await visible(page, 'Fits with 1h 50m to spare'));
   await page.getByRole('button', { name: 'Add O Mercado food court' }).click();
   await page.getByRole('button', { name: 'Add ANA Lounge' }).click();
   await page.getByRole('button', { name: 'Add Lisboa Duty Free' }).click();

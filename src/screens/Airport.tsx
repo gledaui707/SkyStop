@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, Clock, Layers, ListChecks, LocateFixed, Plus, Check, Search, Sparkles, X } from 'lucide-react'
+import { ChevronLeft, Layers, ListChecks, LocateFixed, Plus, Check, Search, Sparkles, X } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, getActivities, getAirport, getTemplates } from '../data/mock'
 import { sized } from '../data/images'
@@ -158,36 +158,33 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
   const acts = getActivities(code)
   const shown = acts.filter((a) => (cat === 'All' || a.category === cat) && a.name.toLowerCase().includes(q.toLowerCase()))
   const usable = b?.usable
-  const durs = acts.map((x) => x.durationMin)
+  const templates = getTemplates(code)
   return (
     <div className="pb-[calc(var(--nav-h)+6.5rem)]">
-      <div className="ph relative h-[25rem] overflow-hidden">
+      <div className="ph relative h-[25rem] overflow-hidden rounded-b-[2rem]">
         <img src={sized(ap.image, 900, 800)} alt={ap.image.alt} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent" />
-        {/* dark scrim under the white title, then a thin melt into the light canvas */}
         <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-deep/90 via-deep/45 to-transparent" />
-        <div className="hero-melt absolute inset-x-0 bottom-0 h-10" />
         {bar}
-        <div className="absolute inset-x-5 bottom-11 text-white">
+        <div className="absolute inset-x-5 bottom-5 text-white">
           <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold uppercase tracking-[0.08em]">{ap.code} · {ap.country}</p>
           <h1 className="mt-2 text-title font-bold leading-tight">{ap.name}</h1>
+          <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/30 pt-3 text-sub text-white/90">
+            <li className="flex items-center gap-1.5"><ListChecks size={16} aria-hidden="true" /><span>{acts.length} {acts.length === 1 ? 'activity' : 'activities'}</span></li>
+            <li className="flex items-center gap-1.5"><Sparkles size={16} aria-hidden="true" /><span>{templates.length} {templates.length === 1 ? 'itinerary' : 'itineraries'}</span></li>
+          </ul>
         </div>
       </div>
       <div className="relative px-5">
-        <dl className="grid grid-cols-3 gap-2">
-          {[[Clock, fmtDur(Math.min(...durs)) + '–' + fmtDur(Math.max(...durs)), 'Duration'], [ListChecks, String(acts.length), 'Activities'], [Sparkles, String(getTemplates(code).length), 'Itinerary']].map(([I, v, l]) => {
-            const Icon = I as typeof Clock
-            return <div key={l as string} className="panel flex flex-col items-center gap-0.5 rounded-2xl px-1 py-3"><Icon size={20} className="text-accent-dark" /><dt className="sr-only">{l as string}</dt><dd className="whitespace-nowrap text-sub font-semibold">{v as string}</dd><dd className="text-cap text-muted-text">{l as string}</dd></div>
-          })}
-        </dl>
-        <p className={cx('mt-4 rounded-2xl px-4 py-3 text-sub', usable !== undefined ? 'panel-accent text-ink' : 'panel text-muted-text')}>
-          {usable !== undefined
-            ? <>Everything below is checked against your <b className="text-ink">{fmtDur(usable)}</b> usable time{b && !b.over ? <>, <b className="text-ink">{fmtDur(b.remaining)}</b> still free</> : b?.over ? <>; your plan is <b className="text-error">{fmtDur(-b.remaining)} over</b></> : null}.</>
-            : <>Pick a curated itinerary or select single activities. Set your layover times to check what fits; your selection is kept.</>}
-        </p>
+        {usable !== undefined && (
+          <p className="panel-accent mt-4 rounded-2xl px-4 py-3 text-sub text-ink">
+            <b>{fmtDur(usable)}</b> usable time
+            {b?.over ? <> · <b className="text-error">{fmtDur(-b.remaining)} over budget</b></> : b ? <> · <b>{fmtDur(b.remaining)}</b> still free</> : null}
+          </p>
+        )}
         <h2 className="mb-3 mt-8 text-h2 font-bold">Curated itineraries</h2>
         <ul className="grid gap-4">
-          {getTemplates(code).map((t) => {
+          {templates.map((t) => {
             const items = t.activityIds.map((id) => ACTIVITIES.find((a) => a.id === id)!)
             const dur = timeSpan(items)
             const fit = usable === undefined ? null : dur <= usable
