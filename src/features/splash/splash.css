@@ -6,8 +6,24 @@
   display: grid;
   place-items: center;
   overflow: hidden;
+  isolation: isolate;
   background: #ea5139;
   animation: skystop-reveal var(--splash-duration) linear both;
+}
+
+.launch-splash::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -28%;
+  background: radial-gradient(ellipse at 28% 28%, #f47731, transparent 58%),
+    linear-gradient(135deg, #ea5139 15%, #e65324 55%, #b83e23);
+  animation: skystop-warm-drift var(--splash-duration) ease-in-out both;
+}
+
+@keyframes skystop-warm-drift {
+  from { transform: translate(-12%, 9%) scale(1); }
+  to { transform: translate(13%, -11%) scale(1.12); }
 }
 
 .launch-splash__logo {
