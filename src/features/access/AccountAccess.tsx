@@ -51,7 +51,7 @@ function GlassMonogram() {
         </defs>
         {/* The mask sits on the untransformed group, as in the original file: a mask on the shifted path would shift with it. */}
         <g mask="url(#access-behind)">
-          <path d={letter} transform="translate(100 0)" fill="none" stroke="url(#access-rim)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+          <path d={letter} transform="translate(100 0)" fill="none" stroke="url(#access-rim)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
         </g>
       </svg>
       <svg className="access__mark-front" viewBox={VIEW} preserveAspectRatio="none" focusable="false">
@@ -112,7 +112,7 @@ export function AccountAccess() {
         <div className="access__brand">
           <GlassMonogram />
           <h1 className="access__wordmark">SkyStop</h1>
-          <p className="access__tagline">Your layover, reimagined.</p>
+          <p className="access__tagline">Plan your layover</p>
         </div>
 
         <div className="access__actions" role="group" aria-label="Account">

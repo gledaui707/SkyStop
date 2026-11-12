@@ -291,7 +291,7 @@ try {
   check('onboarding: keyboard ArrowLeft -> screen 1', await o.page.getByText('Your layover, reimagined.').isVisible());
   await o.page.getByRole('button', { name: 'Skip' }).click();
   await o.page.getByRole('button', { name: 'Create account' }).waitFor();
-  check('onboarding: Skip opens Account Access (Create account, Sign in, Continue as guest)', await o.page.getByRole('heading', { name: 'SkyStop', level: 1 }).isVisible() && await o.page.getByRole('button', { name: 'Sign in' }).isVisible() && await o.page.getByRole('button', { name: /Continue as guest/ }).isVisible());
+  check('onboarding: Skip opens Account Access (Create account, Sign in, Continue as guest)', await o.page.getByRole('heading', { name: 'SkyStop', level: 1 }).isVisible() && await o.page.getByText('Plan your layover', { exact: true }).isVisible() && await o.page.getByRole('button', { name: 'Sign in' }).isVisible() && await o.page.getByRole('button', { name: /Continue as guest/ }).isVisible());
   check('access: decorative layers ignore pointer events; glass uses a real backdrop blur', await o.page.evaluate(() => getComputedStyle(document.querySelector('.access__stage')).pointerEvents === 'none' && /blur/.test(getComputedStyle(document.querySelector('.access__strip')).backdropFilter)));
   check('access: no account is created by viewing it', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
   await o.page.reload();
