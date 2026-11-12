@@ -56,7 +56,6 @@ export function TripTicket({ plan, onView }: Props) {
           <span className={caption}>{hasRoute ? `Arrive ${ap.code}` : `at ${ap.code}`} · {day(plan.arrival)}</span>
           <span className={cx(caption, 'text-right')}>{hasRoute ? `Depart ${ap.code}` : `at ${ap.code}`} · {day(plan.departure)}{plusDays > 0 && <sup className="ml-0.5 font-semibold text-accent-dark">+{plusDays}</sup>}</span>
         </div>
-        {!hasRoute && <p className="mt-3 text-[0.6875rem] text-muted-text">Connection times. Origin and destination were not added to this plan.</p>}
       </section>
 
       {/* boarding-pass tear line */}

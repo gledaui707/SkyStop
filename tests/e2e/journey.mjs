@@ -112,7 +112,7 @@ try {
   const ticket = await page.getByLabel('Upcoming trip').innerText();
   check('manual Home card shows only the actual transit airport and times', ['LIS', '10:00', '15:00', '3h 30m', '2 activities saved'].every((value) => ticket.includes(value))
     && await page.getByRole('region', { name: /^Journey / }).count() === 0 && await page.getByRole('region', { name: 'Connection at LIS' }).isVisible()
-    && ticket.includes('Origin and destination were not added') && !ticket.includes('—'));
+    && !ticket.includes('Origin and destination') && !ticket.includes('—'));
   await shot(page, '05-home-saved');
 
   await page.reload();
