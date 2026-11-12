@@ -56,7 +56,7 @@ function toActivities(rows: ActivityRow[]): Activity[] {
       id: r.id, airport: r.airport_id, name: r.name, category: CATEGORY[r.category] ?? 'Rest', durationMin: r.duration_minutes,
       costUsd: 0, costLabel: costLabel(r.budget_label),
       access: r.access_zone === 'airside' ? 'Airside' : r.access_zone === 'landside' ? 'Landside' : 'Unverified',
-      terminal: r.terminal === 'Unverified' ? undefined : r.terminal, sourceUrl: r.source_url ?? undefined, image: PHOTO[r.airport_id]?.[r.category] ?? IMAGES.results, note: r.description,
+      terminal: r.terminal === 'Unverified' ? undefined : r.terminal, sourceUrl: r.source_url ?? undefined, image: IMAGES.venues[r.id] ?? PHOTO[r.airport_id]?.[r.category] ?? IMAGES.results, note: r.description,
       leavesAirport: r.access_zone === 'landside',
       map: pos[i], locationIds: [],
     }
