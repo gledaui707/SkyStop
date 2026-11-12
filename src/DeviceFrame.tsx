@@ -16,6 +16,12 @@ export function DeviceFrame() {
   const [mobile, setMobile] = useState(() => new URLSearchParams(window.location.search).get('frame') !== 'off')
   const [scale, setScale] = useState(1)
   const app = useRef<HTMLIFrameElement>(null)
+  // The app reports whether the top of its screen is dark (photo) or light, so the clock is white or charcoal.
+  const [barTone, setBarTone] = useState<'light' | 'dark'>('light')
+  useEffect(() => {
+    const on = (e: MessageEvent) => { if (e.source === app.current?.contentWindow && e.data?.type === 'skystop-statusbar') setBarTone(e.data.tone === 'dark' ? 'dark' : 'light') }
+    window.addEventListener('message', on); return () => window.removeEventListener('message', on)
+  }, [])
   useEffect(() => {
     const fit = () => setScale(Math.min(1, (window.innerHeight - 72) / (SCREEN_H + BEZEL * 2), (window.innerWidth - 32) / (SCREEN_W + BEZEL * 2)))
     fit()
@@ -56,7 +62,7 @@ export function DeviceFrame() {
               <iframe ref={app} title="SkyStop app" src={src} onLoad={syncInsets} className="block size-full border-0" />
               {mobile && (
                 <>
-                  <div aria-hidden="true" className="pointer-events-none absolute left-8 top-3 text-[0.95rem] font-semibold text-white mix-blend-difference">9:41</div>
+                  <div aria-hidden="true" className={`pointer-events-none absolute left-8 top-3 text-[0.95rem] font-semibold transition-colors duration-300 ${barTone === 'dark' ? 'text-white' : 'text-[#231a17]'}`}>9:41</div>
                   <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[0.7rem] h-[2.1rem] w-[7.4rem] -translate-x-1/2 rounded-full bg-black" />
                   <div aria-hidden="true" className="pointer-events-none absolute bottom-2 left-1/2 h-[5px] w-[8.5rem] -translate-x-1/2 rounded-full bg-ink/70" />
                 </>

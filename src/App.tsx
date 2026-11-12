@@ -1,5 +1,5 @@
 import { Earth, House, Bookmark, Plane } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
 import { AppProvider, useApp, tabOf, type Tab } from './store'
 import { Home, FindFlight, Airports } from './screens/Discover'
@@ -76,6 +76,52 @@ function Toast() {
   )
 }
 
+type Tone = 'light' | 'dark'
+const lum = (c: string) => { const m = c.match(/[\d.]+/g); if (!m || m.length < 3) return null; const [r, g, b, a = '1'] = m; return +a < 0.5 ? null : (0.2126 * +r + 0.7152 * +g + 0.0722 * +b) / 255 }
+/** What is behind the top of the screen: a photo or a dark surface ('dark') or the light canvas ('light'). */
+function toneAtTop(): Tone {
+  const y = Math.max(8, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 16)
+  for (const el of document.elementsFromPoint(window.innerWidth / 2, y)) {
+    if (el.closest('[data-top-blur]')) continue
+    if (el instanceof HTMLImageElement || el instanceof HTMLCanvasElement || el.classList.contains('leaflet-tile')) return 'dark'
+    const l = lum(getComputedStyle(el).backgroundColor)
+    if (l !== null) return l < 0.5 ? 'dark' : 'light'
+  }
+  return 'light'
+}
+const THEME: Record<Tone, string> = { light: '#faf6f2', dark: '#1a1412' }
+
+/** Revolut-style progressive blur under the status bar and header: content scrolling up blurs and fades instead
+ *  of meeting a hard band. Also reports whether the top is dark, so the status bar text can switch to white. */
+function TopBlur() {
+  const { route } = useApp()
+  const [tone, setTone] = useState<Tone>('light')
+  useEffect(() => {
+    let raf = 0
+    const check = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => setTone(toneAtTop())) }
+    check(); const t = setTimeout(check, 450) // after the screen's entrance and images
+    window.addEventListener('scroll', check, { passive: true }); window.addEventListener('resize', check)
+    return () => { cancelAnimationFrame(raf); clearTimeout(t); window.removeEventListener('scroll', check); window.removeEventListener('resize', check) }
+  }, [route])
+  useEffect(() => {
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+    if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta) }
+    meta.content = THEME[tone]
+    try { window.parent?.postMessage({ type: 'skystop-statusbar', tone }, '*') } catch { /* not framed */ }
+  }, [tone])
+  const layers = [[16, 0, 30], [8, 20, 50], [4, 40, 70], [2, 60, 88], [1, 75, 100]] as const
+  return (
+    <div data-top-blur aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-10 mx-auto h-[calc(var(--safe-top)+4.75rem)] max-w-[480px]">
+      {layers.map(([px, solid, end]) => (
+        <div key={px} className="absolute inset-0" style={{ backdropFilter: `blur(${px}px)`, WebkitBackdropFilter: `blur(${px}px)`,
+          maskImage: `linear-gradient(to bottom, black ${solid}%, transparent ${end}%)`, WebkitMaskImage: `linear-gradient(to bottom, black ${solid}%, transparent ${end}%)` }} />))}
+      <div className="absolute inset-0 transition-colors duration-300" style={{ background: tone === 'dark'
+        ? 'linear-gradient(to bottom, rgb(20 14 12 / 0.55), rgb(20 14 12 / 0.25) 55%, transparent)'
+        : 'linear-gradient(to bottom, rgb(250 246 242 / 0.85), rgb(250 246 242 / 0.5) 55%, transparent)' }} />
+    </div>
+  )
+}
+
 function Shell() {
   const { route, switchTab, catalogue, reload } = useApp()
   const active = tabOf(route)
@@ -101,7 +147,7 @@ function Shell() {
   if (route.name === 'welcome' || route.name === 'access') return <div className="mx-auto max-w-[480px]"><main key={key} className="anim-fade"><Screen /></main></div>
   return (
     <div className="mx-auto min-h-dvh max-w-[480px] pb-[var(--nav-h)]">
-      <main key={key} className="anim-screen"><Screen /></main>
+      <main key={key} className="anim-screen"><TopBlur /><Screen /></main>
       <Toast />
       <nav aria-label="Primary" className="glass fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] border-x-0 border-b-0 border-t border-white/80 pb-[var(--safe-bottom)] shadow-none">
         <div className="grid h-16 grid-cols-3">
