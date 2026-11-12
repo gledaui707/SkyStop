@@ -15,20 +15,36 @@ export const TEMPLATES: Template[] = []
 const PLACE: Record<string, { city: string; country: string }> = {
   LIS: { city: 'Lisbon', country: 'Portugal' },
   SIN: { city: 'Singapore', country: 'Singapore' },
+  LHR: { city: 'London', country: 'United Kingdom' },
+  DXB: { city: 'Dubai', country: 'United Arab Emirates' },
 }
-const CATEGORY: Record<ActivityRow['category'], Category> = { food: 'Food', rest: 'Rest', shopping: 'Shopping', work: 'Work', culture: 'City' }
+const TERMINALS: Record<string, string> = {
+  LIS: 'Terminal 1 (main) and Terminal 2',
+  SIN: 'Terminals 1–4, with Jewel in the public area',
+  LHR: 'Terminals 2, 3, 4 and 5 — separate buildings; allow time to transfer',
+  DXB: 'Terminals 1 and 3 (Concourses A, B, C and D)',
+}
+const CATEGORY: Record<ActivityRow['category'], Category> = { food: 'Food', rest: 'Rest', shopping: 'Shopping', work: 'Work', culture: 'Sights' }
 const PHOTO: Record<string, Partial<Record<ActivityRow['category'], Img>>> = {
   LIS: { food: IMAGES.activities.l1, rest: IMAGES.activities.l3, shopping: IMAGES.activities.l4, culture: IMAGES.activities.l2, work: IMAGES.activities.s4 },
   SIN: { food: IMAGES.activities.s1, rest: IMAGES.activities.s3, shopping: IMAGES.activities.l4, culture: IMAGES.activities.s2, work: IMAGES.activities.s4 },
+  LHR: { food: IMAGES.activities.l1, rest: IMAGES.activities.s3, shopping: IMAGES.activities.l4, culture: IMAGES.activities.l4, work: IMAGES.activities.s4 },
+  DXB: { food: IMAGES.activities.s1, rest: IMAGES.activities.l3, shopping: IMAGES.activities.l4, culture: IMAGES.activities.l4, work: IMAGES.activities.s4 },
 }
 
-const costLabel = (label: string) =>
-  /^unknown$/i.test(label.trim()) ? 'Cost not verified' : `${label.replace(/^illustrative:\s*/i, '').replace(/^./, (c) => c.toUpperCase())} cost (illustrative)`
+// Budget wording comes from the database: 'Free' / 'Paid' only where the official source says so.
+const costLabel = (label: string) => {
+  const l = label.trim()
+  if (/^unknown$/i.test(l)) return 'Price not listed'
+  if (/^free$/i.test(l)) return 'Free'
+  if (/^paid$/i.test(l)) return 'Paid entry'
+  return `${l.replace(/^illustrative:\s*/i, '').replace(/^./, (c) => c.toUpperCase())} cost (illustrative)`
+}
 
 function toAirport(r: AirportRow): Airport {
   const place = PLACE[r.id] ?? { city: r.name.replace(/\s+Airport$/i, ''), country: '' }
   return { code: r.id, name: r.name, timezone: r.timezone, ...place, image: IMAGES.airports[r.id] ?? IMAGES.results,
-    terminals: 'Terminal details to be confirmed with the airport.', note: r.dataset_label }
+    terminals: TERMINALS[r.id] ?? 'Terminal details to be confirmed with the airport.', note: r.dataset_label }
 }
 function toActivities(rows: ActivityRow[]): Activity[] {
   const pos = layoutMarkers(rows.map((r) => r.access_zone))
@@ -37,7 +53,7 @@ function toActivities(rows: ActivityRow[]): Activity[] {
       id: r.id, airport: r.airport_id, name: r.name, category: CATEGORY[r.category] ?? 'Rest', durationMin: r.duration_minutes,
       costUsd: 0, costLabel: costLabel(r.budget_label),
       access: r.access_zone === 'airside' ? 'Airside' : r.access_zone === 'landside' ? 'Landside' : 'Unverified',
-      terminal: r.terminal, image: PHOTO[r.airport_id]?.[r.category] ?? IMAGES.results, note: r.description,
+      terminal: r.terminal === 'Unverified' ? undefined : r.terminal, sourceUrl: r.source_url ?? undefined, image: PHOTO[r.airport_id]?.[r.category] ?? IMAGES.results, note: r.description,
       leavesAirport: r.access_zone === 'landside',
       map: pos[i],
     }

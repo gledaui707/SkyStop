@@ -26,6 +26,9 @@ export const IMAGES = {
   airports: {
     LIS: photo('1611782571163-aa82aac33685', 'Aircraft on an airport apron in daylight (illustrative)', 'Hugo Silva', 'hugomigueldasilva'),
     SIN: photo('1688693105312-0ad821a15bd9', 'Large airport atrium with a chandelier (illustrative)', 'Michael Stevanus Hartono', 'michaelstevanus'),
+    // No licence-checked photos of Heathrow or Dubai could be sourced from the build environment: illustrative only.
+    LHR: photo('1530469641172-8ac15d0a7d6a', 'View of an aircraft wing from a window seat (illustrative)', 'Blake Guidry', 'blakeguidry'),
+    DXB: photo('1593182440709-4b7b56482c55', 'Aircraft wing above the clouds (illustrative)', 'Johny Goerend', 'johnygoerend'),
   } as Record<string, Img>,
   activities: {
     l1: photo('1716360806681-b4defdfba134', 'Plate of pastries (illustrative)', 'Magdalena Raczka', 'magda_raczka'),

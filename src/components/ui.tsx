@@ -142,7 +142,7 @@ export function ActivityRow({ a, action, onOpen }: { a: Activity; action?: React
           <span className="block text-card font-semibold leading-tight">{a.name}</span>
           <span className="mt-1 block text-sub text-muted-text">{fmtDur(a.durationMin)} · {a.costLabel}</span>
           <span className="block text-cap text-muted-text">
-            {a.category} · {a.access === 'Unverified' ? '' : a.access}{a.leavesAirport ? ' · leaves airport' : ''}
+            {[a.category, a.terminal, a.access === 'Unverified' ? null : a.access].filter(Boolean).join(' · ')}{a.leavesAirport ? ' · leaves airport' : ''}
           </span>
         </span>
       </button>
@@ -183,12 +183,16 @@ export function ActivitySheet({ a, onClose, action }: { a: Activity | null; onCl
           <div className="ph relative h-52 overflow-hidden rounded-[1.5rem]">
             <Photo img={a.image} w={440} h={208} className="absolute inset-0 size-full" />
             <span className="glass-dark absolute left-3 top-3 rounded-full px-3 py-1 text-cap font-semibold">{a.category}</span>
+            <span className="glass-dark absolute bottom-3 right-3 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-medium">Illustrative photo</span>
           </div>
           <dl className="grid grid-cols-3 gap-2 text-center">
-            {[['Duration', fmtDur(a.durationMin)], ['Cost', a.costLabel.replace(' (illustrative)', '')], ['Access', a.access === 'Unverified' ? 'Unverified' : a.access]].map(([k, v]) => (
-              <div key={k} className="panel rounded-2xl px-1 py-2.5"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
+            {[['Est. time', fmtDur(a.durationMin)], ['Price', a.costLabel.replace(' (illustrative)', '')], ['Access', a.access === 'Unverified' ? 'Not confirmed' : a.access]].map(([k, v]) => (
+              <div key={k} className="panel min-w-0 rounded-2xl px-1 py-2.5"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
           </dl>
+          {a.terminal && <p className="text-sub font-semibold text-ink">Where: <span className="font-normal text-muted-text">{a.terminal}</span></p>}
           <p className="text-body text-ink/85">{a.note}</p>
+          <p className="text-cap text-muted-text">Time is a planning estimate. Opening hours and prices change; check before you go.
+            {a.sourceUrl && <> Source: <a href={a.sourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-accent-dark underline underline-offset-2">{new URL(a.sourceUrl).hostname.replace(/^www\./, '')}</a></>}</p>
           {action}
         </div>
       )}
@@ -196,4 +200,4 @@ export function ActivitySheet({ a, onClose, action }: { a: Activity | null; onCl
   )
 }
 
-export const CATEGORIES: ('All' | Category)[] = ['All', 'Food', 'Rest', 'Shopping', 'Work', 'City']
+export const CATEGORIES: ('All' | Category)[] = ['All', 'Food', 'Rest', 'Shopping', 'Sights']

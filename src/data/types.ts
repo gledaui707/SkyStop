@@ -1,5 +1,5 @@
 import type { Img } from './images'
-export type Category = 'Food' | 'Rest' | 'Shopping' | 'Work' | 'City'
+export type Category = 'Food' | 'Rest' | 'Shopping' | 'Work' | 'Sights'
 export type Access = 'Airside' | 'Landside' | 'Unverified'
 
 export interface Airport {
@@ -24,6 +24,8 @@ export interface Activity {
   costLabel: string
   access: Access
   terminal?: string
+  /** Official page the venue details were checked against. */
+  sourceUrl?: string
   image: Img
   note: string
   leavesAirport?: boolean

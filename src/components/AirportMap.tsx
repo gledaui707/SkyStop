@@ -4,7 +4,7 @@ import { cx } from './ui'
 
 export type Zone = 'all' | 'Airside' | 'Landside'
 
-const ICONS: Record<Category, LucideIcon> = { Food: Utensils, Rest: Bed, Shopping: ShoppingBag, Work: Laptop, City: TramFront }
+const ICONS: Record<Category, LucideIcon> = { Food: Utensils, Rest: Bed, Shopping: ShoppingBag, Work: Laptop, Sights: TramFront }
 
 /** Data space is 0-100. The floating controls (back, Map/List, category chips) take a fixed band at the top, so the
  *  markers use only the space below it. A percentage band (as in the Figma export) slid markers under the chips on

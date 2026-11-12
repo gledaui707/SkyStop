@@ -43,23 +43,18 @@ try {
 
   await page.getByRole('heading', { name: 'Curated itineraries' }).waitFor({ timeout: T });
   check('discovery opens in List view', (await page.getByRole('tab', { name: 'list' }).getAttribute('aria-selected')) === 'true');
-  check('curated itinerary shown with fit check', await visible(page, 'Demo snack and rest') && await visible(page, 'Fits with 1h 50m to spare'));
+  check('curated itinerary shown with fit check', await visible(page, 'Market lunch and lounge') && await visible(page, 'Fits with 1h 50m to spare'));
   await shot(page, '05-airport-list');
   await page.getByRole('tab', { name: 'map' }).click();
   await page.getByText('Airside zone').waitFor({ timeout: T });
   await shot(page, '04-airport-map');
   await page.getByRole('tab', { name: 'list' }).click();
-  await page.getByRole('button', { name: 'Add Demo Portuguese snack break' }).click();
-  await page.getByRole('button', { name: 'Add Demo quiet rest' }).click();
-  await page.getByRole('button', { name: 'Add Demo gift browse' }).click();
-  await page.getByRole('button', { name: 'Remove Demo gift browse' }).click();
-  await page.getByRole('button', { name: 'Add Demo extended work break' }).click();
-  await page.getByRole('button', { name: 'Build itinerary (3)' }).click();
-  const over = (await page.getByLabel('Time budget').innerText()).replace(/\n/g, ' ');
-  check('over budget: 100 + 180 = 280 min against 210 usable -> over by 1h 10m, with a warning', over.includes('Over your usable time by') && over.includes('1h 10m') && over.includes('This plan does not fit'), over.slice(0, 70));
-  check('over-budget plan can still be saved ("Save anyway")', await page.getByRole('button', { name: 'Save anyway' }).isVisible());
-  await shot(page, '06a-builder-over-budget');
-  await page.getByRole('button', { name: 'Remove Demo extended work break' }).click();
+  await page.getByRole('button', { name: 'Add O Mercado food court' }).click();
+  await page.getByRole('button', { name: 'Add ANA Lounge' }).click();
+  await page.getByRole('button', { name: 'Add Lisboa Duty Free' }).click();
+  await page.getByRole('button', { name: 'Remove Lisboa Duty Free' }).click();
+  await page.getByRole('button', { name: 'Build itinerary (2)' }).click();
+  // (over-budget behaviour is covered by the simulated journey test; the real venues all fit this layover)
   const hero = (await page.getByLabel('Time budget').innerText()).replace(/\n/g, ' ');
   check('builder: after removing it, remaining time is 3h 30m - 1h 40m = 1h 50m', hero.includes('1h 50m') && !hero.includes('does not fit'), hero.slice(0, 60));
   await shot(page, '06-builder');
@@ -78,11 +73,11 @@ try {
   check('after REFRESH the trip is retrieved from the database', ['10:00', '15:00', '3h 30m', '2 activities saved'].every((x) => t2.includes(x)));
   await page.getByRole('button', { name: 'View layover' }).click();
   await page.getByRole('heading', { name: 'Activities (2)' }).waitFor({ timeout: T });
-  check('plan detail lists both activities', await visible(page, 'Demo Portuguese snack break') && await visible(page, 'Demo quiet rest'));
+  check('plan detail lists both activities', await visible(page, 'O Mercado food court') && await visible(page, 'ANA Lounge'));
   await shot(page, '08-plan-detail');
 
   await page.getByRole('button', { name: 'Edit plan' }).click();
-  await page.getByRole('button', { name: 'Remove Demo Portuguese snack break' }).click();
+  await page.getByRole('button', { name: 'Remove O Mercado food court' }).click();
   check('edit: remaining time recalculated to 2h 30m', (await page.getByLabel('Time budget').innerText()).includes('2h 30m'));
   await shot(page, '09-edit-plan');
   await page.getByRole('button', { name: 'Save changes' }).click();

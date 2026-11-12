@@ -7,6 +7,7 @@ export interface AirportRow { id: string; name: string; timezone: string; datase
 export interface ActivityRow {
   id: string; airport_id: string; name: string; description: string; category: Category;
   terminal: string; access_zone: AccessZone; duration_minutes: number; budget_label: string; is_demo: boolean;
+  source_url?: string | null;
 }
 export interface TemplateRow { id: string; airport_id: string; name: string; description: string }
 export interface TemplateItemRow { template_id: string; airport_id: string; activity_id: string; position: number }

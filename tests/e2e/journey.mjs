@@ -70,18 +70,18 @@ try {
   await page.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
   check('airport discovery opens in List view', (await page.getByRole('tab', { name: 'list' }).getAttribute('aria-selected')) === 'true');
   check('list shows usable time and the itinerary fit', await visible(page, 'checked against your') && await visible(page, 'Fits with 1h 50m to spare'));
-  await page.getByRole('button', { name: 'Add Demo Portuguese snack break' }).click();
-  await page.getByRole('button', { name: 'Add Demo quiet rest' }).click();
-  await page.getByRole('button', { name: 'Add Demo gift browse' }).click();
-  await page.getByRole('button', { name: 'Remove Demo gift browse' }).click();
+  await page.getByRole('button', { name: 'Add O Mercado food court' }).click();
+  await page.getByRole('button', { name: 'Add ANA Lounge' }).click();
+  await page.getByRole('button', { name: 'Add Lisboa Duty Free' }).click();
+  await page.getByRole('button', { name: 'Remove Lisboa Duty Free' }).click();
   await shot(page, '02-airport-list');
   // List <-> Map keeps the plan
   await page.getByRole('tab', { name: 'map' }).click();
   await page.getByText('Airside zone').waitFor();
-  check('map: still available; shows the 2 planned activities and the time left', await page.getByRole('button', { name: /Demo quiet rest, Rest, in your itinerary/ }).isVisible() && await visible(page, '2 planned') && await visible(page, '1h 50m left'));
+  check('map: still available; shows the 2 planned activities and the time left', await page.getByRole('button', { name: /ANA Lounge, Rest, in your itinerary/ }).isVisible() && await visible(page, '2 planned') && await visible(page, '1h 50m left'));
   await shot(page, '03-airport-map');
   await page.getByRole('tab', { name: 'list' }).click();
-  check('back in list: selection unchanged', (await page.getByRole('button', { name: 'Remove Demo quiet rest' }).getAttribute('aria-pressed')) === 'true' && await page.getByRole('button', { name: 'Build itinerary (2)' }).isVisible());
+  check('back in list: selection unchanged', (await page.getByRole('button', { name: 'Remove ANA Lounge' }).getAttribute('aria-pressed')) === 'true' && await page.getByRole('button', { name: 'Build itinerary (2)' }).isVisible());
   await page.getByRole('button', { name: 'Build itinerary (2)' }).click();
 
   const hero = page.getByLabel('Time budget');
@@ -95,7 +95,7 @@ try {
   fake.failNext['rpc/save_plan'] = 1;
   await page.getByRole('button', { name: 'Save plan' }).click();
   await page.getByText('Plan not saved').waitFor();
-  check('failed save: error shown, no "Saved", draft kept', !(await barText(page)).includes('Saved') && await visible(page, 'Demo quiet rest') && fake.plans.size === 0);
+  check('failed save: error shown, no "Saved", draft kept', !(await barText(page)).includes('Saved') && await visible(page, 'ANA Lounge') && fake.plans.size === 0);
   await page.getByRole('button', { name: 'Try again' }).click();
   await page.getByLabel('Upcoming trip').waitFor();
   check('saved once; home confirms the save explicitly', fake.plans.size === 1 && (await page.getByRole('status').innerText()).includes('is saved'));
@@ -112,7 +112,7 @@ try {
   await page.getByRole('button', { name: 'View layover' }).click();
   await page.getByRole('heading', { name: 'Activities (2)' }).waitFor();
   await page.getByRole('button', { name: 'Edit plan' }).click();
-  await page.getByRole('button', { name: 'Remove Demo Portuguese snack break' }).click();
+  await page.getByRole('button', { name: 'Remove O Mercado food court' }).click();
   check('edit: bar shows 2h 30m left and "unsaved changes"', (await barText(page)).includes('2h 30m left') && (await barText(page)).includes('unsaved changes'));
   await page.getByRole('button', { name: 'Save changes' }).click();
   await page.getByText('All changes saved').waitFor();
@@ -146,6 +146,17 @@ try {
     await k.page.getByRole('button', { name: 'Back' }).click();
     await k.page.getByRole('heading', { name: 'Find your journey' }).waitFor();
   }
+  // LHR and DXB are supported airports now: journeys C and D open discovery with only that airport's venues
+  for (const [ref, cityName, own, other] of [['CJ8NWT', 'London', 'Gordon Ramsay Plane Food Market', 'Al Majlis'], ['DH5PRZ', 'Dubai', 'Al Majlis', 'Harrods']]) {
+    await k.page.getByLabel('Booking reference').fill(ref);
+    await k.page.getByRole('button', { name: 'Find my journey' }).click();
+    await k.page.getByRole('button', { name: `Explore ${cityName}` }).click();
+    await k.page.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
+    check(`booking: ${ref} -> Explore ${cityName} lists its own verified venues only`, await visible(k.page, own) && !(await visible(k.page, other)) && !(await visible(k.page, 'Demo')));
+    await k.page.getByRole('button', { name: 'Back' }).click();
+    await k.page.getByRole('button', { name: 'Back' }).click();
+    await k.page.getByRole('heading', { name: 'Find your journey' }).waitFor();
+  }
   await k.page.getByRole('button', { name: 'Try a sample booking' }).click();
   await k.page.getByRole('button', { name: /AXR7KD/ }).click();
   await k.page.getByRole('heading', { name: 'Your journey' }).waitFor();
@@ -171,17 +182,17 @@ try {
   await e.page.getByRole('button', { name: 'Airports', exact: true }).click();
   await e.page.getByRole('button', { name: /Lisbon Airport/ }).first().click();
   await e.page.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
-  await e.page.getByRole('button', { name: 'Select Demo quiet rest' }).click();
-  await e.page.getByRole('button', { name: 'Select Demo gift browse' }).click();
+  await e.page.getByRole('button', { name: 'Select ANA Lounge' }).click();
+  await e.page.getByRole('button', { name: 'Select Lisboa Duty Free' }).click();
   await e.page.getByRole('tab', { name: 'map' }).click();
-  check('explore-first: map shows the selection', await e.page.getByRole('button', { name: /Demo gift browse, Shopping, in your itinerary/ }).isVisible() && await visible(e.page, '2 selected'));
+  check('explore-first: map shows the selection', await e.page.getByRole('button', { name: /Lisboa Duty Free, Shopping, in your itinerary/ }).isVisible() && await visible(e.page, '2 selected'));
   await e.page.getByRole('tab', { name: 'list' }).click();
   await e.page.getByRole('button', { name: 'Set layover times (2 selected)' }).click();
   check('explore-first: setup shows the airport and the 2 selected activities', (await e.page.getByLabel('Connecting airport', { exact: true }).inputValue()).includes('LIS') && await visible(e.page, '2 activities selected'));
   await setTimes(e.page);
   await e.page.getByRole('button', { name: 'Build my itinerary' }).click();
   await e.page.getByRole('heading', { name: 'Your plan' }).waitFor();
-  check('explore-first: builder contains both selected activities (1h 30m planned, 2h left)', await visible(e.page, 'Demo quiet rest') && await visible(e.page, 'Demo gift browse') && (await barText(e.page)).includes('2h left'));
+  check('explore-first: builder contains both selected activities (1h 30m planned, 2h left)', await visible(e.page, 'ANA Lounge') && await visible(e.page, 'Lisboa Duty Free') && (await barText(e.page)).includes('2h left'));
   await e.page.getByRole('button', { name: 'Home' }).click();
   await e.page.getByRole('button', { name: 'My Plans' }).click();
   check('explore-first: nothing saved without pressing Save', await e.page.getByText('No saved plans yet').isVisible());
@@ -193,11 +204,11 @@ try {
   await d.page.getByRole('button', { name: 'Airports', exact: true }).click();
   await d.page.getByRole('button', { name: /Lisbon Airport/ }).first().click();
   await d.page.getByRole('button', { name: 'Use this itinerary' }).click();
-  check('itinerary-first: setup names the itinerary', await visible(d.page, 'Itinerary: Demo snack and rest') && await visible(d.page, 'It will be added to your plan'));
+  check('itinerary-first: setup names the itinerary', await visible(d.page, 'Itinerary: Market lunch and lounge') && await visible(d.page, 'It will be added to your plan'));
   await setTimes(d.page);
   await d.page.getByRole('button', { name: 'Build my itinerary' }).click();
   await d.page.getByRole('heading', { name: 'Your plan' }).waitFor();
-  check('itinerary-first: builder has the itinerary (1h 50m left)', (await barText(d.page)).includes('1h 50m left') && await visible(d.page, 'Demo Portuguese snack break'));
+  check('itinerary-first: builder has the itinerary (1h 50m left)', (await barText(d.page)).includes('1h 50m left') && await visible(d.page, 'O Mercado food court'));
   await d.ctx.close();
 
   // ---- 4. Builder layout at 320, 375 and 390 px: fixed controls never hide content; no sideways scrolling
@@ -206,9 +217,11 @@ try {
     await v.page.goto(BASE);
     await v.page.getByRole('button', { name: 'Airports', exact: true }).click();
     await v.page.getByRole('button', { name: /Lisbon Airport/ }).first().click();
-    for (const n of ['Demo Portuguese snack break', 'Demo quiet rest', 'Demo extended work break']) await v.page.getByRole('button', { name: `Select ${n}` }).click();
+    for (const n of ['O Mercado food court', 'ANA Lounge', 'Fnac']) await v.page.getByRole('button', { name: `Select ${n}` }).click();
     await v.page.getByRole('button', { name: /Set layover times/ }).click();
+    // a 3-hour layover (90 min usable) so the 120 min of activities runs 30 min over
     await setTimes(v.page);
+    await v.page.getByLabel('Onward departure (local time)').fill(`${day(7)}T13:00`);
     const tripOk = await v.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
     await v.page.getByRole('button', { name: 'Build my itinerary' }).click();
     await v.page.getByRole('heading', { name: 'Your plan' }).waitFor();
@@ -225,7 +238,7 @@ try {
       return { barTop, last, sideways: document.documentElement.scrollWidth > window.innerWidth, overflowingButtons: btns, wrappedLabels: wrapped };
     });
     check(`builder ${w}px: all content scrolls clear of the save bar and tab bar; no sideways scroll; no clipped buttons or wrapped bar labels`, m.last <= m.barTop && !m.sideways && tripOk && m.overflowingButtons.length === 0 && m.wrappedLabels.length === 0, JSON.stringify(m));
-    check(`builder ${w}px: over-budget plan shows "Save anyway" and the overage in the bar`, (await barText(v.page)).includes('1h 10m over') && await v.page.getByRole('button', { name: 'Save anyway' }).isVisible());
+    check(`builder ${w}px: over-budget plan shows "Save anyway" and the overage in the bar`, (await barText(v.page)).includes('30m over') && await v.page.getByRole('button', { name: 'Save anyway' }).isVisible());
     await shot(v.page, `06-builder-${w}`);
     await v.ctx.close();
   }
