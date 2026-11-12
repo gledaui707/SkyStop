@@ -29,14 +29,14 @@ await check('Public catalogue reads work; unauthenticated plan access/write deni
 await identity('authenticated',A);
 await check('Guest A creates and retrieves ordered snapshot',async()=>{await db.exec(save(0));const x=await db.query('select * from public.plan_items order by position');assert.deepEqual(x.rows.map(r=>r.duration_minutes),[40,60]);assert.equal((await db.query('select revision from public.layovers')).rows[0].revision,1);});
 await check('Direct client writes and catalogue changes denied',async()=>{await fail("update public.layovers set buffer_minutes=1",'42501');await fail("delete from public.plan_items",'42501');await fail("update public.activities set duration_minutes=1",'42501');});
-await check('Repeated create UUID conflicts without duplicate',async()=>{await fail(save(0),'PT409');assert.equal((await db.query('select * from public.layovers')).rows.length,1);});
+await check('Repeated create UUID conflicts without duplicate',async()=>{await fail(save(0),'40001');assert.equal((await db.query('select * from public.layovers')).rows.length,1);});
 await identity('authenticated',B);
-await check('Guest B cannot read parent/children or edit/take ownership',async()=>{assert.equal((await db.query('select * from public.layovers')).rows.length,0);assert.equal((await db.query('select * from public.plan_items')).rows.length,0);await fail(save(1),'42501');await fail(save(0),'PT409');});
+await check('Guest B cannot read parent/children or edit/take ownership',async()=>{assert.equal((await db.query('select * from public.layovers')).rows.length,0);assert.equal((await db.query('select * from public.plan_items')).rows.length,0);await fail(save(1),'42501');await fail(save(0),'40001');});
 await check('Guest B can independently create own plan',async()=>{await db.exec(save(0,[],{id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'}));assert.equal((await db.query('select * from public.layovers')).rows.length,1);});
 await identity('authenticated',A);
 await check('Invalid activity requests rejected; previous data retained',async()=>{for(const ids of [[foreign],[a1,a1],[null]]) await fail(save(1,ids),'22023');assert.equal((await db.query('select * from public.plan_items')).rows.length,2);});
 await check('Invalid timestamps/buffer roll back without revision change',async()=>{await fail(save(1,[a1],{end:'2026-11-17T09:00:00Z'}),'23514');await fail(save(1,[a1],{buffer:-1}),'23514');assert.equal((await db.query('select revision from public.layovers')).rows[0].revision,1);});
-await check('Edit increments revision, replaces children; stale edit rejected',async()=>{await db.exec(save(1,[a1]));await fail(save(1,[a2]),'PT409');assert.equal((await db.query('select revision from public.layovers')).rows[0].revision,2);assert.deepEqual((await db.query('select activity_id from public.plan_items')).rows.map(x=>x.activity_id),[a1]);});
+await check('Edit increments revision, replaces children; stale edit rejected',async()=>{await db.exec(save(1,[a1]));await fail(save(1,[a2]),'40001');assert.equal((await db.query('select revision from public.layovers')).rows[0].revision,2);assert.deepEqual((await db.query('select activity_id from public.plan_items')).rows.map(x=>x.activity_id),[a1]);});
 await check('Empty plan save is valid',async()=>{await db.exec(save(2,[]));assert.equal((await db.query('select * from public.plan_items')).rows.length,0);});
 await identity('authenticated','');
 await check('Missing identity cannot call privileged save',async()=>{await fail(save(0),'42501');});

@@ -66,6 +66,6 @@ PASS: two distinct anonymous identities (role `authenticated`); A creates a plan
 
 FAIL (all three are the same cause): `B cannot take over A UUID via create`, `stale revision → conflict`, `re-create same UUID → conflict`. Each is a `save_plan` call that raises SQLSTATE `40001`; the hosted API did not answer within 20 s (client timeout) instead of returning a conflict. Data was **not** corrupted (follow-up read showed A's plan unchanged). Hypothesis (not proven): the API layer treats 40001 (serialization_failure) as retryable and retries. Impact: the app cannot show a conflict message; ownership itself held.
 
-Proposed fix, **not yet applied to the hosted database**: `supabase/migrations/202611120001_conflict_errcode.sql` (additive `create or replace function`; no tables touched) raising `PT409` → HTTP 409 instead. Local harness with the new migration: 15/15 pass. After applying, rerun the GitHub workflow (the hosted test now expects HTTP 409/PT409); the conflict checks must pass before this is called fixed.
+Proposed fix withdrawn: a schema change was drafted but removed from the branch at the owner's direction. No schema or RLS change is made on the basis of this timeout; the cause is still being investigated through the test harness.
 
 Not done: database types (`src/types/database.types.ts`) — needs Supabase CLI login; no hosted Auth abuse controls/CAPTCHA verification.
