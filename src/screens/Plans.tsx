@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Pencil, Plane } from 'lucide-react'
+import { ChevronLeft, MapPin, Pencil, Plane } from 'lucide-react'
 import { sized } from '../data/images'
 import { useApp } from '../store'
 import { ACTIVITIES, getAirport } from '../data/mock'
@@ -42,7 +42,11 @@ export function Plans() {
                     <Photo img={ap.image} w={420} h={176} className="absolute inset-0 size-full" />
                     <span className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/10" />
                     <span className="glass-dark absolute left-4 top-4 rounded-full px-3 py-1 text-cap font-bold tracking-wide">{p.airport}</span>
-                    <span className="glass-dark absolute right-4 top-4 grid size-10 place-items-center rounded-full"><ChevronRight size={20} /></span>
+                    {ap.country && (
+                      <span className="glass-dark absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-cap font-medium">
+                        <MapPin size={14} className="shrink-0" aria-hidden="true" />{ap.country}
+                      </span>
+                    )}
                     <span className="absolute inset-x-4 bottom-4 block">
                       <b className="block truncate text-h2 font-bold">{p.name}</b>
                       <span className="block text-sub text-white/80">{when(p.arrival)}</span>
