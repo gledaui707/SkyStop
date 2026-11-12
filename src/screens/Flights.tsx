@@ -115,7 +115,7 @@ export function Results({ origin, destination, date }: { origin: string; destina
                     <p className="text-h1 font-bold tabular-nums">{money(f.priceUsd)}</p>
                     <Button variant="secondary" className="min-h-11 px-4 text-sub" onClick={() => go({ name: 'flight', flightId: f.id, origin, destination, date })}>View connection</Button>
                   </div>
-                  <label className="mt-3 flex min-h-11 items-center gap-3 border-t border-line pt-2 text-body">
+                  <label className="mt-3 flex min-h-11 items-center gap-3  pt-2 text-body">
                     <input type="checkbox" checked={cmp.includes(f.id)} onChange={() => toggle(f.id)} className="size-5 accent-accent" />Compare</label>
                 </li>
               )
@@ -207,12 +207,12 @@ export function Compare({ ids, origin, destination, date }: { ids: string[]; ori
                 <span className="block text-body font-semibold">via {f.via}</span>
                 <span className="text-cap font-normal text-muted-text">{fmtTime(f.departAt)} departure</span></th>))}</tr></thead>
             <tbody>
-              <tr className="border-t border-line"><th scope="row" className="p-3 text-sub font-medium text-muted-text">Airline</th>
+              <tr><th scope="row" className="p-3 text-sub font-medium text-muted-text">Airline</th>
                 {list.map((f) => <td key={f.id} className="p-3"><span className="flex flex-col items-start gap-1"><img src={AIRLINES[f.airline].logo} alt="" className="size-8 rounded-md bg-white object-contain" /><span className="text-sub font-semibold">{AIRLINES[f.airline].name}</span></span></td>)}</tr>
               {rows.map(([k, fn]) => (
-                <tr key={k} className="border-t border-line"><th scope="row" className="p-3 text-sub font-medium text-muted-text">{k}</th>
+                <tr key={k} ><th scope="row" className="p-3 text-sub font-medium text-muted-text">{k}</th>
                   {list.map((f) => <td key={f.id} className="p-3 text-sub font-semibold tabular-nums">{fn(f)}</td>)}</tr>))}
-              <tr className="border-t border-line"><td />{list.map((f) => <td key={f.id} className="p-3"><Button variant="secondary" className="min-h-11 px-3 text-sub" onClick={() => choose(f)}>Choose</Button></td>)}</tr>
+              <tr><td />{list.map((f) => <td key={f.id} className="p-3"><Button variant="secondary" className="min-h-11 px-3 text-sub" onClick={() => choose(f)}>Choose</Button></td>)}</tr>
             </tbody>
           </table>
         </div>

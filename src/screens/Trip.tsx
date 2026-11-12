@@ -174,7 +174,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
             <dl className="mt-4 grid gap-2 text-body">
               <div className="flex justify-between"><dt className="text-muted-text">Total layover</dt><dd className="font-semibold">{fmtDur(b.total)}</dd></div>
               <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted-text"><span className="size-2.5 rounded-full bg-muted/60" />Planning buffer</dt><dd className="font-semibold">− {fmtDur(b.buffer)}</dd></div>
-              <div className="flex justify-between border-t border-line pt-2"><dt className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-accent" />Usable time</dt><dd className="text-card font-bold text-accent-dark">{fmtDur(b.usable)}</dd></div>
+              <div className="flex justify-between  pt-2"><dt className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-accent" />Usable time</dt><dd className="text-card font-bold text-accent-dark">{fmtDur(b.usable)}</dd></div>
             </dl>
             {b.usable === 0 && <p role="alert" className="mt-3 text-sub font-medium text-error">No usable time after the buffer. A shorter buffer may help.</p>}
             {isOvernight(new Date(arr), new Date(dep)) && <p className="mt-3 text-sub text-muted-text">Overnight connection: many services may be closed.</p>}

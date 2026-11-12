@@ -202,7 +202,7 @@ export const CATEGORIES: ('All' | Category)[] = ['All', 'Food', 'Rest', 'Shoppin
 
 /** "What is this?" link that opens a dark tooltip bubble (title + text) pointing back at the link.
  *  Tap the link again, tap elsewhere or press Escape to close. The bubble is right-aligned under the link. */
-export function InfoTip({ id, title, children, label = 'What is this?' }: { id: string; title: string; children: ReactNode; label?: string }) {
+export function InfoTip({ id, title, children, label = 'What is this?', icon }: { id: string; title: string; children: ReactNode; label?: string; icon?: ReactNode }) {
   const [open, setOpen] = useState(false)
   const [above, setAbove] = useState(false)
   const box = useRef<HTMLSpanElement>(null)
@@ -224,7 +224,8 @@ export function InfoTip({ id, title, children, label = 'What is this?' }: { id: 
   return (
     <span ref={box} className="relative inline-flex shrink-0">
       <button type="button" aria-expanded={open} aria-controls={id} onClick={toggle}
-        className="press min-h-11 text-sub font-semibold text-accent-dark underline underline-offset-2">{label}</button>
+        aria-label={icon ? label : undefined}
+        className={icon ? 'press -m-2 grid size-9 place-items-center rounded-full' : 'press min-h-11 text-sub font-semibold text-accent-dark underline underline-offset-2'}>{icon ?? label}</button>
       <span id={id} role="tooltip" hidden={!open}
         className={cx('anim-fade absolute right-0 z-50 w-[min(18.5rem,calc(100vw-2.5rem))] rounded-[1.4rem] bg-[#141414] px-4 py-3.5 text-left shadow-[0_14px_34px_rgb(0_0_0/0.28)]',
           above ? 'bottom-full mb-2.5' : 'top-full mt-2.5')}>

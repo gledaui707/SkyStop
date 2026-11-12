@@ -48,7 +48,7 @@ export function AirportPicker({ label, value, onChange, placeholder, exclude = [
           {matches.map((a) => (
             <li key={a.code} role="option" aria-selected={value === a.code} aria-disabled={blocked(a)}>
               <button type="button" disabled={blocked(a)} onClick={() => pick(a)} onMouseDown={(e) => e.preventDefault()}
-                className="flex min-h-14 w-full items-center gap-3 border-b border-line px-4 py-2 text-left last:border-b-0 disabled:opacity-45">
+                className="flex min-h-14 w-full items-center gap-3  px-4 py-2 text-left disabled:opacity-45">
                 <span className="grid h-8 w-12 shrink-0 place-items-center rounded-lg bg-ink-tint text-sub font-bold tracking-wide">{a.code}</span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-body font-medium">{a.city}</span>
                   <span className="block truncate text-cap text-muted-text">{blocked(a) ? 'Already used in this trip' : a.supported ? `${a.name} · layover guide` : a.name}</span></span>

@@ -179,7 +179,7 @@ export function Profile() {
           <button onClick={replayOnboarding} className="press flex min-h-12 items-center gap-3 text-left text-body font-medium"><RotateCcw size={19} className="text-accent-dark" />Replay introduction</button>
           {account.status !== 'none' && (
             <button onClick={() => void logOut()}
-              className="press flex min-h-12 items-center gap-3 border-t border-line pt-3 text-left text-body font-medium text-error"><LogOut size={19} />Log out</button>)}
+              className="press flex min-h-12 items-center gap-3  pt-3 text-left text-body font-medium text-error"><LogOut size={19} />Log out</button>)}
         </Section>
       </div>
     </div>

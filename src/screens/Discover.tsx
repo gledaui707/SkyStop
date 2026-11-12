@@ -207,7 +207,7 @@ export function FindFlight() {
   const sel = 'min-h-12 w-full min-w-0 appearance-none bg-transparent text-card font-semibold text-ink focus:outline-none'
   return (
     <div className="pb-[calc(var(--nav-h)+2rem)]">
-      <Header title="Compare flights" subtitle="Before you book" />
+      <Header title="Compare flights" />
       <div className="px-5 pt-2">
         <h2 className="text-h1 font-bold">Search for the best layover flights</h2>
       </div>

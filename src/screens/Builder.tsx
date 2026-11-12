@@ -68,9 +68,11 @@ export function Builder() {
         <label className="block">
           <span className="sr-only">Plan name</span>
           <input value={draft.name} onChange={(e) => update({ name: e.target.value })}
-            className="min-h-12 w-full rounded-none border-b border-line bg-transparent text-h1 font-bold focus:border-accent-dark focus:outline-none" />
+            className="min-h-12 w-full rounded-none  bg-transparent text-h1 font-bold focus:border-accent-dark focus:outline-none" />
         </label>
-        <div className="mt-4"><BudgetHero n={hero} overnight={night} /></div>
+        <div className="mt-4"><BudgetHero n={hero} overnight={night} bufferInfo={`The ${fmtDur(hero.buffer)} planning buffer covers leaving the aircraft, transfer screening, the final walk to your gate and boarding. ${itin.routing
+          ? 'Moving between terminals and venues is counted separately as transfers. Leaving and re-entering the transit area is not covered.'
+          : `Transfer times between activities are not available for ${ap.city}, so only activity time is counted.`}`} /></div>
 
         {/* access status, separate from time */}
         {items.length > 0 && (
@@ -92,13 +94,8 @@ export function Builder() {
                   })}
                 </div>
               </div>))}
-            <p className="text-cap text-muted-text">Used to estimate the walk or train to your first activity and back towards your departure gate.</p>
           </section>)}
 
-        <p className="panel mt-3 flex gap-3 rounded-2xl p-3.5 text-sub text-muted-text"><Info size={18} className="mt-0.5 shrink-0 text-accent-dark" />
-          <span>The {fmtDur(hero.buffer)} planning buffer covers leaving the aircraft, transfer screening, the final walk to your gate and boarding. {itin.routing
-            ? 'Moving between terminals and venues is counted separately as transfers. Leaving and re-entering the transit area is not covered and has no published time.'
-            : `Transfer times between activities are not available for ${ap.city}, so only activity time is counted.`}</span></p>
 
         {landside.length > 0 && <EntryCheck names={landside.map((a) => a.name)} country={ap.country} url={ap.entryGuidanceUrl}
           onRemove={() => set(draft.activityIds.filter((id) => !landside.some((a) => a.id === id)))} />}
@@ -120,7 +117,8 @@ export function Builder() {
 
           {rows.length === 0 && (
             <li className="relative pb-4"><Dot cls="bg-line" />
-              <div className="rounded-card border border-dashed border-[rgb(35_26_23/0.2)] bg-white/60 p-4 text-body text-muted-text">No activities yet. Use “Add activities” below.</div></li>)}
+              <div className="grid gap-3 rounded-card border border-dashed border-[rgb(35_26_23/0.2)] bg-white/60 p-4 text-body text-muted-text">No activities yet.
+                {isSupported(draft.airport) && <button type="button" onClick={() => go({ name: 'airport', code: draft.airport, view: 'list' })} className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-accent-dark bg-transparent text-body font-semibold text-accent-dark"><Plus size={18} />Add activities</button>}</div></li>)}
 
           {rows.map(({ a, used, hop }, i) => {
             const late = used > hero.usable
@@ -162,7 +160,7 @@ export function Builder() {
         </ol>
 
         {isSupported(draft.airport)
-          ? <Button variant="secondary" icon={Plus} className="mt-6 w-full" onClick={() => go({ name: 'airport', code: draft.airport, view: 'list' })}>Add activities</Button>
+          ? (rows.length > 0 && <button type="button" onClick={() => go({ name: 'airport', code: draft.airport, view: 'list' })} className="mt-6 press flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-accent-dark bg-transparent text-body font-semibold text-accent-dark"><Plus size={18} />Add activities</button>)
           : <p className="mt-6 text-body text-muted-text">No activity guide for {ap.city} yet. You can still see your time budget.</p>}
         {saveError && <div className="mt-4"><Notice tone="warn"><p className="font-semibold">Plan not saved</p><p>{saveError}</p><p>Your changes are still here. Try again.</p></Notice></div>}
         {!canSave && <p className="mt-4 text-sub text-muted-text">Saving is available for airports with a layover guide.</p>}
@@ -210,11 +208,8 @@ function HopRow({ h }: { h: Hop }) {
           <p className="text-ink"><b>{h.isReturn ? 'Return transfer' : 'Estimated transfer'}: {range}</b>
             <span className="text-muted-text"> · {h.kind === 'same-area' ? 'within the same area' : [...new Set(h.modes.map((m) => MODE_LABEL[m] ?? m))].join(', then ')}</span></p>
         )}
-        <p className="text-cap text-muted-text">
-          {h.kind === 'unknown' ? (h.fromLabel.includes('not set') || h.toLabel.includes('not set') ? 'Not counted until a terminal is chosen.' : 'Access between these locations has not been verified. Not counted.')
-            : h.verification === 'official' ? 'Range published by the airport · counted at the upper end' : 'Planning estimate, not airport data · counted at the upper end'}
-          {h.sources[0] && <> · <a href={h.sources[0]} target="_blank" rel="noreferrer" className="underline underline-offset-2">source</a></>}
-        </p>
+        {h.kind === 'unknown' && <p className="text-cap text-muted-text">
+          {h.fromLabel.includes('not set') || h.toLabel.includes('not set') ? 'Not counted until a terminal is chosen.' : 'Access between these locations has not been verified. Not counted.'}</p>}
         {h.immigration && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-[0.6875rem] font-semibold text-accent-dark">Immigration required · time not included</p>}
         {h.departureChecks && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-[0.6875rem] font-semibold text-accent-dark">Check-in, departure immigration and security · time not included</p>}
         {h.throughCheck && <p className="mt-1 inline-flex rounded-full bg-ink-tint px-2 py-0.5 text-[0.6875rem] font-semibold text-ink">Through-checked passengers only</p>}

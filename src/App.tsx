@@ -1,4 +1,4 @@
-import { Earth, House, Bookmark, Plane } from 'lucide-react'
+import { House, Bookmark, Plane } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
 import { AppProvider, useApp, tabOf, type Tab } from './store'
@@ -38,12 +38,14 @@ function Screen() {
   }
 }
 
-/** Airports tab icon: a globe with a plane flying across its lower right. */
+/** Airports tab icon: a map pin with a plane inside. */
 function AirportsIcon({ size = 22, strokeWidth = 2 }: { size?: number; strokeWidth?: number }) {
   return (
     <span aria-hidden="true" className="relative inline-block" style={{ width: size, height: size }}>
-      <Earth size={size} strokeWidth={strokeWidth} />
-      <Plane size={Math.round(size * 0.68)} strokeWidth={strokeWidth} fill="currentColor" className="absolute -bottom-1.5 -right-2 rotate-[-20deg]" />
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
+      </svg>
+      <Plane size={Math.round(size * 0.42)} strokeWidth={1.5} fill="currentColor" className="absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2" />
     </span>
   )
 }
