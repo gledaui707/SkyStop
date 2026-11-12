@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { AlertTriangle, ArrowDown, ArrowUp, Check, ExternalLink, Info, Plane, Plus, ShieldAlert, Trash2 } from 'lucide-react'
+import { AlertTriangle, ArrowDown, ArrowUp, Check, Clock, ExternalLink, Info, Plane, Plus, ShieldAlert, Trash2 } from 'lucide-react'
 import { useApp } from '../store'
 import { getAirport, isSupported } from '../data/mock'
 import { fmtDay, fmtDur, fmtTime, isOvernight } from '../data/time'
@@ -20,7 +20,7 @@ export function Builder() {
   const [reorder, setReorder] = useState(false)
   const [open, setOpen] = useState<Activity | null>(null)
   if (!draft) return <div><Header title="Itinerary" /><div className="panel mx-5 mt-4 rounded-[1.75rem] p-6 text-center"><p className="text-body">No plan in progress.</p>
-    <Button className="mx-auto mt-4" onClick={() => switchTab('airports')}>Explore airports</Button></div></div>
+    <Button className="mx-auto mt-4" onClick={() => go({ name: 'trip' })}>Plan a layover</Button></div></div>
   const ap = getAirport(draft.airport)
   const { items, itin, hero, total: mins } = computeItinerary(draft)
   const terminals = terminalChoices(draft.airport)
@@ -52,7 +52,7 @@ export function Builder() {
       setDraft({ ...draft, name: p.name, planId: p.id, revision: p.revision }); setSaved(true)
       if (wasNew) { // new trips land on Home, where the trip card appears, with an explicit confirmation
         switchTab('home')
-        setNotice(`“${p.name}” is saved. Find it any time in My Plans on this device.`)
+        setNotice(`“${p.name}” is saved to My Plans.`)
       }
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e))
@@ -63,7 +63,7 @@ export function Builder() {
 
   return (
     <div className="pb-[calc(var(--nav-h)+8.5rem)]">
-      <Header title={draft.planId ? 'Edit plan' : 'Your itinerary'} subtitle={`${draft.origin && draft.destination ? draft.origin + ' to ' + draft.destination + ' · ' : ''}${ap.code} · ${fmtDur(mins)} layover`} />
+      <Header title={draft.planId ? 'Edit plan' : 'Your layover plan'} subtitle={`${draft.origin && draft.destination ? draft.origin + ' to ' + draft.destination + ' · ' : ''}${ap.code} · ${fmtDur(mins)} layover`} />
       <div className="px-5 pt-2">
         <label className="block">
           <span className="sr-only">Plan name</span>
@@ -79,6 +79,11 @@ export function Builder() {
           <p className={cx('mt-3 flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sub font-semibold',
             itin.access === 'airside' ? 'bg-success-tint text-success' : 'bg-accent-tint text-accent-dark')}>
             {itin.access === 'airside' ? <Check size={18} /> : <ShieldAlert size={18} />}{ACCESS_LABEL[itin.access]}
+          </p>)}
+        {/* transfer time, separate from activity time and access */}
+        {items.length > 0 && !itin.routing && (
+          <p className="mt-2 flex items-start gap-2 rounded-2xl bg-ink-tint px-3.5 py-2.5 text-sub text-ink">
+            <Clock size={18} className="mt-0.5 shrink-0 text-accent-dark" /><span><b className="font-semibold">Transfer time unavailable</b> · walking times between places at {ap.city} are not counted.</span>
           </p>)}
 
         {terminals.length > 0 && (
@@ -180,7 +185,7 @@ export function Builder() {
           {saved
             ? <Button variant="secondary" className="shrink-0 px-4" onClick={() => switchTab('plans')}>My plans</Button>
             : <Button className="shrink-0 px-4" disabled={saving || !canSave} aria-busy={saving} onClick={save}>
-                {saving ? 'Saving…' : saveError ? 'Try again' : draft.planId ? 'Save changes' : itin.time === 'exceeds' ? 'Save anyway' : 'Save plan'}</Button>}
+                {saving ? 'Saving…' : saveError ? 'Try again' : draft.planId ? 'Save changes' : itin.time === 'exceeds' ? 'Save anyway' : 'Save layover plan'}</Button>}
         </div>
       </ActionBar>
       <ActivitySheet a={open} onClose={() => setOpen(null)} action={open && (
@@ -203,13 +208,13 @@ function HopRow({ h }: { h: Hop }) {
       <ArrowDown size={16} className="mt-0.5 shrink-0 text-muted" />
       <div className="min-w-0">
         {h.kind === 'unknown' ? (
-          <p className="font-semibold text-error">{h.fromLabel.includes('not set') || h.toLabel.includes('not set') ? `${h.isReturn ? 'Return transfer' : 'Transfer'}: choose your terminal to estimate` : 'Transfer time not verified'}</p>
+          <p className="font-semibold text-error">{h.fromLabel.includes('not set') || h.toLabel.includes('not set') ? `${h.isReturn ? 'Return transfer' : 'Transfer'}: choose your terminal to estimate` : 'Transfer time unavailable'}</p>
         ) : (
           <p className="text-ink"><b>{h.isReturn ? 'Return transfer' : 'Estimated transfer'}: {range}</b>
             <span className="text-muted-text"> · {h.kind === 'same-area' ? 'within the same area' : [...new Set(h.modes.map((m) => MODE_LABEL[m] ?? m))].join(', then ')}</span></p>
         )}
         {h.kind === 'unknown' && <p className="text-cap text-muted-text">
-          {h.fromLabel.includes('not set') || h.toLabel.includes('not set') ? 'Not counted until a terminal is chosen.' : 'Access between these locations has not been verified. Not counted.'}</p>}
+          {h.fromLabel.includes('not set') || h.toLabel.includes('not set') ? 'Not counted until a terminal is chosen.' : 'Not counted in your time.'}</p>}
         {h.immigration && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-[0.6875rem] font-semibold text-accent-dark">Immigration required · time not included</p>}
         {h.departureChecks && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-[0.6875rem] font-semibold text-accent-dark">Check-in, departure immigration and security · time not included</p>}
         {h.throughCheck && <p className="mt-1 inline-flex rounded-full bg-ink-tint px-2 py-0.5 text-[0.6875rem] font-semibold text-ink">Through-checked passengers only</p>}
@@ -230,7 +235,7 @@ function EntryCheck({ names, country, url, onRemove }: { names: string[]; countr
     : country === 'Portugal' ? 'the Portuguese visa portal' : country === 'United Arab Emirates' ? 'the UAE government portal' : 'the official immigration authority'
   return (
     <section aria-label="Entry check" className="mt-3 rounded-[1.5rem] border border-accent/30 bg-white p-4">
-      <p className="flex items-center gap-2 text-sub font-bold text-accent-dark"><ShieldAlert size={18} />Entry verification required · Landside activity</p>
+      <p className="flex items-center gap-2 text-sub font-bold text-accent-dark"><ShieldAlert size={18} />Check airport entry requirements · Landside activity</p>
       <p className="mt-1.5 text-body text-ink">{names.join(' and ')} {names.length > 1 ? 'are' : 'is'} outside the transit area. You may need permission to enter {country || 'the country'}.</p>
       <p className="mt-1 text-sub text-muted-text">To reach {names.length > 1 ? 'them' : 'it'} you leave the transit area through arrival immigration, then return through check-in, departure immigration and security. Waiting times are not published, so they are not included in your time budget.</p>
       {!provisional && (

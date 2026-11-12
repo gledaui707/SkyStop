@@ -22,11 +22,11 @@ page.on('pageerror', (e) => { console.log('PAGE ERROR', e.message); failed++; })
 const T = 20000;
 try {
   await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  await page.getByRole('button', { name: 'Plan a layover' }).waitFor({ timeout: T });
-  check('live site loads; airports loaded from the database (welcome screen shown)', true);
+  await page.getByRole('button', { name: 'Plan a layover' }).first().waitFor({ timeout: T });
+  check('live site loads on Home with Plan a layover; airports loaded from the database', true);
   check('no guest account created just by opening the app', !api.some((a) => a.includes('/auth/v1/signup')));
-  await shot(page, '01-welcome');
-  await page.getByRole('button', { name: 'Plan a layover' }).click();
+  await shot(page, '01-home');
+  await page.getByRole('button', { name: 'Plan a layover' }).first().click();
 
   await page.getByRole('button', { name: 'Lisbon LIS' }).click();
   await page.getByLabel('Arrival at the connecting airport (local time)').fill(`${day(7)}T10:00`);
@@ -40,7 +40,7 @@ try {
 
   await page.getByRole('heading', { name: 'Curated itineraries' }).waitFor({ timeout: T });
   check('discovery opens in List view', (await page.getByRole('tab', { name: 'list' }).getAttribute('aria-selected')) === 'true');
-  check('curated itinerary shown with fit check', await visible(page, 'Market lunch and lounge') && await visible(page, 'Fits with 1h 50m to spare'));
+  check('curated itinerary compared with usable time (activity time only)', await visible(page, 'Market lunch and lounge') && await visible(page, 'Activities take 1h 40m of your 3h 30m usable time'));
   await shot(page, '05-airport-list');
   await page.getByRole('tab', { name: 'map' }).click();
   await page.getByRole('button', { name: /^Terminal 1: / }).waitFor({ timeout: T });
@@ -50,13 +50,13 @@ try {
   await page.getByRole('button', { name: 'Add ANA Lounge' }).click();
   await page.getByRole('button', { name: 'Add Lisboa Duty Free' }).click();
   await page.getByRole('button', { name: 'Remove Lisboa Duty Free' }).click();
-  await page.getByRole('button', { name: 'Build itinerary (2)' }).click();
+  await page.getByRole('button', { name: 'Review plan (2)' }).click();
   // (over-budget behaviour is covered by the simulated journey test; the real venues all fit this layover)
   const hero = (await page.getByLabel('Time budget').innerText()).replace(/\n/g, ' ');
   check('builder: after removing it, remaining time is 3h 30m - 1h 40m = 1h 50m', hero.includes('1h 50m') && !hero.includes('does not fit'), hero.slice(0, 60));
   await shot(page, '06-builder');
 
-  await page.getByRole('button', { name: 'Save plan' }).click();
+  await page.getByRole('button', { name: 'Save layover plan' }).click();
   await page.getByLabel('Upcoming trip').waitFor({ timeout: T });
   check('save succeeded: Home shows the personalised upcoming trip and a save confirmation', (await page.getByRole('status').innerText()).includes('is saved'));
   check('guest was created on save (one sign-up) and RPC save_plan answered 200', api.filter((a) => a.includes('/auth/v1/signup')).length === 1 && api.some((a) => a.startsWith('200 POST /rest/v1/rpc/save_plan')), api.filter((a) => a.includes('save_plan') || a.includes('signup')).join(' | '));

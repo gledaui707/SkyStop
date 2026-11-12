@@ -120,17 +120,13 @@ export const PassportNote = () => (
   </Notice>
 )
 
-export const DemoNote = ({ children }: { children: ReactNode }) => (
-  <p className="text-cap text-muted-text">{children}</p>
-)
-
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="grid min-w-0 gap-1.5 text-sub font-medium text-muted-text">{label}{children}</label>
 }
 // min-w-0: date/time inputs have a large intrinsic width and otherwise push narrow (320 px) screens sideways.
 export const inputCls = 'block min-h-[3.25rem] w-full min-w-0 max-w-full rounded-2xl border border-[rgb(35_26_23/0.16)] bg-white px-4 text-body font-medium text-ink shadow-[inset_0_1px_2px_rgb(35_26_23/0.04)] transition-colors focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15'
 
-export function ActivityRow({ a, action, onOpen }: { a: Activity; action?: ReactNode; onOpen?: () => void }) {
+export function ActivityRow({ a, action, onOpen, note }: { a: Activity; action?: ReactNode; onOpen?: () => void; note?: ReactNode }) {
   return (
     <li className="panel flex items-center gap-3 rounded-card p-2.5">
       <button onClick={onOpen} disabled={!onOpen} className="press flex min-w-0 flex-1 items-center gap-3 text-left">
@@ -143,6 +139,7 @@ export function ActivityRow({ a, action, onOpen }: { a: Activity; action?: React
           <span className="block text-cap text-muted-text">
             {[a.category, a.terminal, a.access === 'Unverified' ? null : a.access].filter(Boolean).join(' · ')}{a.leavesAirport ? ' · leaves airport' : ''}
           </span>
+          {note && <span className="mt-1 block text-cap font-semibold text-accent-dark">{note}</span>}
         </span>
       </button>
       {action}

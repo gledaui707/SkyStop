@@ -1,6 +1,6 @@
 // Saved flights and plans: Supabase is the source of truth. One `layovers` row is one saved flight journey (its
 // connection), its `plan_items` are the activity itinerary (possibly empty), and `layover_details` holds the journey
-// labels (origin, destination, sample booking reference, name, terminals). All are owner-only. A browser-side copy of
+// labels (origin, destination, booking reference, name, terminals). All are owner-only. A browser-side copy of
 // the labels (written before layover_details existed) is used as a fallback and copied up once.
 import type { Draft, Plan } from './types'
 import { AIRPORTS, getAirport } from './catalogue'
@@ -8,7 +8,6 @@ import { getSupabase } from '../api/client'
 import { hasGuestSession } from '../api/session'
 import * as repo from '../api/repositories'
 import { instantToLocal, validateLayover } from '../domain'
-import { SAMPLE_JOURNEYS } from './journeys'
 
 interface Meta { name?: string; origin?: string; destination?: string; bookingRef?: string; arrivalLocation?: string | null; departureLocation?: string | null }
 const META_KEY = 'skystop.planmeta.v1'
@@ -22,10 +21,6 @@ export function toUiPlan(row: repo.Plan): Plan {
   const stored = readMeta()[row.id] ?? {}
   const meta: Meta = det ? { name: det.name ?? stored.name, origin: det.origin_airport ?? undefined, destination: det.destination_airport ?? undefined,
     bookingRef: det.booking_ref ?? undefined, arrivalLocation: det.arrival_location, departureLocation: det.departure_location } : stored
-  // A plan started from a sample booking reference always has a known route; restore it if the label is missing
-  // (older saves, or labels cleared), but only when the sample's connection matches the saved airport.
-  const sample = meta.bookingRef ? SAMPLE_JOURNEYS.find((j) => j.ref === meta.bookingRef && j.connection === row.airport_id) : undefined
-  if (sample) { meta.origin ??= sample.origin; meta.destination ??= sample.destination }
   return {
     id: row.id, name: meta.name || `${ap.city} layover`, airport: row.airport_id,
     arrival: local(row.arrival_at), departure: local(row.departure_at), bufferMin: row.buffer_minutes,
