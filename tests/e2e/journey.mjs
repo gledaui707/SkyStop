@@ -520,6 +520,8 @@ try {
     await other.close();
     await G.getByRole('button', { name: 'Log out' }).click();
     await G.getByRole('button', { name: 'Create account' }).waitFor();
+    check('profile: after signing out it is an empty guest profile (no name, photo or previous travel details)', await visible(G, 'Guest') && (await G.getByLabel('Name').count()) === 0
+      && (await G.getByRole('button', { name: /profile picture/ }).count()) === 0 && (await G.getByLabel('Passport nationality').inputValue()) === '');
     await G.getByRole('button', { name: 'Home' }).click();
     check('account: after signing out this browser shows no flights', (await G.getByRole('heading', { name: 'My flights' }).count()) === 0 && (await G.getByLabel('Upcoming trip').count()) === 0);
     await G.getByRole('button', { name: 'Profile' }).click();

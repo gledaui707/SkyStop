@@ -51,6 +51,9 @@ export function Profile() {
   const [photoBusy, setPhotoBusy] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   useEffect(() => { setName(account.name ?? '') }, [account.name])
+  // A different person (sign-out, sign-in) means different travel details: never keep the previous ones on screen.
+  useEffect(() => { setNationality(profile?.nationality ?? ''); setResidence(profile?.residence ?? '') }, [profile, account.userId])
+  useEffect(() => { setSavedNote(null) }, [account.userId])
   useEffect(() => {
     let live = true
     if (!account.avatarPath) { setPhoto(null); return }
@@ -100,6 +103,7 @@ export function Profile() {
         </div>
 
         <Section title="Account">
+          {account.status === 'registered' && (<>
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => fileRef.current?.click()} disabled={photoBusy} aria-label={photo ? 'Change profile picture' : 'Add profile picture'} className="press relative shrink-0">
               <Avatar src={photo} size="size-[4.5rem]" />
@@ -118,11 +122,11 @@ export function Profile() {
               {name.trim() !== (account.name ?? '') && <Button type="submit" className="shrink-0 px-4" disabled={busy}>Save</Button>}
             </div>
           </form>
-          {account.status === 'registered' && (
-            <div className="grid gap-1.5">
-              <p className="text-sub font-medium text-muted-text">Email</p>
-              <p className="flex min-h-[3.25rem] items-center truncate rounded-2xl bg-ink-tint px-4 text-body text-ink">{account.email}</p>
-            </div>)}
+          <div className="grid gap-1.5">
+            <p className="text-sub font-medium text-muted-text">Email</p>
+            <p className="flex min-h-[3.25rem] items-center truncate rounded-2xl bg-ink-tint px-4 text-body text-ink">{account.email}</p>
+          </div>
+          </>)}
           {account.status === 'registered' ? null : (
             <>
               {account.status === 'guest-pending' && <Notice tone="info">Check {account.pendingEmail} for a confirmation link. Your guest flights move with you once it is confirmed.</Notice>}
