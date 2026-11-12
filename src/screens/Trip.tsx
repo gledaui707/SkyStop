@@ -16,6 +16,8 @@ const split = (v: string) => { const [d = '', t = ''] = v.split('T'); return { d
 export function Trip({ airport, templateId }: { airport?: string; templateId?: string }) {
   const { replace, setDraft, picked, setPicked } = useApp()
   const [conn, setConn] = useState(airport ?? picked?.airport ?? '')
+  const [origin, setOrigin] = useState('')
+  const [destination, setDestination] = useState('')
   const [arr, setArr] = useState('')
   const [dep, setDep] = useState('')
   const [buf, setBuf] = useState(120)
@@ -54,7 +56,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
     const ap = airportInfo(conn)!
     const ids = [...new Set([...(tplApplies ? tpl!.activityIds : []), ...carried])]
     setDraft({ name: tplApplies ? tpl!.name : `${ap.city} layover`, airport: conn, arrival: arr, departure: dep, bufferMin: buf,
-      activityIds: ids })
+      activityIds: ids, origin: origin || undefined, destination: destination || undefined })
     setPicked(null)
     // With an itinerary or activities already chosen (or no activity guide) go straight to the builder;
     // otherwise continue to the airport's list of itineraries and activities.
@@ -66,7 +68,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
   const pct = (n: number) => `${b.total ? (n / b.total) * 100 : 0}%`
   return (
     <div className="pb-[calc(var(--nav-h)+7rem)]">
-      <Header title="Plan a layover" subtitle={tplApplies ? `Itinerary: ${tpl!.name}` : conn ? airportInfo(conn)!.name : 'Your connection'} />
+      <Header title="Add flight" subtitle={tplApplies ? `Itinerary: ${tpl!.name}` : conn ? airportInfo(conn)!.name : 'Your connection'} />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 px-5 pt-1">
         {sup ? (
           <div className="ph relative h-36 overflow-hidden rounded-[1.75rem]">
@@ -110,9 +112,15 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           </section>
         )}
 
+        {/* The whole journey (optional): where it starts and ends. Shown on your flight card. */}
+        <section aria-label="Journey" className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-[1.75rem] p-4">
+          <AirportPicker label="Flying from (optional)" value={origin} onChange={setOrigin} exclude={[conn, destination].filter(Boolean)} placeholder="City, airport or code" />
+          <AirportPicker label="Final destination (optional)" value={destination} onChange={setDestination} exclude={[conn, origin].filter(Boolean)} placeholder="City, airport or code" />
+        </section>
+
         {/* The connection as one surface: airport, then an arrive → depart rail. */}
         <section aria-label="Connection" className="panel rounded-[1.75rem] p-4">
-          <AirportPicker label="Connecting airport" value={conn} onChange={setConn} placeholder="Where do you change planes?" />
+          <AirportPicker label="Connecting airport" value={conn} onChange={setConn} exclude={[origin, destination].filter(Boolean)} placeholder="Where do you change planes?" />
           {!conn ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-sub text-muted-text">Layover guides:</span>

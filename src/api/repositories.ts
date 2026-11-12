@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { ActivityLocationRow, ActivityRow, AirportRow, LocationRow, TransferRow, LayoverRow, PlanItemRow, SavePlanArgs, TemplateItemRow, TemplateRow } from '../types/database.types';
+import type { LayoverDetailsRow, TravelerProfileRow, ActivityLocationRow, ActivityRow, AirportRow, LocationRow, TransferRow, LayoverRow, PlanItemRow, SavePlanArgs, TemplateItemRow, TemplateRow } from '../types/database.types';
 import { ensureGuestSession } from './session';
 
 export class DataError extends Error {
@@ -34,8 +34,8 @@ export async function listTemplates(sb: SupabaseClient, airportId: string): Prom
   return templates.map((t) => ({ ...t, items: items.filter((i) => i.template_id === t.id).sort((a, b) => a.position - b.position) }));
 }
 
-export interface Plan extends LayoverRow { plan_items: PlanItemRow[] }
-const PLAN_SELECT = '*, plan_items(position, activity_id, duration_minutes)';
+export interface Plan extends LayoverRow { plan_items: PlanItemRow[]; layover_details?: LayoverDetailsRow | LayoverDetailsRow[] | null }
+const PLAN_SELECT = '*, plan_items(position, activity_id, duration_minutes), layover_details(*)';
 
 export async function listPlans(sb: SupabaseClient): Promise<Plan[]> {
   await ensureGuestSession(sb);
@@ -64,4 +64,32 @@ export async function savePlan(sb: SupabaseClient, d: PlanDraft, expectedRevisio
   const saved = await getPlan(sb, d.id);
   if (!saved) throw new DataError('Saved plan could not be read back', 'READBACK_FAILED');
   return saved;
+}
+
+/** Journey labels for one of the guest's own flights (owner-only table). */
+export async function saveLayoverDetails(sb: SupabaseClient, d: Omit<LayoverDetailsRow, 'layover_id'> & { layover_id: string }): Promise<void> {
+  await ensureGuestSession(sb);
+  ok(await sb.from('layover_details').upsert({ ...d, updated_at: new Date().toISOString() }, { onConflict: 'layover_id' }).select('layover_id'));
+}
+
+/** Removes one of the guest's own flights. Its itinerary items and details are removed with it (database cascade). */
+export async function deletePlan(sb: SupabaseClient, id: string): Promise<void> {
+  await ensureGuestSession(sb);
+  const rows = ok(await sb.from('layovers').delete().eq('id', id).select('id')) as { id: string }[];
+  if (!rows.length) throw new DataError('Flight not found for this account', 'NOT_FOUND');
+}
+
+export async function getProfile(sb: SupabaseClient): Promise<TravelerProfileRow | null> {
+  const { data } = await sb.auth.getSession();
+  if (!data.session) return null;
+  return ok(await sb.from('traveler_profiles').select('*').maybeSingle()) as TravelerProfileRow | null;
+}
+export async function saveProfile(sb: SupabaseClient, p: { nationality: string | null; residence: string | null }): Promise<TravelerProfileRow> {
+  const uid = await ensureGuestSession(sb);
+  return ok(await sb.from('traveler_profiles').upsert({ owner_id: uid, ...p, updated_at: new Date().toISOString() }, { onConflict: 'owner_id' }).select('*').single()) as TravelerProfileRow;
+}
+export async function deleteProfile(sb: SupabaseClient): Promise<void> {
+  const { data } = await sb.auth.getSession();
+  if (!data.session) return;
+  ok(await sb.from('traveler_profiles').delete().eq('owner_id', data.session.user.id).select('owner_id'));
 }

@@ -1,6 +1,7 @@
-// Saved plans: Supabase is the source of truth (layovers + plan_items, owned by the anonymous guest).
-// The database has no columns for a plan's display name, origin/destination or arrival/departure terminal, so
-// those are remembered per browser only (like the guest session itself); times, airport, buffer and activities always come from the database.
+// Saved flights and plans: Supabase is the source of truth. One `layovers` row is one saved flight journey (its
+// connection), its `plan_items` are the activity itinerary (possibly empty), and `layover_details` holds the journey
+// labels (origin, destination, sample booking reference, name, terminals). All are owner-only. A browser-side copy of
+// the labels (written before layover_details existed) is used as a fallback and copied up once.
 import type { Draft, Plan } from './types'
 import { AIRPORTS, getAirport } from './catalogue'
 import { getSupabase } from '../api/client'
@@ -17,7 +18,10 @@ const writeMeta = (id: string, m: Meta) => { try { localStorage.setItem(META_KEY
 export function toUiPlan(row: repo.Plan): Plan {
   const ap = getAirport(row.airport_id)
   const local = (iso: string) => { const l = instantToLocal(iso, ap.timezone); return `${l.date}T${l.time}` }
-  const meta = readMeta()[row.id] ?? {}
+  const det = Array.isArray(row.layover_details) ? row.layover_details[0] : row.layover_details
+  const stored = readMeta()[row.id] ?? {}
+  const meta: Meta = det ? { name: det.name ?? stored.name, origin: det.origin_airport ?? undefined, destination: det.destination_airport ?? undefined,
+    bookingRef: det.booking_ref ?? undefined, arrivalLocation: det.arrival_location, departureLocation: det.departure_location } : stored
   // A plan started from a sample booking reference always has a known route; restore it if the label is missing
   // (older saves, or labels cleared), but only when the sample's connection matches the saved airport.
   const sample = meta.bookingRef ? SAMPLE_JOURNEYS.find((j) => j.ref === meta.bookingRef && j.connection === row.airport_id) : undefined
@@ -35,7 +39,15 @@ export function toUiPlan(row: repo.Plan): Plan {
 export async function fetchPlans(): Promise<Plan[]> {
   const sb = getSupabase()
   if (!(await hasGuestSession(sb))) return []
-  return (await repo.listPlans(sb)).map(toUiPlan)
+  const rows = await repo.listPlans(sb)
+  // one-time copy of labels saved before journey details were stored in the database (best effort)
+  const local = readMeta()
+  for (const r of rows) {
+    const hasDb = Array.isArray(r.layover_details) ? r.layover_details.length > 0 : !!r.layover_details
+    const m = local[r.id]
+    if (!hasDb && m && (m.origin || m.destination || m.bookingRef || m.name)) void repo.saveLayoverDetails(sb, detailsRow(r.id, m)).catch(() => {})
+  }
+  return rows.map(toUiPlan)
 }
 
 /** Saves the draft to the database and returns the server's copy. Throws with a readable message on failure. */
@@ -62,6 +74,9 @@ export async function saveDraft(d: Draft): Promise<Plan> {
     if (!existing) throw friendly(e)
     try { saved = await repo.savePlan(sb, payload, existing.revision) } catch (e2) { throw friendly(e2) }
   }
+  const m: Meta = { name: d.name.trim() || undefined, origin: d.origin, destination: d.destination, bookingRef: d.bookingRef,
+    arrivalLocation: d.arrivalLocation ?? null, departureLocation: d.departureLocation ?? null }
+  try { await repo.saveLayoverDetails(sb, detailsRow(id, m)) } catch { /* the flight itself is saved; labels stay in this browser */ }
   writeMeta(id, { name: d.name.trim() || undefined, origin: d.origin, destination: d.destination, bookingRef: d.bookingRef,
     arrivalLocation: d.arrivalLocation ?? null, departureLocation: d.departureLocation ?? null })
   return toUiPlan(saved)
@@ -73,4 +88,18 @@ function friendly(e: unknown): Error {
   if (code === '23514' || code === '22023') return new Error('The server rejected these details. Check the times and activities, then try again.')
   if (code === '42501') return new Error('This plan belongs to a different guest session and cannot be changed here.')
   return new Error(`Could not save: ${msg}`)
+}
+
+const code = (c?: string) => (c && /^[A-Z]{3}$/.test(c) ? c : null)
+function detailsRow(id: string, m: Meta) {
+  return { layover_id: id, name: m.name?.slice(0, 80) ?? null, origin_airport: code(m.origin), destination_airport: code(m.destination),
+    booking_ref: m.bookingRef && /^[A-Z0-9]{6}$/.test(m.bookingRef) ? m.bookingRef : null,
+    arrival_location: m.arrivalLocation ?? null, departure_location: m.departureLocation ?? null }
+}
+
+/** Removes a saved flight and, with it, its itinerary (the server deletes both together). */
+export async function removePlan(id: string): Promise<void> {
+  try { await repo.deletePlan(getSupabase(), id) } catch (e) { throw friendly(e) }
+  const all = readMeta(); delete all[id]
+  try { localStorage.setItem(META_KEY, JSON.stringify(all)) } catch { /* optional */ }
 }

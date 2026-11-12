@@ -226,7 +226,9 @@ function HopRow({ h }: { h: Hop }) {
 /** Contextual access check for landside activities. Asks only nationality and whether the traveller already has
  *  permission to enter; nothing is stored or sent, and SkyStop never decides eligibility. */
 function EntryCheck({ names, country, url, onRemove }: { names: string[]; country: string; url?: string; onRemove: () => void }) {
-  const [nationality, setNationality] = useState('')
+  const { profile } = useApp()
+  // Prefilled from the optional Profile nationality, if any; edits here stay on this screen.
+  const [nationality, setNationality] = useState(profile?.nationality ?? '')
   const [permission, setPermission] = useState<'yes' | 'no' | 'unsure' | null>(null)
   const [provisional, setProvisional] = useState(false)
   const authority = country === 'Singapore' ? 'Immigration & Checkpoints Authority (ICA)' : country === 'United Kingdom' ? 'GOV.UK'

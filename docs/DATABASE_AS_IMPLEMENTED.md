@@ -1,6 +1,6 @@
 # Database tables as implemented (generated from the live Supabase project)
 
-Source: `information_schema` / `pg_constraint` / `pg_policies` of project `sgwbtgwccskqamzttczz`, queried read-only on 2026-11-13. Regenerate rather than edit by hand. Migrations: `supabase/migrations/` (latest: `202611130001_transfer_graph.sql`, additive).
+Source: `information_schema` / `pg_constraint` / `pg_policies` of project `sgwbtgwccskqamzttczz`, queried read-only on 2026-11-14. Regenerate rather than edit by hand. Migrations: `supabase/migrations/` (latest: `202611140001_flights_profiles.sql`, additive).
 
 ## `airports`
 Airport identity, IANA time zone, and the official immigration guidance link for the country.
@@ -87,7 +87,7 @@ Ordered venues in a curated itinerary.
 Row-level security policies: `catalogue_read` (SELECT to {anon,authenticated})
 
 ## `layovers`
-Saved plans (owned by the anonymous guest).
+A saved FLIGHT journey (its connection: airport, local times, buffer), owned by the user (guest or account). Owners may delete their own (2026-11-14); items and details cascade.
 
 | # | Column | Type | Null? | Default |
 |---|---|---|---|---|
@@ -112,10 +112,10 @@ Saved plans (owned by the anonymous guest).
 | Primary key | `PRIMARY KEY (id)` |
 | Unique | `UNIQUE (id, airport_id)` |
 
-Row-level security policies: `owner_read` (SELECT to {authenticated})
+Row-level security policies: `owner_delete` (DELETE to {authenticated}); `owner_read` (SELECT to {authenticated})
 
 ## `plan_items`
-Ordered venues in a saved plan, with a duration snapshot.
+The flight's activity ITINERARY: ordered venues with a duration snapshot. A flight may have none.
 
 | # | Column | Type | Null? | Default |
 |---|---|---|---|---|
@@ -136,8 +136,54 @@ Ordered venues in a saved plan, with a duration snapshot.
 
 Row-level security policies: `owner_read` (SELECT to {authenticated})
 
+## `layover_details`
+NEW (2026-11-14). Journey labels for a flight: name, origin, final destination, sample booking reference, arrival/departure terminal. Owner-only (read/write).
+
+| # | Column | Type | Null? | Default |
+|---|---|---|---|---|
+| 1 | `layover_id` | uuid | no |  |
+| 2 | `owner_id` | uuid | no | `auth.uid()` |
+| 3 | `name` | text | yes |  |
+| 4 | `origin_airport` | text | yes |  |
+| 5 | `destination_airport` | text | yes |  |
+| 6 | `booking_ref` | text | yes |  |
+| 7 | `arrival_location` | text | yes |  |
+| 8 | `departure_location` | text | yes |  |
+| 9 | `updated_at` | timestamp with time zone | no | `now()` |
+
+| Kind | Constraint |
+|---|---|
+| Check | `CHECK (((arrival_location IS NULL) OR (char_length(arrival_location) <= 40)))` |
+| Check | `CHECK (((booking_ref IS NULL) OR (booking_ref ~ '^[A-Z0-9]{6}$'::text)))` |
+| Check | `CHECK (((departure_location IS NULL) OR (char_length(departure_location) <= 40)))` |
+| Check | `CHECK (((destination_airport IS NULL) OR (destination_airport ~ '^[A-Z]{3}$'::text)))` |
+| Check | `CHECK (((name IS NULL) OR (char_length(name) <= 80)))` |
+| Check | `CHECK (((origin_airport IS NULL) OR (origin_airport ~ '^[A-Z]{3}$'::text)))` |
+| Foreign key | `FOREIGN KEY (layover_id) REFERENCES layovers(id) ON DELETE CASCADE` |
+| Primary key | `PRIMARY KEY (layover_id)` |
+
+Row-level security policies: `owner_all` (ALL to {authenticated})
+
+## `traveler_profiles`
+NEW (2026-11-14). Optional passport nationality and country of residence. Owner-only. No passport numbers, scans or dates of birth.
+
+| # | Column | Type | Null? | Default |
+|---|---|---|---|---|
+| 1 | `owner_id` | uuid | no | `auth.uid()` |
+| 2 | `nationality` | text | yes |  |
+| 3 | `residence` | text | yes |  |
+| 4 | `updated_at` | timestamp with time zone | no | `now()` |
+
+| Kind | Constraint |
+|---|---|
+| Check | `CHECK (((nationality IS NULL) OR ((char_length(nationality) >= 1) AND (char_length(nationality) <= 60))))` |
+| Check | `CHECK (((residence IS NULL) OR ((char_length(residence) >= 1) AND (char_length(residence) <= 60))))` |
+| Primary key | `PRIMARY KEY (owner_id)` |
+
+Row-level security policies: `owner_all` (ALL to {authenticated})
+
 ## `airport_locations`
-NEW (2026-11-13). Places a traveller moves between: transit areas, public areas such as Jewel. Zone = airside/landside.
+(2026-11-13) Places a traveller moves between: transit areas, public areas such as Jewel.
 
 | # | Column | Type | Null? | Default |
 |---|---|---|---|---|
@@ -161,7 +207,7 @@ NEW (2026-11-13). Places a traveller moves between: transit areas, public areas 
 Row-level security policies: `catalogue_read` (SELECT to {anon,authenticated})
 
 ## `airport_transfers`
-NEW (2026-11-13). Directed connections between locations: minute range, mode, checkpoints involved (arrival immigration; departure checks; through-check), verification (official / planning_estimate) and source.
+(2026-11-13) Directed connections between locations with minute range, checkpoints, verification and source.
 
 | # | Column | Type | Null? | Default |
 |---|---|---|---|---|
@@ -194,7 +240,7 @@ NEW (2026-11-13). Directed connections between locations: minute range, mode, ch
 Row-level security policies: `catalogue_read` (SELECT to {anon,authenticated})
 
 ## `activity_locations`
-NEW (2026-11-13). Which location(s) each venue is in; a venue may be in several terminals.
+(2026-11-13) Which location(s) each venue is in.
 
 | # | Column | Type | Null? | Default |
 |---|---|---|---|---|
@@ -211,6 +257,6 @@ NEW (2026-11-13). Which location(s) each venue is in; a venue may be in several 
 Row-level security policies: `catalogue_read` (SELECT to {anon,authenticated})
 
 ## Notes
-- Catalogue tables (airports, activities, templates, transfer graph) are read-only for `anon`/`authenticated`; nothing in the client can write them.
-- Saved plans reference activities only, never locations or transfers, so the transfer graph can change without affecting saved plans.
-- A plan's arrival/departure terminal is a browser-side label (like its name), not a database column. No passport or immigration answer is stored anywhere.
+- Flights vs itineraries: one `layovers` row is one saved flight; its `plan_items` are the itinerary (possibly empty). My Flights lists all flights; My Plans lists flights that have an itinerary. No separate flight table, so nothing is duplicated.
+- Catalogue tables are read-only to clients. Saved flights are written only through `save_plan` (plus owner-only details and delete).
+- Nationality is optional and owner-only; it never decides entry eligibility. No other personal data is stored (account email lives in Supabase Auth).

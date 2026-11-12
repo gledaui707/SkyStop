@@ -13,7 +13,10 @@ const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'nume
 
 /** Screen 5: retrieve and reopen saved plans. */
 export function Plans() {
-  const { plans, plansState, reload, go } = useApp()
+  const { plans: allPlans, plansState, reload, go } = useApp()
+  // My Plans = saved activity itineraries. Flights without one are listed in My Flights.
+  const plans = allPlans.filter((p) => p.activityIds.length > 0)
+  const bare = allPlans.length - plans.length
   return (
     <div className="pb-6">
       <LargeTitle>My plans</LargeTitle>
@@ -27,9 +30,9 @@ export function Plans() {
         ) : plans.length === 0 ? (
           <div className="panel-accent rounded-[1.75rem] p-6 text-center">
             <span aria-hidden="true" className="btn-coral mx-auto mb-4 grid size-14 place-items-center rounded-full"><Plane size={24} className="-rotate-45" /></span>
-            <p className="text-card font-semibold">No saved plans yet</p>
-            <p className="mt-1 text-body text-muted-text">Choose a connection or an airport, add activities and save your itinerary.</p>
-            <Button className="mt-4 w-full" onClick={() => go({ name: 'booking' })}>Plan a layover</Button>
+            <p className="text-card font-semibold">No saved itineraries yet</p>
+            <p className="mt-1 text-body text-muted-text">{bare ? `You have ${bare} saved ${bare === 1 ? 'flight' : 'flights'} without activities. Open one to plan your layover.` : 'Add a flight, choose activities and save your itinerary.'}</p>
+            <Button className="mt-4 w-full" onClick={() => go(bare ? { name: 'flights' } : { name: 'booking' })}>{bare ? 'My flights' : 'Add flight'}</Button>
           </div>
         ) : (
           <ul className="grid gap-4">

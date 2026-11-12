@@ -28,7 +28,7 @@ export function FindJourney() {
 
   return (
     <div className="pb-[calc(var(--nav-h)+2rem)]">
-      <Header title="Plan a layover" />
+      <Header title="Add flight" />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 px-5 pt-2">
         <div>
           <h1 className="text-title font-bold">Find your journey</h1>
@@ -77,16 +77,31 @@ export function FindJourney() {
 
 /** Journey overview: flight timeline with the connecting airport highlighted, layover, buffer and usable time. */
 export function JourneyOverview({ refCode }: { refCode: string }) {
-  const { go, setDraft } = useApp()
+  const { go, setDraft, savePlan, plans, switchTab, setNotice } = useApp()
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const j: ResolvedJourney | null = findSampleJourney(refCode)
   if (!j) return (
     <div><Header title="Your journey" /><p className="p-6 text-center text-body text-muted-text">This sample journey is not available.</p></div>
   )
   const conn = getAirport(j.connection), supported = isSupported(j.connection)
   const pct = (n: number) => `${(n / Math.max(j.layover.totalMin, 1)) * 100}%`
+  const flight = { name: `${city(j.connection)} layover`, airport: j.connection, arrival: j.layover.arrivalLocal, departure: j.layover.departureLocal,
+    bufferMin: j.layover.bufferMin, activityIds: [] as string[], origin: j.origin, destination: j.destination, bookingRef: j.ref }
+  // The same sample journey is not saved twice: open the existing flight instead.
+  const existing = plans.find((p) => p.bookingRef === j.ref && p.airport === j.connection && p.arrival.slice(0, 16) === j.layover.arrivalLocal.slice(0, 16))
+  /** Saves the flight on its own (no activities yet), through the normal save path. */
+  const saveFlight = async () => {
+    if (saving) return
+    if (existing) { go({ name: 'plan', id: existing.id }); return }
+    setSaving(true); setSaveError(null)
+    try {
+      const p = await savePlan({ ...flight, newId: crypto.randomUUID() })
+      switchTab('home'); setNotice(`${j.origin} → ${j.destination} is in My flights.`); void p
+    } catch (e) { setSaveError(e instanceof Error ? e.message : String(e)) } finally { setSaving(false) }
+  }
   const start = () => {
-    setDraft({ name: `${city(j.connection)} layover`, airport: j.connection, arrival: j.layover.arrivalLocal, departure: j.layover.departureLocal,
-      bufferMin: j.layover.bufferMin, activityIds: [], origin: j.origin, destination: j.destination, bookingRef: j.ref })
+    setDraft({ ...flight, ...(existing ? { planId: existing.id, revision: existing.revision, activityIds: existing.activityIds, name: existing.name } : {}) })
     go(supported ? { name: 'airport', code: j.connection, view: 'list' } : { name: 'builder' })
   }
   const Stop = ({ code, label, at, strong }: { code: string; label: string; at: string; strong?: boolean }) => (
@@ -100,7 +115,7 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
     <p className="relative py-3 pl-9 text-sub text-muted-text"><Clock size={14} className="mr-1.5 inline" />Flight · {fmtDur(min)}</p>
   )
   return (
-    <div className="pb-[calc(var(--nav-h)+7rem)]">
+    <div className="pb-[calc(var(--nav-h)+11rem)]">
       <Header title="Your journey" subtitle={`Sample booking ${j.ref}`} />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 px-5 pt-2">
         {/* route summary */}
@@ -148,7 +163,11 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
           <span>The planning buffer keeps time free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding.</span></p>
       </div>
       <ActionBar>
-        <Button className="w-full" onClick={start}>{supported ? `Explore ${city(j.connection)}` : 'Build my itinerary'}</Button>
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
+          {saveError && <p role="alert" className="text-sub font-medium text-error">{saveError}</p>}
+          <Button className="w-full" onClick={start}>{supported ? `Explore ${city(j.connection)}` : 'Build my itinerary'}</Button>
+          {supported && <Button variant="secondary" className="w-full" disabled={saving} onClick={saveFlight}>{existing ? 'Open in My flights' : saving ? 'Saving…' : 'Save to My flights'}</Button>}
+        </div>
       </ActionBar>
     </div>
   )

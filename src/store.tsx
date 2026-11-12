@@ -1,8 +1,12 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import type { Draft, Plan } from './data/types'
 import { guestStore } from './data/mock'
 import { loadCatalogue } from './data/catalogue'
-import { fetchPlans, saveDraft } from './data/plans'
+import { fetchPlans, removePlan as removeSaved, saveDraft } from './data/plans'
+import { getSupabase } from './api/client'
+import { getAccount, type Account } from './api/account'
+import { getProfile, type DataError } from './api/repositories'
+import type { TravelerProfileRow } from './types/database.types'
 
 export type LoadState = { status: 'loading' | 'ready' | 'error'; error?: string }
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -23,12 +27,15 @@ export type Route =
   | { name: 'builder' }
   | { name: 'plans' }
   | { name: 'plan'; id: string }
+  /** All saved flight journeys (upcoming and past). */
+  | { name: 'flights' }
+  | { name: 'profile' }
 
 export type Tab = 'home' | 'airports' | 'plans'
 export const tabOf = (r: Route): Tab | null => {
   switch (r.name) {
     case 'welcome': return null
-    case 'discover': case 'find': case 'trip': case 'booking': case 'journey': case 'results': case 'flight': case 'compare': return 'home'
+    case 'discover': case 'flights': case 'profile': case 'find': case 'trip': case 'booking': case 'journey': case 'results': case 'flight': case 'compare': return 'home'
     case 'airports': case 'airport': return 'airports'
     case 'plans': case 'plan': case 'builder': return 'plans'
     default: return null
@@ -53,6 +60,14 @@ interface Ctx {
   reload: () => void
   /** Saves to the database; resolves with the server copy or rejects with a readable error. */
   savePlan: (d: Draft) => Promise<Plan>
+  /** Removes a saved flight together with its itinerary. */
+  removePlan: (id: string) => Promise<void>
+  /** Guest / account state (Supabase Auth). */
+  account: Account
+  refreshAccount: () => Promise<void>
+  /** Optional traveller profile (owner-only). null when none is saved. */
+  profile: TravelerProfileRow | null
+  setProfile: (p: TravelerProfileRow | null) => void
   draft: Draft | null
   setDraft: (d: Draft | null) => void
   /** Activities chosen while exploring an airport before layover times exist. Carried into the setup form. */
@@ -84,6 +99,7 @@ function init() {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const refreshAccountRef = useRef<(() => Promise<void>) | null>(null)
   const [boot] = useState(init)
   const [welcomed, setWelcomed] = useState(boot.welcomed)
   const [stack, setStack] = useState<Route[]>([{ name: boot.welcomed ? 'discover' : 'welcome' }])
@@ -118,10 +134,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })()
   }, [])
   useEffect(reload, [reload])
+  /** Re-reads only this user's flights (after signing in or out); the catalogue stays loaded. */
+  const reloadPlans = useCallback(async () => {
+    try { setPlans(await fetchPlans()); setPlansState({ status: 'ready' }) } catch (e) { setPlansState({ status: 'error', error: errText(e) }) }
+  }, [])
+  const [account, setAccount] = useState<Account>({ status: 'none' })
+  const [profile, setProfile] = useState<TravelerProfileRow | null>(null)
+  const refreshAccount = useCallback(async () => {
+    const sb = getSupabase()
+    try { setAccount(await getAccount(sb)) } catch { /* offline: keep the last known state */ }
+    try { setProfile(await getProfile(sb)) } catch (e) { void (e as DataError) }
+  }, [])
+  refreshAccountRef.current = refreshAccount
+  useEffect(() => {
+    void refreshAccount()
+    // Another identity (email link, sign-in, sign-out) means other flights and another profile: reload them.
+    // Starting the first guest session (no identity -> guest) is not a switch: nothing else could have been loaded.
+    let last: string | undefined
+    const { data } = getSupabase().auth.onAuthStateChange((_ev, session) => {
+      const id = session?.user.id
+      void refreshAccount()
+      if (last && id !== last) void reloadPlans()
+      if (id || last === undefined) last = id ?? ''
+      else last = ''
+    })
+    return () => data.subscription.unsubscribe()
+  }, [refreshAccount, reloadPlans])
+  const removePlan = async (id: string) => {
+    await removeSaved(id)
+    setPlans((cur) => cur.filter((p) => p.id !== id))
+  }
   const savePlan = async (d: Draft) => {
     const p = await saveDraft(d)
     setPlans((cur) => (cur.some((x) => x.id === p.id) ? cur.map((x) => (x.id === p.id ? p : x)) : [p, ...cur]))
     setPlansState({ status: 'ready' })
+    void refreshAccountRef.current?.() // the first save starts a guest session
     return p
   }
   /** Leaves the onboarding for good. It is replaced by Home, and the chosen route opens on top of Home. */
@@ -134,7 +181,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const nextHint = () => { if (hint === 'done') return; setHint(hint >= 3 ? 'done' : ((hint + 1) as HintStage)) }
   const skipHints = () => setHint('done')
   return (
-    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
+    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
       {children}
     </C.Provider>
   )

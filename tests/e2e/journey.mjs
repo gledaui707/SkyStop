@@ -33,6 +33,7 @@ const newGuest = async (viewport, { firstVisit = false, reducedMotion } = {}) =>
 };
 const shot = async (page, name) => { if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${name}.png` }); } };
 const visible = (page, text) => page.getByText(text, { exact: false }).first().isVisible();
+const pick = async (page, label, text) => { await page.getByLabel(label, { exact: true }).fill(text); await page.getByRole('option').first().getByRole('button').click(); };
 
 const setTimes = async (page) => {
   await page.getByLabel('Arrival at the connecting airport (local time)').fill(`${day(7)}T10:00`);
@@ -47,16 +48,16 @@ try {
   // ---- 1. Booked-flight journey: Plan a layover -> connection details -> explore (List first) -> build -> save -> refresh -> edit
   const { ctx, page } = await newGuest();
   await page.goto(BASE);
-  await page.getByRole('button', { name: /Plan a layover/ }).first().waitFor();
-  check('returning visitor lands on Home with "Plan a layover"', !(await visible(page, 'Your layover, reimagined.')));
+  await page.getByRole('button', { name: /^Add flight/ }).first().waitFor();
+  check('returning visitor lands on Home with "Add flight"', !(await visible(page, 'Your layover, reimagined.')));
   check('no guest account created just by opening the app', !fake.calls.some((c) => c.includes('/auth/v1/signup')));
-  await page.getByRole('button', { name: /Plan a layover/ }).first().click();
+  await page.getByRole('button', { name: /^Add flight/ }).first().click();
   await page.getByRole('heading', { name: 'Find your journey' }).waitFor();
-  check('"Plan a layover" opens booking-reference entry first', await page.getByLabel('Booking reference').isVisible() && await page.getByRole('button', { name: 'Enter flight details manually' }).isVisible());
+  check('"Add flight" opens booking-reference entry first', await page.getByLabel('Booking reference').isVisible() && await page.getByRole('button', { name: 'Enter flight details manually' }).isVisible());
   await page.getByRole('button', { name: 'Enter flight details manually' }).click();
   check('setup is one screen with no numbered steps or tips', !(await visible(page, 'Step 1 of')) && !(await visible(page, 'Tip 1 of')));
   check('connecting airport, arrival, departure and buffer are the primary inputs', await page.getByLabel('Connecting airport', { exact: true }).isVisible() && await page.getByLabel('Arrival at the connecting airport (local time)').isVisible() && await page.getByRole('button', { name: '2h' }).isVisible());
-  check('manual setup omits journey details', await page.getByText('Journey details', { exact: false }).count() === 0);
+  check('manual setup: origin and destination are optional fields', await page.getByLabel('Flying from (optional)').isVisible() && await page.getByLabel('Final destination (optional)').isVisible());
   const bufferHelp = page.getByRole('button', { name: 'What is this?' });
   const bufferDescription = page.locator('#buffer-help');
   check('buffer explanation starts hidden', !(await bufferDescription.isVisible()));
@@ -135,7 +136,7 @@ try {
   // ---- 1b. Booking-reference flow: invalid reference, the four samples, then a full save through the shared builder
   const k = await newGuest({ width: 320, height: 568 });
   await k.page.goto(BASE);
-  await k.page.getByRole('button', { name: /Plan a layover/ }).first().click();
+  await k.page.getByRole('button', { name: /^Add flight/ }).first().click();
   await k.page.getByLabel('Booking reference').fill('zz9zz9');
   await k.page.getByRole('button', { name: 'Find my journey' }).click();
   const unk = await k.page.getByRole('alert').allInnerTexts();
@@ -201,7 +202,8 @@ try {
   const e = await newGuest();
   await e.page.goto(BASE);
   await e.page.getByRole('heading', { name: /next stop/ }).waitFor();
-  check('new guest: home shows "Plan a layover" and no upcoming trip', await visible(e.page, 'Plan a layover') && (await e.page.getByLabel('Upcoming trip').count()) === 0);
+  check('new guest: home shows an empty flights state (no fabricated flight), with Add flight and Compare flights', await visible(e.page, 'No flights yet') && (await e.page.getByLabel('Upcoming trip').count()) === 0
+    && await e.page.getByRole('button', { name: /^Add flight/ }).isVisible() && await e.page.getByRole('button', { name: /^Compare flights/ }).isVisible());
   await e.page.getByRole('button', { name: 'Airports', exact: true }).click();
   await e.page.getByRole('button', { name: /Lisbon Airport/ }).first().click();
   await e.page.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
@@ -218,7 +220,7 @@ try {
   check('explore-first: builder contains both selected activities (1h 30m planned, 2h left)', await visible(e.page, 'ANA Lounge') && await visible(e.page, 'Lisboa Duty Free') && (await barText(e.page)).includes('2h left'));
   await e.page.getByRole('button', { name: 'Home' }).click();
   await e.page.getByRole('button', { name: 'My Plans' }).click();
-  check('explore-first: nothing saved without pressing Save', await e.page.getByText('No saved plans yet').isVisible());
+  check('explore-first: nothing saved without pressing Save', await e.page.getByText('No saved itineraries yet').isVisible());
   await e.ctx.close();
 
   // ---- 3. Itinerary-first: "Use this itinerary" before times; its name is kept through setup
@@ -289,7 +291,8 @@ try {
   await o.page.reload();
   await o.page.waitForTimeout(800);
   check('onboarding: returning visitor is not shown it again', !(await visible(o.page, 'Your layover, reimagined.')));
-  await o.page.getByRole('button', { name: 'How SkyStop works' }).click();
+  await o.page.getByRole('button', { name: 'Profile' }).click();
+  await o.page.getByRole('button', { name: 'Replay introduction' }).click();
   await o.page.getByText('Your layover, reimagined.').waitFor();
   for (let k = 0; k < 2; k++) await o.page.getByRole('button', { name: 'Next' }).click();
   await o.page.getByRole('button', { name: /Plan a layover/ }).click();
@@ -309,7 +312,7 @@ try {
     const hero = async () => (await P.getByLabel('Time budget').innerText()).replace(/\s+/g, ' ');
     const itin = async () => (await P.getByLabel('Itinerary').innerText()).replace(/\s+/g, ' ');
     await P.goto(BASE);
-    await P.getByRole('button', { name: /Plan a layover/ }).first().click();
+    await P.getByRole('button', { name: /^Add flight/ }).first().click();
     await P.getByLabel('Booking reference').fill('AXR7KD');
     await P.getByRole('button', { name: 'Find my journey' }).click();
     await P.getByRole('button', { name: 'Explore Singapore' }).click();
@@ -387,10 +390,112 @@ try {
     await o.ctx.close();
   }
 
+  // ---- 6. Flights (Wallet stack, My flights), profile and optional account
+  {
+    const g = await newGuest(); const G = g.page;
+    await G.goto(BASE);
+    await G.getByRole('heading', { name: /next stop/ }).waitFor();
+    for (const ref of ['DH5PRZ', 'AXR7KD', 'CJ8NWT']) {
+      await G.getByRole('button', { name: /^Add flight/ }).click();
+      await G.getByLabel('Booking reference').fill(ref);
+      await G.getByRole('button', { name: 'Find my journey' }).click();
+      await G.getByRole('button', { name: 'Save to My flights' }).click();
+      await G.getByRole('heading', { name: /next stop/ }).waitFor();
+    }
+    const mine = [...fake.plans.values()].slice(-3).filter((p) => fake.details.get(p.row.id)?.owner === p.row.owner_id);
+    check('flights: three sample flights saved as flights without activities, journey details stored in the database', mine.length === 3 && mine.every((p) => p.items.length === 0)
+      && mine.map((p) => fake.details.get(p.row.id).row).some((d) => d.origin_airport === 'CGK' && d.destination_airport === 'CDG' && d.booking_ref === 'AXR7KD'));
+    check('stack: nearest upcoming flight (AXR7KD, CGK → CDG) is in front', await G.getByRole('region', { name: 'Journey CGK to CDG via SIN' }).isVisible());
+    const strips = G.getByRole('button', { name: /^Show flight / });
+    const stackBox = await G.getByRole('region', { name: 'My flights' }).boundingBox();
+    check('stack: the two other flights peek behind it, compactly', (await strips.count()) === 2 && stackBox.height < 560, `strips ${await strips.count()}, height ${Math.round(stackBox.height)}`);
+    await G.getByRole('button', { name: /^Show flight JFK to SIN via LHR/ }).click();
+    check('stack: tapping a card brings that journey to the front', await G.getByRole('region', { name: 'Journey JFK to SIN via LHR' }).isVisible() && (await G.getByRole('button', { name: /^Show flight CGK to CDG via SIN/ }).count()) === 1);
+    await G.getByRole('button', { name: 'View layover' }).click();
+    check('stack: View layover opens the selected journey (London)', await visible(G, 'London'));
+    await G.getByRole('button', { name: 'Home' }).click();
+    // a sample journey is not saved twice
+    await G.getByRole('button', { name: /^Add flight/ }).click();
+    await G.getByLabel('Booking reference').fill('AXR7KD'); await G.getByRole('button', { name: 'Find my journey' }).click();
+    check('flights: a saved sample journey offers "Open in My flights" instead of a duplicate', await G.getByRole('button', { name: 'Open in My flights' }).isVisible());
+    await G.getByRole('button', { name: 'Home' }).click();
+    // details come back from the database, not just this browser
+    await G.evaluate(() => localStorage.removeItem('skystop.planmeta.v1'));
+    await G.reload(); await G.getByRole('region', { name: 'My flights' }).waitFor();
+    check('flights: routes are restored from the database after the browser copy is cleared', await G.getByRole('region', { name: 'Journey CGK to CDG via SIN' }).isVisible());
+    // See all → My flights
+    await G.getByRole('button', { name: /^See all \(/ }).click();
+    await G.getByRole('heading', { name: 'My flights' }).waitFor();
+    const up = (await G.getByLabel('Upcoming flights').innerText()).replace(/\s+/g, ' ');
+    check('My flights: upcoming flights in date order with connection, dates and itinerary status', /CGK.*CDG.*via SIN.*JFK.*SIN.*via LHR.*CDG.*HND.*via DXB/.test(up) && (up.match(/No itinerary yet/g) || []).length === 3, up.slice(0, 200));
+    await G.getByRole('button', { name: 'Remove flight CDG to HND' }).click();
+    check('My flights: removal asks first and says what goes with it', await visible(G, 'This flight has no saved itinerary.') && await G.getByRole('button', { name: 'Remove flight', exact: true }).isVisible());
+    const n0 = fake.plans.size;
+    await G.getByRole('button', { name: 'Remove flight', exact: true }).click();
+    await G.getByRole('button', { name: 'Remove flight CDG to HND' }).waitFor({ state: 'detached' });
+    check('My flights: the flight is removed on the server, with its details', fake.plans.size === n0 - 1 && ![...fake.details.values()].some((d) => d.row.booking_ref === 'DH5PRZ'));
+    // Profile: optional nationality, owner-only
+    await G.getByRole('button', { name: 'Home' }).click();
+    await G.getByRole('button', { name: 'Profile' }).click();
+    check('profile: guest status with optional account', await visible(G, 'Using SkyStop as a guest') && await G.getByRole('button', { name: 'Create account' }).isVisible() && await G.getByRole('button', { name: 'Sign in' }).isVisible());
+    await G.getByLabel('Passport nationality').fill('Indonesia');
+    await G.getByRole('button', { name: 'Save', exact: true }).click();
+    await G.getByText('Saved to your profile.').waitFor();
+    const uid = [...fake.plans.values()][fake.plans.size - 1].row.owner_id;
+    check('profile: nationality stored privately for this user only (no passport number fields)', fake.profiles.get(uid)?.nationality === 'Indonesia' && (await G.getByLabel(/passport number/i).count()) === 0);
+    // Upgrade the guest to an account (same user id → same flights)
+    await G.getByRole('button', { name: 'Create account' }).click();
+    await G.getByLabel('Email').fill('traveller@example.com');
+    await G.getByRole('button', { name: 'Send confirmation link' }).click();
+    await G.getByText('Check your email').waitFor();
+    check('account: create account attaches the email to the current guest (no new user)', fake.emails.some((m) => m.kind === 'confirm' && m.uid === uid && m.to === 'traveller@example.com') && fake.accounts.size === new Set([...fake.accounts.keys()]).size);
+    fake.confirmEmail(uid);
+    await G.reload(); await G.getByRole('heading', { name: /next stop/ }).waitFor();
+    await G.getByRole('button', { name: 'Profile' }).click();
+    await G.getByText('traveller@example.com').first().waitFor();
+    check('account: after confirmation the profile shows the account; flights and nationality are kept', await visible(G, 'Signed in') && (await G.getByLabel('Passport nationality').inputValue()) === 'Indonesia');
+    // Another device: sign in to the same account
+    const other = await browser.newContext({ ...devices['iPhone 13'] });
+    await other.addInitScript((s) => { localStorage.setItem('skystop.onboarded.v2', '1'); localStorage.setItem('sb-sgwbtgwccskqamzttczz-auth-token', s) }, JSON.stringify(fake.sessionFor(uid)));
+    await other.route('**://*.supabase.co/**', fake.handler);
+    const O = await other.newPage(); await O.goto(BASE);
+    await O.getByRole('region', { name: 'My flights' }).waitFor();
+    check('account: on another device the same flights appear with their routes (from the database)', await O.getByRole('region', { name: 'Journey CGK to CDG via SIN' }).isVisible() && (await O.getByRole('button', { name: /^Show flight / }).count()) === 1);
+    await other.close();
+    await G.getByRole('button', { name: 'Sign out' }).click();
+    await G.getByRole('button', { name: 'Create account' }).waitFor();
+    await G.getByRole('button', { name: 'Home' }).click();
+    check('account: after signing out this browser shows no flights', await visible(G, 'No flights yet'));
+    await G.getByRole('button', { name: 'Profile' }).click();
+    await G.getByRole('button', { name: 'Sign in' }).click();
+    await G.getByLabel('Email').fill('traveller@example.com');
+    await G.getByRole('button', { name: 'Send sign-in link' }).click();
+    await G.getByText('Check your email').waitFor();
+    check('account: sign in sends a sign-in link', fake.emails.some((m) => m.kind === 'signin' && m.to === 'traveller@example.com'));
+    await g.ctx.close();
+  }
+  // Manual flight with origin and destination
+  {
+    const mf = await newGuest(); const M = mf.page;
+    await M.goto(BASE);
+    await M.getByRole('button', { name: /^Add flight/ }).click();
+    await M.getByRole('button', { name: 'Enter flight details manually' }).click();
+    await pick(M, 'Flying from (optional)', 'OPO'); await pick(M, 'Final destination (optional)', 'JFK');
+    await M.getByRole('button', { name: 'Lisbon LIS' }).click();
+    await setTimes(M);
+    await M.getByRole('button', { name: 'Explore activities' }).click();
+    await M.getByRole('button', { name: 'Add ANA Lounge' }).click();
+    await M.getByRole('button', { name: 'Build itinerary (1)' }).click();
+    await M.getByRole('button', { name: 'Save plan' }).click();
+    await M.getByRole('region', { name: 'Journey OPO to JFK via LIS' }).waitFor();
+    check('manual flight: entered origin and destination appear on the card with LIS connection times', (await M.getByRole('region', { name: 'Journey OPO to JFK via LIS' }).innerText()).includes('10:00'));
+    await mf.ctx.close();
+  }
+
   // ---- 5. Illustrative flight comparison still works
   const b = await newGuest();
   await b.page.goto(BASE);
-  await b.page.getByRole('button', { name: /Plan ahead/ }).click();
+  await b.page.getByRole('button', { name: /^Compare flights/ }).click();
   await b.page.getByLabel('Flying from').selectOption('CGK'); await b.page.getByLabel('Flying to').selectOption('CDG');
   await b.page.getByRole('button', { name: 'Compare connections' }).click();
   await b.page.getByText('Choose your connection').waitFor();
@@ -404,7 +509,7 @@ try {
   await c.page.getByText('We could not load the airports').waitFor();
   check('catalogue error state shown', true);
   await c.page.getByRole('button', { name: 'Try again' }).click();
-  await c.page.getByRole('button', { name: /Plan a layover/ }).first().waitFor();
+  await c.page.getByRole('button', { name: /^Add flight/ }).first().waitFor();
   check('retry recovers', true);
   await c.ctx.close();
 } catch (e) {

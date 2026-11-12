@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpDown, ArrowUpRight, Bed, Check, ChevronRight, Info, X, Clock, Compass, Laptop, ListChecks, MapPin, Plus, Search, ShoppingBag, Sparkles, Landmark, Utensils, type LucideIcon } from 'lucide-react'
+import { Plane, UserRound, ArrowUpDown, ArrowUpRight, Bed, Check, ChevronRight, Info, X, Clock, Compass, Laptop, ListChecks, MapPin, Plus, Search, ShoppingBag, Sparkles, Landmark, Utensils, type LucideIcon } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, AIRPORTS, CITIES, TEMPLATES, getActivities, getAirport, getTemplates } from '../data/mock'
 import { localToInstant } from '../domain'
@@ -7,7 +7,7 @@ import { IMAGES, sized } from '../data/images'
 import { fmtDur, timeSpan, toLocalInput } from '../data/time'
 import type { Category, Plan } from '../data/types'
 import { Button, CATEGORIES, Chip, ChipRow, Field, Header, LargeTitle, Photo } from '../components/ui'
-import { TripTicket } from '../components/TripTicket'
+import { FlightStack } from '../components/FlightStack'
 
 const Heading = ({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) => (
   <div className="mb-3 mt-8 flex items-center justify-between"><h2 className="text-h2 font-bold">{children}</h2>{action}</div>
@@ -47,8 +47,8 @@ const Notch = ({ icon: Icon = ArrowUpRight }: { icon?: LucideIcon }) => (
 
 /** Home: discovery-first, with the next saved trip on top when there is one. */
 export function Home() {
-  const { plans, go, switchTab, notice, setNotice, replayOnboarding } = useApp()
-  const [q, setQ] = useState('')
+  const { plans, go, switchTab, notice, setNotice } = useApp()
+  const q = ''
   const [cat, setCat] = useState<'All' | Category>('All')
   const upcoming = nextTrip(plans)
   const trip = upcoming[0]
@@ -70,14 +70,8 @@ export function Home() {
             <p className="text-sub font-medium text-muted-text">{greeting()}</p>
             <h1 className="mt-0.5 text-title font-bold">Where’s your<br />next stop?</h1>
           </div>
-          <button onClick={replayOnboarding} aria-label="How SkyStop works" className="glass press mt-1 grid size-12 shrink-0 place-items-center rounded-full"><Info size={20} /></button>
+          <button onClick={() => go({ name: 'profile' })} aria-label="Profile" className="glass press mt-1 grid size-12 shrink-0 place-items-center rounded-full"><UserRound size={21} /></button>
         </div>
-        <label className="relative mt-5 block">
-          <span className="sr-only">Search airports and activities</span>
-          <Search size={20} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-text" />
-          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search airports or activities"
-            className="glass min-h-[3.25rem] w-full rounded-full pl-12 pr-4 text-body !shadow-none placeholder:text-muted-text focus:outline-none focus:ring-2 focus:ring-accent-dark/60" />
-        </label>
       </div>
 
       {notice && (
@@ -87,40 +81,31 @@ export function Home() {
           <button onClick={() => setNotice(null)} aria-label="Dismiss" className="-m-2 grid size-11 shrink-0 place-items-center text-muted-text"><X size={18} /></button>
         </div>
       )}
-      <div className="mt-5 px-5">
-        {trip ? (
-          <>
-            <TripTicket plan={trip} onView={() => go({ name: 'plan', id: trip.id })} />
-            <Button type="button" variant="ghost" className="mt-3 w-full border border-accent-dark"
-              onClick={() => go({ name: 'booking' })}>New layover</Button>
-            {plans.length > 1 && (
-              <button onClick={() => switchTab('plans')} className="mt-1 flex min-h-11 w-full items-center justify-between px-1 text-body font-medium text-accent-dark">
-                {plans.length - 1} more {plans.length === 2 ? 'trip' : 'trips'} in My Plans<ChevronRight size={18} /></button>)}
-          </>
+
+      <div className="mt-6 px-5">
+        <div className="mb-3 flex items-end justify-between">
+          <h2 className="text-h2 font-bold">My flights</h2>
+          {plans.length > 0 && <button onClick={() => go({ name: 'flights' })} className="min-h-11 text-body font-medium text-accent-dark">See all{plans.length > 1 ? ` (${plans.length})` : ''}</button>}
+        </div>
+        {upcoming.length > 0 ? (
+          <FlightStack flights={upcoming} onOpen={(p) => go({ name: 'plan', id: p.id })} />
         ) : (
-          <>
-            <button onClick={() => go({ name: 'booking' })} className="ph press relative block h-[21rem] w-full overflow-hidden rounded-[2rem] text-left text-white shadow-[0_20px_44px_rgb(0_0_0/0.4)]">
-              <img src={sized(IMAGES.results, 760, 680)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-fade absolute inset-0 size-full object-cover" />
-              <span className="photo-fade absolute inset-x-0 bottom-0 h-[70%]" />
-              <span className="glass-dark absolute left-4 top-4 rounded-full px-3 py-1 text-sub font-medium">Your trip</span>
-              <span className="absolute bottom-5 left-5 right-24 block">
-                <span className="block text-h1 font-bold leading-tight">Plan a layover</span>
-                <span className="mt-1 block text-body text-white/80">See your usable time between flights</span>
-              </span>
-              <Notch icon={Plus} />
-            </button>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <button onClick={() => go({ name: 'find' })} className="panel press flex min-h-[7.5rem] flex-col justify-between rounded-[1.5rem] p-4 text-left">
-                <span className="grid size-10 place-items-center rounded-full bg-accent-tint text-accent-dark"><Compass size={20} /></span>
-                <span><b className="block text-card font-semibold leading-tight">Plan ahead</b><span className="text-sub text-muted-text">Compare connections</span></span>
-              </button>
-              <button onClick={() => switchTab('airports')} className="panel press flex min-h-[7.5rem] flex-col justify-between rounded-[1.5rem] p-4 text-left">
-                <span className="grid size-10 place-items-center rounded-full bg-accent-tint text-accent-dark"><MapPin size={20} /></span>
-                <span><b className="block text-card font-semibold leading-tight">Airports</b><span className="text-sub text-muted-text">{AIRPORTS.length} guides</span></span>
-              </button>
-            </div>
-          </>
+          <div className="rounded-[1.75rem] border border-dashed border-[rgb(35_26_23/0.18)] bg-white/70 px-5 py-6 text-center">
+            <span className="mx-auto grid size-12 place-items-center rounded-full bg-accent-tint text-accent-dark"><Plane size={22} className="-rotate-45" /></span>
+            <p className="mt-3 text-card font-semibold">{plans.length ? 'No upcoming flights' : 'No flights yet'}</p>
+            <p className="mt-1 text-sub text-muted-text">{plans.length ? 'Your past flights are in See all.' : 'Add a booked flight to see your layover and plan it.'}</p>
+          </div>
         )}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button onClick={() => go({ name: 'booking' })} className="btn-coral press flex min-h-[6.25rem] flex-col items-start justify-between gap-2 rounded-[1.4rem] p-3.5 text-left">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/20"><Plus size={19} /></span>
+            <span className="min-w-0"><b className="block text-body font-semibold leading-tight">Add flight</b><span className="block text-cap text-white/85">Already booked</span></span>
+          </button>
+          <button onClick={() => go({ name: 'find' })} className="panel press flex min-h-[6.25rem] flex-col items-start justify-between gap-2 rounded-[1.4rem] p-3.5 text-left">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><Compass size={19} /></span>
+            <span className="min-w-0"><b className="block text-body font-semibold leading-tight">Compare flights</b><span className="block text-cap text-muted-text">Not booked yet</span></span>
+          </button>
+        </div>
       </div>
 
       <div className="px-5">
@@ -211,7 +196,7 @@ export function FindFlight() {
   const sel = 'min-h-12 w-full min-w-0 appearance-none bg-transparent text-card font-semibold text-ink focus:outline-none'
   return (
     <div className="pb-[calc(var(--nav-h)+2rem)]">
-      <Header title="Compare connections" subtitle="Before you book" />
+      <Header title="Compare flights" subtitle="Illustrative options, before you book" />
       <div className="px-5 pt-2">
         <h2 className="text-h1 font-bold">Find a layover<br />worth having</h2>
         <p className="mt-2 text-sub text-muted-text">Compare one-stop routes by how much usable time each connection leaves you.</p>

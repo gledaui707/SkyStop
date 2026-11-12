@@ -60,4 +60,28 @@ await check('Transfer graph: migration is re-runnable, Changi rows present, cata
  await fail("delete from public.airport_transfers",'42501');
  await db.exec('reset role');
 });
+await check('Flight details, profiles and flight removal are owner-only',async()=>{
+ await db.exec('reset role');
+ await db.exec(readFileSync(new URL('supabase/migrations/202611140001_flights_profiles.sql',root),'utf8')); // re-runnable
+ await identity('authenticated',A);
+ await db.exec(`insert into public.layover_details(layover_id,origin_airport,destination_airport,booking_ref) values ('${plan}','CGK','CDG','AXR7KD')`);
+ await db.exec(`insert into public.traveler_profiles(nationality) values ('Indonesian')`);
+ assert.equal((await db.query('select count(*)::int n from public.layover_details')).rows[0].n,1);
+ await fail(`insert into public.layover_details(layover_id,origin_airport) values ('${plan}','XXX')`,'23505');
+ await identity('authenticated',B);
+ assert.equal((await db.query('select count(*)::int n from public.layover_details')).rows[0].n,0);
+ assert.equal((await db.query('select count(*)::int n from public.traveler_profiles')).rows[0].n,0);
+ await db.exec(`update public.traveler_profiles set nationality='X'`); // affects no visible rows
+ await db.exec(`delete from public.layovers where id='${plan}'`);     // not B's: silently nothing
+ await fail(`insert into public.layover_details(layover_id,origin_airport) values ('${plan}','LHR')`,'42501'); // not B's flight
+ await fail(`insert into public.traveler_profiles(owner_id,nationality) values ('${A}','Spoof')`,'42501');
+ await identity('anon');
+ await fail('select * from public.traveler_profiles','42501');
+ await identity('authenticated',A);
+ assert.equal((await db.query('select nationality from public.traveler_profiles')).rows[0].nationality,'Indonesian');
+ assert.equal((await db.query(`select count(*)::int n from public.layovers where id='${plan}'`)).rows[0].n,1);
+ await db.exec(`delete from public.layovers where id='${plan}'`);
+ for (const t of ['layovers','plan_items','layover_details']) assert.equal((await db.query(`select count(*)::int n from public.${t} where ${t==='layovers'?'id':'layover_id'}='${plan}'`)).rows[0].n,0);
+ await db.exec('reset role');
+});
 await db.close(); console.log(`${passed} database checks passed. Hosted Supabase/Auth/browser checks remain required.`);

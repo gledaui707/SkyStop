@@ -892,10 +892,18 @@ const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 /** One fake backend shared by every browser context in a test run (so "another guest" is really isolated by token). */
 export function createFakeSupabase() {
   const plans = new Map(); let users = 0;
-  const db = { plans, calls: [], failNext: {} };
+  const accounts = new Map(); // uid -> auth user
+  const details = new Map(); // layover_id -> { row, owner }
+  const profiles = new Map(); // owner -> row
+  const db = { plans, accounts, details, profiles, calls: [], failNext: {}, emails: [] };
+  const tokenFor = (sub) => { const exp = Math.floor(Date.now() / 1000) + 3600; return { access_token: `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub, role: 'authenticated', exp, is_anonymous: !!accounts.get(sub)?.is_anonymous })}.sig`, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: `r-${sub}`, user: accounts.get(sub) }; };
+  /** Simulates the user opening the confirmation link: the guest becomes a permanent account with the SAME id. */
+  db.confirmEmail = (uid) => { const u = accounts.get(uid); u.email = u.new_email; delete u.new_email; u.is_anonymous = false; };
+  /** A session for an existing account, as another device would get after a sign-in link. */
+  db.sessionFor = (uid) => tokenFor(uid);
   const json = (route, status, body) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
   const userOf = (req) => { const m = /^Bearer (.+)$/.exec(req.headers()['authorization'] || ''); try { return JSON.parse(Buffer.from(m[1].split('.')[1], 'base64url')).sub; } catch { return null; } };
-  const withItems = (p) => ({ ...p.row, plan_items: p.items });
+  const withItems = (p) => ({ ...p.row, plan_items: p.items, layover_details: details.has(p.row.id) ? details.get(p.row.id).row : null });
 
   db.handler = async (route) => {
     const req = route.request(); const url = new URL(req.url()); const path = url.pathname; const method = req.method();
@@ -907,9 +915,37 @@ export function createFakeSupabase() {
     if (path === '/auth/v1/signup') {
       const sub = `00000000-0000-4000-8000-${String(++users).padStart(12, '0')}`; const exp = Math.floor(Date.now() / 1000) + 3600;
       const user = { id: sub, aud: 'authenticated', role: 'authenticated', is_anonymous: true, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() };
+      accounts.set(sub, user);
       return json(route, 200, { access_token: `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub, role: 'authenticated', exp, is_anonymous: true })}.sig`, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: `r-${sub}`, user });
     }
+    if (path === '/auth/v1/user') {
+      const uid = userOf(req); if (!uid || !accounts.get(uid)) return json(route, 401, { message: 'invalid JWT' });
+      if (method === 'PUT') { const b = req.postDataJSON(); if (b.email) { accounts.get(uid).new_email = b.email; db.emails.push({ kind: 'confirm', to: b.email, uid }); } }
+      return json(route, 200, accounts.get(uid));
+    }
+    if (path === '/auth/v1/otp') { const b = req.postDataJSON(); db.emails.push({ kind: 'signin', to: b.email }); return json(route, 200, {}); }
+    if (path === '/auth/v1/logout') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' } });
     const table = path.replace('/rest/v1/', '');
+    const single = (req.headers()['accept'] || '').includes('vnd.pgrst.object');
+    if (table === 'layover_details') {
+      const uid = userOf(req); if (!uid) return json(route, 401, { code: '42501', message: 'permission denied' });
+      if (method === 'POST') {
+        const rows = [].concat(req.postDataJSON());
+        for (const r of rows) { const p = plans.get(r.layover_id); if (!p || p.row.owner_id !== uid) return json(route, 403, { code: '42501', message: 'new row violates row-level security policy' }); details.set(r.layover_id, { owner: uid, row: { ...r, owner_id: uid } }); }
+        return json(route, 201, rows.map((r) => ({ layover_id: r.layover_id })));
+      }
+    }
+    if (table === 'traveler_profiles') {
+      const uid = userOf(req); if (!uid) return json(route, 401, { code: '42501', message: 'permission denied' });
+      if (method === 'GET') { const row = profiles.get(uid); return single ? (row ? json(route, 200, row) : json(route, 406, { code: 'PGRST116', message: 'no rows', details: 'The result contains 0 rows' })) : json(route, 200, row ? [row] : []); }
+      if (method === 'POST') { const b = req.postDataJSON(); if (b.owner_id !== uid) return json(route, 403, { code: '42501', message: 'row-level security' }); profiles.set(uid, b); return single ? json(route, 201, b) : json(route, 201, [b]); }
+      if (method === 'DELETE') { const had = profiles.delete(uid); return json(route, 200, had ? [{ owner_id: uid }] : []); }
+    }
+    if (table === 'layovers' && method === 'DELETE') {
+      const uid = userOf(req); const id = (url.searchParams.get('id') || '').replace('eq.', '');
+      const p = plans.get(id); if (!uid || !p || p.row.owner_id !== uid) return json(route, 200, []);
+      plans.delete(id); details.delete(id); return json(route, 200, [{ id }]);
+    }
     if (method === 'GET' && SEED[table]) {
       let rows = SEED[table];
       for (const [k, v] of url.searchParams) {

@@ -72,7 +72,7 @@ for (const [w, h] of WIDTHS) {
     await page.evaluate(() => { try { localStorage.setItem('skystop.welcomed.v1', '1'); localStorage.setItem('skystop.onboarded.v2', '1'); } catch {} });
     await page.goto(BASE); await page.waitForTimeout(800);
     await visit('home');
-    await click('button', /Plan a layover/); await page.getByRole('heading', { name: 'Find your journey' }).waitFor(); await visit('booking');
+    await click('button', /^Add flight/); await page.getByRole('heading', { name: 'Find your journey' }).waitFor(); await visit('booking');
     await page.getByLabel('Booking reference').fill('ZZ9ZZ9');
     await click('button', 'Find my journey'); await visit('booking-samples');
     await click('button', /AXR7KD/); await page.getByRole('heading', { name: 'Your journey' }).waitFor(); await visit('journey-overview');
@@ -91,11 +91,14 @@ for (const [w, h] of WIDTHS) {
     await page.getByRole('button', { name: /Save plan|Save anyway/ }).click();
     await page.getByLabel('Upcoming trip').waitFor({ timeout: 8000 });
     await visit('home-with-trip');
+    await click('button', /^See all/); await page.getByRole('heading', { name: 'My flights' }).waitFor(); await visit('my-flights');
+    await click('button', 'Home', { exact: true }); await click('button', 'Profile'); await page.getByRole('heading', { name: 'Profile' }).waitFor(); await visit('profile');
+    await click('button', 'Home', { exact: true });
     await click('button', 'My Plans'); await visit('plans');
     await page.getByRole('button', { name: /layover/ }).first().click(); await visit('plan-detail');
     // Changi builder with transfers, terminals and the entry-check panel (landside activity)
     await page.goto(BASE); await page.waitForTimeout(800);
-    await click('button', /Plan a layover|New layover/); await page.getByLabel('Booking reference').fill('AXR7KD');
+    await click('button', /^Add flight/); await page.getByLabel('Booking reference').fill('AXR7KD');
     await click('button', 'Find my journey'); await click('button', 'Explore Singapore');
     await page.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
     for (const n of ['Add Butterfly Garden', 'Add Jewel Rain Vortex']) await click('button', n);
@@ -103,6 +106,14 @@ for (const [w, h] of WIDTHS) {
     await click('button', 'Arriving at Terminal 3 transit area'); await click('button', 'Departing from Terminal 3 transit area');
     await click('button', "I'm not sure");
     await visit('builder-changi-entry');
+    // Home with a stack of three flights
+    for (const ref of ['CJ8NWT', 'DH5PRZ']) {
+      await page.goto(BASE); await page.waitForTimeout(600);
+      await click('button', /^Add flight/); await page.getByLabel('Booking reference').fill(ref);
+      await click('button', 'Find my journey'); await click('button', 'Save to My flights');
+      await page.getByRole('heading', { name: /next stop/ }).waitFor();
+    }
+    await visit('home-flight-stack');
   } catch (e) { total++; console.log(`CRASH ${w}px: ${e.message.split('\n')[0]}`); }
   await ctx.close();
 }

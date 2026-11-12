@@ -8,6 +8,8 @@ import { Results, FlightDetails, Compare } from './screens/Flights'
 import { Airport } from './screens/Airport'
 import { Builder } from './screens/Builder'
 import { Plans, PlanDetail } from './screens/Plans'
+import { MyFlights } from './screens/MyFlights'
+import { Profile } from './screens/Profile'
 import { cx } from './components/ui'
 
 function Screen() {
@@ -27,6 +29,8 @@ function Screen() {
     case 'builder': return <Builder />
     case 'plans': return <Plans />
     case 'plan': return <PlanDetail id={r.id} />
+    case 'flights': return <MyFlights />
+    case 'profile': return <Profile />
   }
 }
 

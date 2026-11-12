@@ -15,6 +15,17 @@ SkyStop (Figma Make React frontend wired to Supabase) is **deployed at https://s
 `npm test -- --run` (84) · `npm run build` · `npm run test:e2e` (simulated API, 64 checks) · `npm run test:layout` (responsive audit) · `npm run test:live` (REAL site + DB, creates a guest/plan; run sparingly) · `npm run test:hosted` (real DB data-layer journey; manual only) · `npm test --prefix tests/database` (15) · `./scripts/build-submission-pdf.sh` (needs `pip install markdown`; rebuilds the draft PDF).
 The sandbox needs hosts allowed (api.supabase.com, sgwbtgwccskqamzttczz.supabase.co, skystop.vercel.app, api.vercel.com, images.unsplash.com); Node `fetch` needs `NODE_USE_ENV_PROXY=1`; Chromium needs `proxy: { server: process.env.HTTPS_PROXY }`.
 
+## Deadline
+Updated: **23 November 2026, 08:00 (Portugal time).**
+
+## Latest change: flight-centred Home, My flights, optional accounts, Profile (2026-11-14, deployed)
+- Home: Wallet-style flight stack (nearest upcoming in front, up to three peeking behind, tap to bring forward), *Add flight* and *Compare flights* as separate entries, Profile icon (replaces the info button; replay moved to Profile).
+- My flights (new screen), My Plans now = flights with an itinerary; flights can be removed (with their itinerary, after confirmation); a flight can be saved without activities; sample journeys are not saved twice.
+- Manual entry has optional origin and final destination again.
+- Additive migration `202611140001_flights_profiles.sql`: `layover_details`, `traveler_profiles` (both owner-only), owner delete policy on `layovers`. Hosted plans untouched (7/9 before and after). Auth site URL/redirects set to production.
+- Accounts: guest upgrade (same user id) and sign-in by email link, sign-out. Real email delivery not verified (built-in SMTP limits). Details: docs/FLIGHTS_ACCOUNTS_PROFILE.md.
+- Tests: unit 118 (+1 skipped) · DB 17 (new: owner-only details/profiles, cross-guest denial, delete cascade) · browser 106 · layout 0 issues incl. Home stack, My flights, Profile.
+
 ## Latest change: constraint-aware planning, Changi pilot (2026-11-13, deployed)
 - **Transfer graph** (additive migration `202611130001_transfer_graph.sql`): `airport_locations`, `airport_transfers`, `activity_locations`, `airports.entry_guidance_url`. Changi: 5 locations, 18 directed transfers from official Changi/Jewel pages (two legs marked planning estimates), 12 venue-location links. Applied to the hosted DB; saved plans untouched (6 plans / 8 items before and after). Details, sources and the time model: docs/CONSTRAINT_AWARE_PLANNING.md.
 - **Engine** `src/domain/itinerary.ts` (pure, 11 unit tests): ordered stops, arrival → first activity, between activities, return to the departure terminal; counts the upper end of ranges; separate time state (fits / tight / exceeds / cannot verify) and access state (stays airside / entry verification required / access unknown); never invents a route.

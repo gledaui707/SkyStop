@@ -13,6 +13,11 @@ export interface TransferRow {
   min_minutes: number; max_minutes: number; requires_immigration: boolean; requires_departure_checks: boolean; requires_through_check: boolean;
   verification: 'official' | 'planning_estimate'; source_url: string | null; note: string;
 }
+export interface LayoverDetailsRow {
+  layover_id: string; name: string | null; origin_airport: string | null; destination_airport: string | null;
+  booking_ref: string | null; arrival_location: string | null; departure_location: string | null;
+}
+export interface TravelerProfileRow { owner_id: string; nationality: string | null; residence: string | null; updated_at: string }
 export interface ActivityLocationRow { activity_id: string; airport_id: string; location_id: string }
 export interface ActivityRow {
   id: string; airport_id: string; name: string; description: string; category: Category;
