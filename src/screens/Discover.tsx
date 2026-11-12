@@ -19,11 +19,10 @@ const CAT_ICONS: Record<string, LucideIcon> = { All: Sparkles, Food: Utensils, R
 
 const greeting = () => { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening' }
 
-/** Icon + value + label, as used on airport and experience cards. */
-const Meta = ({ icon: Icon, value, label }: { icon: LucideIcon; value: string; label: string }) => (
-  <span className="flex flex-1 items-center justify-center gap-1.5 border-l border-white/25 first:border-l-0">
-    <Icon size={18} className="shrink-0 text-white/70" />
-    <span className="leading-tight"><span className="block text-sub font-semibold">{value}</span><span className="block text-cap text-white/65">{label}</span></span></span>
+const PHOTO_DETAILS = 'mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/30 pt-3 text-sub text-white/90'
+
+const PhotoDetail = ({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) => (
+  <span className="inline-flex items-center gap-1.5"><Icon size={16} aria-hidden="true" />{children}</span>
 )
 
 /** Coral action disc set into a "notch" cut from the card corner (the ring matches the canvas). */
@@ -137,21 +136,19 @@ export function Home() {
           <div className="px-5"><Heading>Recommended airports</Heading></div>
           <ul className="no-scrollbar flex snap-x scroll-px-5 gap-3 overflow-x-auto px-5 pb-2" aria-label="Recommended airports">
             {airports.map((a) => {
-              const acts = getActivities(a.code)
-              const mins = acts.map((x) => x.durationMin)
+              const activities = getActivities(a.code).length
+              const itineraries = getTemplates(a.code).length
               return (
                 <li key={a.code} className="shrink-0 snap-start">
                   <button onClick={() => go({ name: 'airport', code: a.code, view: 'list' })} className="ph press relative block h-[17rem] w-[min(20rem,calc(100vw-3.5rem))] overflow-hidden rounded-[1.75rem] text-left text-white">
                     <Photo img={a.image} w={320} h={272} className="absolute inset-0 size-full" />
                     <span className="photo-fade absolute inset-x-0 bottom-0 h-[72%]" />
                     <span className="glass-dark absolute left-3 top-3 rounded-full px-3 py-1 text-sub font-bold tracking-wide">{a.code}</span>
-                    <span className="glass-dark absolute right-3 top-3 grid size-10 place-items-center rounded-full"><ArrowUpRight size={20} /></span>
                     <span className="absolute inset-x-4 bottom-4 block">
                       <span className="block text-h2 font-bold leading-tight">{a.name}</span>
-                      <span className="glass-dark mt-3 flex whitespace-nowrap rounded-2xl py-2">
-                        <Meta icon={ListChecks} value={String(acts.length)} label="Activities" />
-                        <Meta icon={Clock} value={mins.length ? `${fmtDur(Math.min(...mins))}–${fmtDur(Math.max(...mins))}` : '–'} label="Time" />
-                        <Meta icon={Sparkles} value={String(getTemplates(a.code).length)} label="Curated" />
+                      <span className={PHOTO_DETAILS}>
+                        <PhotoDetail icon={ListChecks}>{activities} {activities === 1 ? 'activity' : 'activities'}</PhotoDetail>
+                        <PhotoDetail icon={Sparkles}>{itineraries} {itineraries === 1 ? 'itinerary' : 'itineraries'}</PhotoDetail>
                       </span>
                     </span>
                   </button>
@@ -172,9 +169,9 @@ export function Home() {
               <span className="absolute inset-x-5 bottom-5 block">
                 <span className="block text-h1 font-bold leading-tight">{featured.name}</span>
                 <span className="mt-0.5 block text-body text-white/85">{featAp.city}</span>
-                <span className="mt-3 flex max-w-[16rem] gap-4 whitespace-nowrap">
-                  <Meta icon={Clock} value={fmtDur(timeSpan(featItems))} label="Duration" />
-                  <Meta icon={MapPin} value={String(featItems.length)} label="Stops" />
+                <span className={PHOTO_DETAILS}>
+                  <PhotoDetail icon={Clock}>{fmtDur(timeSpan(featItems))} estimated</PhotoDetail>
+                  <PhotoDetail icon={MapPin}>{featItems.length} {featItems.length === 1 ? 'stop' : 'stops'}</PhotoDetail>
                 </span>
                 <span className="mt-4 grid min-h-12 place-items-center rounded-full bg-white text-body font-semibold text-[#2a1b18]">View itinerary</span>
               </span>
