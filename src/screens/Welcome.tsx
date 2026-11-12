@@ -114,9 +114,8 @@ export function Welcome() {
 
       <div className="pointer-events-none relative flex flex-1 flex-col px-6 pb-[calc(var(--safe-bottom)+1.25rem)] pt-[calc(var(--safe-top)+0.5rem)]">
         <div className="pointer-events-auto flex items-center justify-between">
-          <span className="glass-dark flex min-h-11 items-center gap-2 rounded-full py-1.5 pl-3.5 pr-4 text-sub font-semibold">
-            <SSMark className="h-[1.125rem] w-auto" />SkyStop
-          </span>
+          <span className="flex min-h-11 items-center">
+            <SSMark className="h-8 w-auto drop-shadow-[0_2px_8px_rgb(0_0_0/0.35)]" /></span>
           {!last && <button onClick={done} className="glass-dark press min-h-11 rounded-full px-5 text-sub font-semibold">Skip</button>}
         </div>
 
