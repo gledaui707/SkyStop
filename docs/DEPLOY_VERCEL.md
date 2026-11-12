@@ -4,8 +4,8 @@ Status 2026-11-12: **not deployed.** The build environment has no Vercel account
 ## Steps (about 3 minutes, in a browser)
 1. Go to https://vercel.com/new and sign in with the GitHub account that owns `gledaui707/SkyStop`.
 2. Import the `SkyStop` repository.
-3. Leave everything on the defaults — Vercel detects **Vite** (build `npm run build`, output `dist`). No environment variables are needed: the public Supabase URL and publishable key are built in (`src/api/client.ts`); `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` override them if ever needed.
-4. Before pressing Deploy, or afterwards under Settings → Git → Production Branch, choose branch `claude/tender-keller-cxp9ac` (or merge it into `main` first).
+3. Leave everything on the defaults — Vercel detects **Vite** (build `npm run build`, output `dist`). No environment variables are needed or read: the public Supabase URL and publishable key are built in (`src/api/client.ts`), and Vercel variables named `VITE_SUPABASE_*` are ignored on purpose.
+4. Production branch must be `main` (Settings → Environments → Production → Branch Tracking), and the domain must be connected to Production, not to a branch.
 5. Open the URL Vercel shows on your phone.
 
 ## Check on the deployed URL

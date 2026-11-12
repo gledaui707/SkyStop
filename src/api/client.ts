@@ -1,7 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 // Public browser configuration (safe to ship): project URL + publishable key. Never a service-role key.
-// Env vars override these defaults, so Vercel needs no configuration for the demo project.
+// Deliberately NOT overridable by Vercel environment variables: stale VITE_SUPABASE_* values left over from the old
+// project would silently point the live app at a dead database. Change these two constants to switch projects.
 const DEFAULT_URL = 'https://sgwbtgwccskqamzttczz.supabase.co';
 const DEFAULT_KEY = 'sb_publishable_9ChZ7Mk52ignva4mWoL6Yw_Bj4RL14D';
 const REQUEST_TIMEOUT_MS = 15000;
@@ -13,8 +14,8 @@ const timedFetch: typeof fetch = (input, init) =>
   fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
 
 export function getSupabase(
-  url: string = import.meta.env?.VITE_SUPABASE_URL || DEFAULT_URL,
-  key: string = import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || DEFAULT_KEY,
+  url: string = DEFAULT_URL,
+  key: string = DEFAULT_KEY,
 ): SupabaseClient {
   client ??= createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true }, global: { fetch: timedFetch } });
   return client;
