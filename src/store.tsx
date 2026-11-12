@@ -15,7 +15,8 @@ const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
 export type Route =
   | { name: 'welcome' }
   /** Account Access: Create account / Sign in / Continue as guest, once after onboarding. */
-  | { name: 'access' }
+  /** Account access (SS screen). With `auth`, opens with the email field for that choice (e.g. from Profile). */
+  | { name: 'access'; auth?: 'create' | 'signin' }
   | { name: 'discover' }
   | { name: 'find' }
   | { name: 'trip'; airport?: string; templateId?: string }

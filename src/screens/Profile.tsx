@@ -35,7 +35,7 @@ const Section = ({ title, action, children, bare }: { title: string; action?: Re
 )
 
 export function Profile() {
-  const { account, refreshAccount, profile, setProfile, plans, replayOnboarding, route } = useApp()
+  const { account, refreshAccount, profile, setProfile, plans, replayOnboarding, route, go } = useApp()
   const countries = useMemo(countryNames, [])
   const [email, setEmail] = useState('')
   const [mode, setMode] = useState<'create' | 'signin' | null>(route.name === 'profile' ? route.auth ?? null : null)
@@ -44,7 +44,6 @@ export function Profile() {
   const [error, setError] = useState<string | null>(null)
   const [nationality, setNationality] = useState(profile?.nationality ?? '')
   const [residence, setResidence] = useState(profile?.residence ?? '')
-  const [confirmLogout, setConfirmLogout] = useState(false)
   const [editingDocs, setEditingDocs] = useState(false)
   const [name, setName] = useState(account.name ?? '')
   const [photo, setPhoto] = useState<string | null>(null)
@@ -74,7 +73,7 @@ export function Profile() {
     const p = await saveProfile(sb, { nationality: nationality.trim() || null, residence: residence.trim() || null })
     setProfile(p); setEditingDocs(false); await refreshAccount()
   })
-  const logOut = () => run(async () => { await signOut(sb); setConfirmLogout(false); setMode(null); setSent(null); await refreshAccount() })
+  const logOut = () => run(async () => { await signOut(sb); setMode(null); setSent(null); await refreshAccount() })
   const saveName = () => run(async () => { await ensureGuestSession(sb); await updateName(sb, name); await refreshAccount() })
   const pickPhoto = async (f: File | undefined) => {
     if (!f || photoBusy) return
@@ -128,22 +127,10 @@ export function Profile() {
           {account.status === 'registered' ? null : (
             <>
               {account.status === 'guest-pending' && <Notice tone="info">Check {account.pendingEmail} for a confirmation link. Your guest flights move with you once it is confirmed.</Notice>}
-              {sent ? (
-                <Notice tone="info"><p className="font-semibold">Check your email</p><p>We sent a link to {sent}. Open it on this device to {mode === 'create' ? 'confirm your account' : 'sign in'}.</p></Notice>
-              ) : mode ? (
-                <form className="grid gap-2.5" onSubmit={(e) => { e.preventDefault(); void submitEmail() }} noValidate>
-                  <label className="grid gap-1.5 text-sub font-medium text-muted-text">Email
-                    <input type="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="you@example.com" /></label>
-                  {mode === 'signin' && plans.length > 0 && <p className="text-cap text-muted-text">Signing in switches to that account. The {plans.length} {plans.length === 1 ? 'flight' : 'flights'} saved as a guest here are not merged into it. To keep them, create an account instead.</p>}
-                  <Button type="submit" icon={Mail} disabled={busy || !email.trim()}>{busy ? 'Sending…' : mode === 'create' ? 'Send confirmation link' : 'Send sign-in link'}</Button>
-                  <button type="button" onClick={() => { setMode(null); setError(null) }} className="min-h-11 text-sub font-semibold text-muted-text">Cancel</button>
-                </form>
-              ) : (
-                <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
-                  <Button onClick={() => setMode('create')}>Create account</Button>
-                  <Button variant="secondary" onClick={() => setMode('signin')}>Sign in</Button>
-                </div>
-              )}
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
+                <Button onClick={() => go({ name: 'access', auth: 'create' })}>Create account</Button>
+                <Button variant="secondary" onClick={() => go({ name: 'access', auth: 'signin' })}>Sign in</Button>
+              </div>
               {error && <Notice tone="warn">{error}</Notice>}
             </>
           )}
@@ -191,16 +178,8 @@ export function Profile() {
         <Section title="Settings">
           <button onClick={replayOnboarding} className="press flex min-h-12 items-center gap-3 text-left text-body font-medium"><RotateCcw size={19} className="text-accent-dark" />Replay introduction</button>
           {account.status !== 'none' && (
-            <button onClick={() => (account.status === 'registered' || plans.length === 0 ? void logOut() : setConfirmLogout(true))}
+            <button onClick={() => void logOut()}
               className="press flex min-h-12 items-center gap-3 border-t border-line pt-3 text-left text-body font-medium text-error"><LogOut size={19} />Log out</button>)}
-          {confirmLogout && (
-            <div role="alertdialog" aria-label="Log out of the guest session?" className="grid gap-2 rounded-2xl bg-error-tint p-3.5">
-              <p className="text-sub text-ink">You are a guest. After logging out, the {plans.length} {plans.length === 1 ? 'flight' : 'flights'} saved in this guest session can no longer be opened. Create an account first to keep them.</p>
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="danger" disabled={busy} onClick={() => void logOut()}>Log out</Button>
-                <Button variant="secondary" onClick={() => setConfirmLogout(false)}>Cancel</Button>
-              </div>
-            </div>)}
         </Section>
       </div>
     </div>

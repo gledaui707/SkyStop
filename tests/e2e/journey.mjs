@@ -331,13 +331,13 @@ try {
   await o.page.waitForTimeout(400);
   check('onboarding: replay from Home works and its final CTA opens the planning flow (no second Account Access)', (await o.page.getByRole('heading', { level: 1 }).first().innerText()).includes('Plan a layover') || await visible(o.page, 'Find your journey'));
   await o.ctx.close();
-  // Account Access -> the existing email-link forms on Profile
+  // Account Access -> the email field opens on the same screen
   for (const [action, submit] of [['Create account', 'Send confirmation link'], ['Sign in', 'Send sign-in link']]) {
     const a = await newGuest(undefined, { firstVisit: true });
     await a.page.goto(BASE); await a.page.getByRole('button', { name: 'Skip' }).click();
     await a.page.getByRole('button', { name: action }).click();
     await a.page.getByRole('button', { name: submit }).waitFor();
-    check(`access: ${action} opens the existing email-link form on Profile`, await a.page.getByRole('textbox', { name: 'Email' }).isVisible() && await a.page.getByRole('button', { name: 'Home' }).isVisible());
+    check(`access: ${action} opens the email field on the SS screen itself`, await a.page.getByRole('textbox', { name: 'Email' }).isVisible() && (await a.page.getByRole('button', { name: 'Home' }).count()) === 0);
     await a.ctx.close();
   }
   {
@@ -496,9 +496,6 @@ try {
     await G.getByRole('button', { name: 'Home' }).click();
     await G.getByRole('button', { name: 'Profile' }).click();
     check('profile: guest status with optional account', await visible(G, 'Guest') && await G.getByRole('button', { name: 'Create account' }).isVisible() && await G.getByRole('button', { name: 'Sign in' }).isVisible());
-    await G.getByRole('button', { name: 'Log out' }).click();
-    check('profile: logging out as a guest with flights asks first', await G.getByRole('alertdialog', { name: 'Log out of the guest session?' }).isVisible());
-    await G.getByRole('button', { name: 'Cancel' }).click();
     await G.getByRole('button', { name: 'What is this?' }).click();
     check('profile: travel-documents help opens from the heading row', await visible(G, 'never decides whether you may enter a country'));
     await G.getByLabel('Passport nationality').fill('Indonesia');
@@ -510,6 +507,7 @@ try {
     // Upgrade the guest to an account (same user id → same flights)
     await G.getByRole('button', { name: 'Create account' }).click();
     await G.getByLabel('Email').fill('traveller@example.com');
+    check('profile: Create account opens the SS screen with the email field', await G.getByRole('form', { name: 'Create account' }).isVisible() && (await G.getByRole('button', { name: 'Home' }).count()) === 0);
     await G.getByRole('button', { name: 'Send confirmation link' }).click();
     await G.getByText('Check your email').waitFor();
     check('account: create account attaches the email to the current guest (no new user)', fake.emails.some((m) => m.kind === 'confirm' && m.uid === uid && m.to === 'traveller@example.com') && fake.accounts.size === new Set([...fake.accounts.keys()]).size);

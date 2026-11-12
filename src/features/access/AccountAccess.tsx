@@ -1,8 +1,9 @@
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { useApp } from '../../store'
 import { getSupabase } from '../../api/client'
 import { Button } from '../../components/ui'
+import { createAccount, signIn } from '../../api/account'
 // Original SS path data (splashscreen/): the same geometry as the logo files, recoloured here.
 import { cutout, letter } from '../splash/geometry'
 import './access.css'
@@ -68,18 +69,33 @@ function GlassMonogram() {
 }
 
 /** Account Access: shown once after onboarding. The animated light and glass are the screen; three plain choices sit below.
- *  Create account / Sign in open the existing email-link flow on Profile; guests go straight to Home (no account is made). */
+ *  Create account / Sign in open the email field here (also when opened from Profile); guests go to Home (no account). */
 export function AccountAccess() {
-  const { finishAccess, account } = useApp()
+  const { finishAccess, account, route, back, plans, refreshAccount } = useApp()
   const root = useRef<HTMLDivElement>(null)
+  const opened = route.name === 'access' ? route.auth : undefined // opened from Profile with a choice
+  const [mode, setMode] = useState<'create' | 'signin' | null>(opened ?? null)
+  const [email, setEmail] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const close = () => (opened ? back() : (setMode(null), setSent(null), setError(null)))
+  const submit = async () => {
+    if (busy || !mode) return
+    setBusy(true); setError(null)
+    try { await (mode === 'create' ? createAccount : signIn)(getSupabase(), email); setSent(email.trim()); await refreshAccount() }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)) } finally { setBusy(false) }
+  }
 
-  // A visitor who already has a session (a guest who saved something, or an email link that just signed them in) has chosen.
+  // First-run only: a visitor who already has a session (a guest who saved something, or an email link that just
+  // signed them in) has chosen. When opened from Profile, the visitor is here on purpose.
   useEffect(() => {
+    if (opened) return
     if (account.status !== 'none') { finishAccess(); return }
     let live = true
     void getSupabase().auth.getSession().then(({ data }) => { if (live && data.session) finishAccess() }).catch(() => { /* offline: stay */ })
     return () => { live = false }
-  }, [account.status, finishAccess])
+  }, [account.status, finishAccess, opened])
 
   // Battery: pause the ambient motion while the page is in the background.
   useEffect(() => {
@@ -116,18 +132,44 @@ export function AccountAccess() {
           <p className="access__tagline">Plan your layover</p>
         </div>
 
-        <div className="access__actions" role="group" aria-label="Account">
-          {/* Same frosted tray and pills as the app's action bar (e.g. Explore / Save to My flights). */}
-          <div className="access__tray grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[2rem] border border-white/70 bg-white/75 p-2.5 shadow-[0_18px_40px_rgb(70_35_25/0.14),inset_0_1px_0_rgb(255_255_255/0.85)] backdrop-blur-[28px] backdrop-saturate-150">
-            <Button className="w-full" onClick={() => finishAccess({ name: 'profile', auth: 'create' })}>Create account</Button>
-            <button type="button" onClick={() => finishAccess({ name: 'profile', auth: 'signin' })}
-              className="press flex min-h-[3.25rem] w-full items-center justify-center rounded-full border border-white/90 bg-white/70 text-body font-semibold text-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.9)] backdrop-blur-xl">
-              Sign in</button>
+        {mode ? (
+          sent ? (
+            <div className="access__actions" role="status">
+              <p className="access__title">Check your email</p>
+              <p className="access__note">We sent a link to {sent}. Open it on this device to {mode === 'create' ? 'confirm your account' : 'sign in'}.</p>
+              <button type="button" className="access__guest press" onClick={() => (opened ? back() : finishAccess())}>Done<ArrowRight size={18} aria-hidden="true" /></button>
+            </div>
+          ) : (
+            <form className="access__actions" aria-label={mode === 'create' ? 'Create account' : 'Sign in'} noValidate
+              onSubmit={(e) => { e.preventDefault(); void submit() }}>
+              <p className="access__title">{mode === 'create' ? 'Create account' : 'Sign in'}</p>
+              <label className="access__label">Email
+                <input className="access__field" type="email" autoComplete="email" inputMode="email" autoFocus value={email}
+                  onChange={(e) => { setEmail(e.target.value); setError(null) }} placeholder="you@example.com" /></label>
+              {mode === 'signin' && plans.length > 0 && (
+                <p className="access__note">The {plans.length} {plans.length === 1 ? 'flight' : 'flights'} saved as a guest here are not merged into that account.</p>)}
+              {error && <p role="alert" className="access__error">{error}</p>}
+              <div className="access__tray grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[2rem] border border-white/70 bg-white/75 p-2.5 shadow-[0_18px_40px_rgb(70_35_25/0.14),inset_0_1px_0_rgb(255_255_255/0.85)] backdrop-blur-[28px] backdrop-saturate-150">
+                <Button type="submit" className="w-full" disabled={busy || !email.trim()}>
+                  {busy ? 'Sending…' : mode === 'create' ? 'Send confirmation link' : 'Send sign-in link'}</Button>
+              </div>
+              <p className="access__switch">{mode === 'create' ? 'Already have an account?' : 'New to SkyStop?'}{' '}
+                <button type="button" onClick={() => { setMode(mode === 'create' ? 'signin' : 'create'); setError(null) }}>{mode === 'create' ? 'Sign in' : 'Create account'}</button></p>
+              <button type="button" className="access__guest press" onClick={close}>Not now</button>
+            </form>
+          )
+        ) : (
+          <div className="access__actions" role="group" aria-label="Account">
+            {/* Same frosted tray and pills as the app's action bar (e.g. Explore / Save to My flights). */}
+            <div className="access__tray grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[2rem] border border-white/70 bg-white/75 p-2.5 shadow-[0_18px_40px_rgb(70_35_25/0.14),inset_0_1px_0_rgb(255_255_255/0.85)] backdrop-blur-[28px] backdrop-saturate-150">
+              <Button className="w-full" onClick={() => setMode('create')}>Create account</Button>
+              <button type="button" onClick={() => setMode('signin')} className="press flex min-h-[3.25rem] w-full items-center justify-center rounded-full border border-white/90 bg-white/70 text-body font-semibold text-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.9)] backdrop-blur-xl">Sign in</button>
+            </div>
+            <button type="button" className="access__guest press" onClick={() => finishAccess()}>
+              Continue as guest<ArrowRight size={18} aria-hidden="true" />
+            </button>
           </div>
-          <button type="button" className="access__guest press" onClick={() => finishAccess()}>
-            Continue as guest<ArrowRight size={18} aria-hidden="true" />
-          </button>
-        </div>
+        )}
       </div>
     </div>
   )
