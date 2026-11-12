@@ -15,13 +15,15 @@ const OTHERS: Omit<DirAirport, 'supported'>[] = [
   { code: 'MAD', name: 'Adolfo Suarez Madrid-Barajas', city: 'Madrid', country: 'Spain' },
   { code: 'BKK', name: 'Suvarnabhumi', city: 'Bangkok', country: 'Thailand' },
   { code: 'NRT', name: 'Narita International', city: 'Tokyo', country: 'Japan' },
+  { code: 'HND', name: 'Haneda', city: 'Tokyo', country: 'Japan' },
+  { code: 'OPO', name: 'Francisco Sá Carneiro', city: 'Porto', country: 'Portugal' },
 ]
 
 /** Airports the user can pick. Only airports with activity data support a layover plan. */
 /** Built on demand because supported airports are loaded from the database at start-up. */
 export const directory = (): DirAirport[] => [
   ...AIRPORTS.map((a) => ({ code: a.code, name: a.name, city: a.city, country: a.country, supported: true })),
-  ...OTHERS.map((a) => ({ ...a, supported: false })),
+  ...OTHERS.filter((o) => !AIRPORTS.some((a) => a.code === o.code)).map((a) => ({ ...a, supported: false })),
 ]
 
 export const findAirport = (code?: string) => directory().find((a) => a.code === code)

@@ -2,6 +2,7 @@ import { MapPin, House, Bookmark, Plane } from 'lucide-react'
 import { AppProvider, useApp, tabOf, type Tab } from './store'
 import { Home, FindFlight, Airports } from './screens/Discover'
 import { Trip } from './screens/Trip'
+import { FindJourney, JourneyOverview } from './screens/Journey'
 import { Welcome } from './screens/Welcome'
 import { Results, FlightDetails, Compare } from './screens/Flights'
 import { Airport } from './screens/Airport'
@@ -16,6 +17,8 @@ function Screen() {
     case 'discover': return <Home />
     case 'find': return <FindFlight />
     case 'trip': return <Trip key={(r.airport ?? '') + (r.templateId ?? '')} airport={r.airport} templateId={r.templateId} />
+    case 'booking': return <FindJourney />
+    case 'journey': return <JourneyOverview refCode={r.ref} />
     case 'airports': return <Airports />
     case 'results': return <Results key={r.origin + r.destination + r.date} {...r} />
     case 'flight': return <FlightDetails {...r} />

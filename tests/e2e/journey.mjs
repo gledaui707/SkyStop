@@ -51,6 +51,9 @@ try {
   check('returning visitor lands on Home with "Plan a layover"', !(await visible(page, 'Your layover, reimagined.')));
   check('no guest account created just by opening the app', !fake.calls.some((c) => c.includes('/auth/v1/signup')));
   await page.getByRole('button', { name: /Plan a layover/ }).first().click();
+  await page.getByRole('heading', { name: 'Find your journey' }).waitFor();
+  check('"Plan a layover" opens booking-reference entry first', await page.getByLabel('Booking reference').isVisible() && await page.getByRole('button', { name: 'Enter flight details manually' }).isVisible());
+  await page.getByRole('button', { name: 'Enter flight details manually' }).click();
   check('setup is one screen with no numbered steps or tips', !(await visible(page, 'Step 1 of')) && !(await visible(page, 'Tip 1 of')));
   check('connecting airport, arrival, departure and buffer are the primary inputs', await page.getByLabel('Connecting airport', { exact: true }).isVisible() && await page.getByLabel('Arrival at the connecting airport (local time)').isVisible() && await page.getByRole('button', { name: '2h' }).isVisible());
   check('origin/destination are optional and collapsed', !(await page.getByLabel('Flying from', { exact: true }).isVisible()));
@@ -119,6 +122,46 @@ try {
   await page.getByText('1 activity').waitFor();
   check('after second refresh My Plans shows the edited plan', await visible(page, '2h 30m left'));
   await ctx.close();
+
+  // ---- 1b. Booking-reference flow: invalid reference, the four samples, then a full save through the shared builder
+  const k = await newGuest();
+  await k.page.goto(BASE);
+  await k.page.getByRole('button', { name: /Plan a layover/ }).first().click();
+  await k.page.getByLabel('Booking reference').fill('zz9zz9');
+  await k.page.getByRole('button', { name: 'Find my journey' }).click();
+  const unk = await k.page.getByRole('alert').allInnerTexts();
+  check('booking: unknown reference -> clear error, no journey shown', unk.some((t) => t.includes("find a sample journey with reference ZZ9ZZ9")) && (await k.page.getByRole('heading', { name: 'Your journey', exact: true }).count()) === 0, JSON.stringify(unk));
+  await k.page.getByLabel('Booking reference').fill('AB1');
+  await k.page.getByRole('button', { name: 'Find my journey' }).click();
+  check('booking: malformed reference -> format hint', (await k.page.getByRole('alert').innerText()).includes('6 letters or numbers'));
+  check('booking: disclosure that references are samples, not live bookings', await visible(k.page, 'does not connect to airline reservation systems'));
+  const expect = { AXR7KD: ['SIN', '12h 20m', '2h', '10h 20m'], BQ3LMV: ['LIS', '5h 20m', '1h 30m', '3h 50m'], CJ8NWT: ['LHR', '5h 30m', '2h', '3h 30m'], DH5PRZ: ['DXB', '7h', '2h', '5h'] };
+  for (const [ref, [code, total, buf, usable]] of Object.entries(expect)) {
+    await k.page.getByLabel('Booking reference').fill(ref.toLowerCase());
+    await k.page.getByRole('button', { name: 'Find my journey' }).click();
+    await k.page.getByRole('heading', { name: 'Your journey' }).waitFor();
+    const tl = (await k.page.getByLabel('Flight timeline').innerText()).replace(/\n/g, ' ');
+    const bd = (await k.page.getByLabel('Layover time breakdown').innerText()).replace(/\n/g, ' ');
+    check(`booking: ${ref} -> ${code} overview: timeline with connection, ${total} layover, ${buf} buffer, ${usable} usable`, tl.includes(code) && tl.includes(`Layover in`) && tl.includes(total) && bd.includes(`${total} layover − ${buf} planning buffer = ${usable} usable`), bd);
+    await k.page.getByRole('button', { name: 'Back' }).click();
+    await k.page.getByRole('heading', { name: 'Find your journey' }).waitFor();
+  }
+  await k.page.getByRole('button', { name: 'Try a sample booking' }).click();
+  await k.page.getByRole('button', { name: /AXR7KD/ }).click();
+  await k.page.getByRole('heading', { name: 'Your journey' }).waitFor();
+  await k.page.getByRole('button', { name: 'Explore Singapore' }).click();
+  await k.page.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
+  check('booking: journey carried into discovery (usable time shown)', await visible(k.page, '10h 20m'));
+  await k.page.getByRole('button', { name: /^Add / }).first().click();
+  await k.page.getByRole('button', { name: /Build itinerary \(1\)/ }).click();
+  const kbar = await barText(k.page);
+  check('booking: builder uses the journey (SIN layover, CGK to CDG)', (await k.page.locator('main header').innerText()).includes('CGK to CDG') && kbar.includes('left'), kbar);
+  const before = fake.plans.size;
+  await k.page.getByRole('button', { name: 'Save plan' }).click();
+  await k.page.getByLabel('Upcoming trip').waitFor();
+  const kp = [...fake.plans.values()].find((p) => p.row.airport_id === 'SIN');
+  check('booking: saved through the same save_plan path; SIN 11:15 local stored as 03:15Z', fake.plans.size === before + 1 && !!kp && kp.row.arrival_at.endsWith('T03:15:00Z') && kp.row.buffer_minutes === 120, kp?.row.arrival_at);
+  await k.ctx.close();
 
   // ---- 2. Explore-first: select activities before any times; they and the airport carry into setup
   const e = await newGuest();

@@ -18,7 +18,8 @@ for (let i = 0; i < 50; i++) { try { if ((await fetch(BASE)).ok) break; } catch 
 
 /** Runs in the page. */
 function measure() {
-  const W = window.innerWidth, H = window.innerHeight, out = [];
+  // clientWidth, not innerWidth: in mobile emulation innerWidth grows to fit overflowing content and would hide it
+  const W = document.documentElement.clientWidth, H = window.innerHeight, out = [];
   // clipped if any ancestor that clips horizontally (scroller or overflow hidden) lies within the screen
   const clippedInBounds = (el) => { for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) { const s = getComputedStyle(p); if (/(auto|scroll|hidden|clip)/.test(s.overflowX)) { const r = p.getBoundingClientRect(); if (r.right <= W + 1 && r.left >= -1) return true; } } return false; };
   const label = (el) => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}[${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 40)}]`;
@@ -71,6 +72,10 @@ for (const [w, h] of WIDTHS) {
     await page.evaluate(() => { try { localStorage.setItem('skystop.welcomed.v1', '1'); localStorage.setItem('skystop.onboarded.v2', '1'); } catch {} });
     await page.goto(BASE); await page.waitForTimeout(800);
     await visit('home');
+    await click('button', /Plan a layover/); await page.getByRole('heading', { name: 'Find your journey' }).waitFor(); await visit('booking');
+    await click('button', 'Try a sample booking'); await visit('booking-samples');
+    await click('button', /AXR7KD/); await page.getByRole('heading', { name: 'Your journey' }).waitFor(); await visit('journey-overview');
+    await page.goto(BASE); await page.waitForTimeout(800);
     await click('button', 'Airports', { exact: true }); await visit('airports');
     await click('button', /Lisbon/); await page.getByRole('tab', { name: 'list' }).waitFor(); await visit('airport-list');
     await click('tab', 'map'); await visit('airport-map'); await click('tab', 'list');

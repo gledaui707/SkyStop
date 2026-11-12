@@ -12,6 +12,9 @@ export type Route =
   | { name: 'discover' }
   | { name: 'find' }
   | { name: 'trip'; airport?: string; templateId?: string }
+  /** Booking-reference entry (the primary way to plan) and the journey overview it opens. */
+  | { name: 'booking' }
+  | { name: 'journey'; ref: string }
   | { name: 'results'; origin: string; destination: string; date: string }
   | { name: 'flight'; flightId: string; origin: string; destination: string; date: string }
   | { name: 'compare'; ids: string[]; origin: string; destination: string; date: string }
@@ -25,7 +28,7 @@ export type Tab = 'home' | 'airports' | 'plans'
 export const tabOf = (r: Route): Tab | null => {
   switch (r.name) {
     case 'welcome': return null
-    case 'discover': case 'find': case 'trip': case 'results': case 'flight': case 'compare': return 'home'
+    case 'discover': case 'find': case 'trip': case 'booking': case 'journey': case 'results': case 'flight': case 'compare': return 'home'
     case 'airports': case 'airport': return 'airports'
     case 'plans': case 'plan': case 'builder': return 'plans'
     default: return null

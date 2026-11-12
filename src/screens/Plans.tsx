@@ -28,7 +28,7 @@ export function Plans() {
             <span aria-hidden="true" className="btn-coral mx-auto mb-4 grid size-14 place-items-center rounded-full"><Plane size={24} className="-rotate-45" /></span>
             <p className="text-card font-semibold">No saved plans yet</p>
             <p className="mt-1 text-body text-muted-text">Choose a connection or an airport, add activities and save your itinerary.</p>
-            <Button className="mt-4 w-full" onClick={() => go({ name: 'trip' })}>Plan a layover</Button>
+            <Button className="mt-4 w-full" onClick={() => go({ name: 'booking' })}>Plan a layover</Button>
           </div>
         ) : (
           <ul className="grid gap-4">
@@ -91,7 +91,7 @@ export function PlanDetail({ id }: { id: string }) {
         {items.length ? <ul className="grid gap-3">{items.map((a) => <ActivityRow key={a.id} a={a} />)}</ul>
           : <p className="text-body text-muted-text">No activities yet. Edit the plan to add some.</p>}
         <Button icon={Pencil} className="mt-3" onClick={() => {
-          setDraft({ planId: p.id, revision: p.revision, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination })
+          setDraft({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination })
           go({ name: 'builder' })
         }}>Edit plan</Button>
       </div>

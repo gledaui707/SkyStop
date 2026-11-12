@@ -62,6 +62,8 @@ export interface Plan {
   revision: number
   origin?: string
   destination?: string
+  /** Sample booking reference the plan was started from, if any (label only). */
+  bookingRef?: string
 }
 export interface Draft {
   planId?: string
@@ -77,4 +79,5 @@ export interface Draft {
   fromFlight?: string
   origin?: string
   destination?: string
+  bookingRef?: string
 }

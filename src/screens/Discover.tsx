@@ -84,14 +84,14 @@ export function Home() {
       <div className="mt-5 px-5">
         {trip ? (
           <>
-            <TripTicket plan={trip} onView={() => go({ name: 'plan', id: trip.id })} onAdd={() => go({ name: 'trip' })} />
+            <TripTicket plan={trip} onView={() => go({ name: 'plan', id: trip.id })} onAdd={() => go({ name: 'booking' })} />
             {plans.length > 1 && (
               <button onClick={() => switchTab('plans')} className="mt-1 flex min-h-11 w-full items-center justify-between px-1 text-body font-medium text-accent-dark">
                 {plans.length - 1} more {plans.length === 2 ? 'trip' : 'trips'} in My Plans<ChevronRight size={18} /></button>)}
           </>
         ) : (
           <>
-            <button onClick={() => go({ name: 'trip' })} className="ph press relative block h-[21rem] w-full overflow-hidden rounded-[2rem] text-left text-white shadow-[0_20px_44px_rgb(0_0_0/0.4)]">
+            <button onClick={() => go({ name: 'booking' })} className="ph press relative block h-[21rem] w-full overflow-hidden rounded-[2rem] text-left text-white shadow-[0_20px_44px_rgb(0_0_0/0.4)]">
               <img src={sized(IMAGES.results, 760, 680)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-fade absolute inset-0 size-full object-cover" />
               <span className="photo-fade absolute inset-x-0 bottom-0 h-[70%]" />
               <span className="glass-dark absolute left-4 top-4 rounded-full px-3 py-1 text-sub font-medium">Your trip</span>

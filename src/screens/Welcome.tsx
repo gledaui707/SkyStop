@@ -77,7 +77,7 @@ export function Welcome() {
   const last = i === SLIDES.length - 1
   const go = (n: number) => setI(Math.max(0, Math.min(SLIDES.length - 1, n)))
   // Both Skip and the final call to action continue into planning.
-  const done = () => finishWelcome({ name: 'trip' })
+  const done = () => finishWelcome({ name: 'booking' })
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === 'ArrowRight') go(i + 1); if (e.key === 'ArrowLeft') go(i - 1) }

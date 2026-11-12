@@ -8,7 +8,7 @@ import { hasGuestSession } from '../api/session'
 import * as repo from '../api/repositories'
 import { instantToLocal, validateLayover } from '../domain'
 
-interface Meta { name?: string; origin?: string; destination?: string }
+interface Meta { name?: string; origin?: string; destination?: string; bookingRef?: string }
 const META_KEY = 'skystop.planmeta.v1'
 const readMeta = (): Record<string, Meta> => { try { return JSON.parse(localStorage.getItem(META_KEY) || '{}') } catch { return {} } }
 const writeMeta = (id: string, m: Meta) => { try { localStorage.setItem(META_KEY, JSON.stringify({ ...readMeta(), [id]: m })) } catch { /* labels are optional */ } }
@@ -21,7 +21,7 @@ export function toUiPlan(row: repo.Plan): Plan {
     id: row.id, name: meta.name || `${ap.city} layover`, airport: row.airport_id,
     arrival: local(row.arrival_at), departure: local(row.departure_at), bufferMin: row.buffer_minutes,
     activityIds: [...row.plan_items].sort((a, b) => a.position - b.position).map((i) => i.activity_id),
-    updatedAt: row.updated_at, revision: row.revision, origin: meta.origin, destination: meta.destination,
+    updatedAt: row.updated_at, revision: row.revision, origin: meta.origin, destination: meta.destination, bookingRef: meta.bookingRef,
   }
 }
 
@@ -56,7 +56,7 @@ export async function saveDraft(d: Draft): Promise<Plan> {
     if (!existing) throw friendly(e)
     try { saved = await repo.savePlan(sb, payload, existing.revision) } catch (e2) { throw friendly(e2) }
   }
-  writeMeta(id, { name: d.name.trim() || undefined, origin: d.origin, destination: d.destination })
+  writeMeta(id, { name: d.name.trim() || undefined, origin: d.origin, destination: d.destination, bookingRef: d.bookingRef })
   return toUiPlan(saved)
 }
 
