@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpDown, ArrowUpRight, Bed, Check, ChevronRight, X, Clock, Compass, Laptop, ListChecks, MapPin, Plane, Plus, Search, ShoppingBag, Sparkles, TramFront, Utensils, type LucideIcon } from 'lucide-react'
+import { ArrowUpDown, ArrowUpRight, Bed, Check, ChevronRight, Info, X, Clock, Compass, Laptop, ListChecks, MapPin, Plane, Plus, Search, ShoppingBag, Sparkles, TramFront, Utensils, type LucideIcon } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, AIRPORTS, CITIES, TEMPLATES, getActivities, getAirport, getTemplates } from '../data/mock'
 import { IMAGES, sized } from '../data/images'
@@ -35,7 +35,7 @@ const Notch = ({ icon: Icon = ArrowUpRight }: { icon?: LucideIcon }) => (
 
 /** Home: discovery-first, with the next saved trip on top when there is one. */
 export function Home() {
-  const { plans, go, switchTab, notice, setNotice } = useApp()
+  const { plans, go, switchTab, notice, setNotice, replayOnboarding } = useApp()
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<'All' | Category>('All')
   const upcoming = nextTrip(plans)
@@ -58,10 +58,13 @@ export function Home() {
             <p className="text-sub font-medium text-muted-text">{greeting()}</p>
             <h1 className="mt-0.5 text-title font-bold">Where’s your<br />next stop?</h1>
           </div>
-          <button onClick={() => switchTab('plans')} aria-label="My saved plans" className="glass press relative mt-1 grid size-12 shrink-0 place-items-center rounded-full">
+          <div className="mt-1 flex shrink-0 gap-2">
+          <button onClick={replayOnboarding} aria-label="How SkyStop works" className="glass press grid size-12 place-items-center rounded-full"><Info size={20} /></button>
+          <button onClick={() => switchTab('plans')} aria-label="My saved plans" className="glass press relative grid size-12 shrink-0 place-items-center rounded-full">
             <Plane size={20} className="-rotate-45" />
             {plans.length > 0 && <span className="absolute right-0.5 top-0.5 grid min-w-5 place-items-center rounded-full bg-accent px-1 text-[0.6875rem] font-bold text-white">{plans.length}</span>}
           </button>
+          </div>
         </div>
         <label className="relative mt-5 block">
           <span className="sr-only">Search airports and activities</span>

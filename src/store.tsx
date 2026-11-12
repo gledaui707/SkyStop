@@ -60,6 +60,8 @@ interface Ctx {
   setNotice: (n: string | null) => void
   welcomed: boolean
   finishWelcome: (to: Route) => void
+  /** Shows the onboarding again (from Home's "How SkyStop works"). */
+  replayOnboarding: () => void
   hint: HintStage
   advanceHint: (to: 2 | 3) => void
   nextHint: () => void
@@ -119,16 +121,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPlansState({ status: 'ready' })
     return p
   }
-  /** Leaves the welcome screen for good; Skip replaces it with Home, other actions push on top. */
+  /** Leaves the onboarding for good. It is replaced by Home, and the chosen route opens on top of Home. */
   const finishWelcome = (to: Route) => {
     guestStore.markWelcomed(); setWelcomed(true)
-    setStack((s) => (to.name === 'discover' ? [to] : [...s, to])); window.scrollTo(0, 0)
+    setStack(to.name === 'discover' ? [to] : [{ name: 'discover' }, to]); window.scrollTo(0, 0)
   }
+  const replayOnboarding = () => { setNotice(null); setStack((s) => [...s, { name: 'welcome' }]); window.scrollTo(0, 0) }
   const advanceHint = (to: 2 | 3) => { if (hint !== 'done' && hint < to) setHint(to) }
   const nextHint = () => { if (hint === 'done') return; setHint(hint >= 3 ? 'done' : ((hint + 1) as HintStage)) }
   const skipHints = () => setHint('done')
   return (
-    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, hint, advanceHint, nextHint, skipHints }}>
+    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
       {children}
     </C.Provider>
   )

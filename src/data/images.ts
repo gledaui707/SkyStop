@@ -20,6 +20,7 @@ export const sized = (img: Img, w: number, h?: number) =>
   `${img.url}?auto=format&fit=crop&q=70&w=${w}${h ? `&h=${h}` : ''}`
 
 export const IMAGES = {
+  onboarding: {} as Record<'connection' | 'discover' | 'plan', Img>, // filled below
   hero: photo('1593182440709-4b7b56482c55', 'Aircraft wing above the clouds', 'Johny Goerend', 'johnygoerend'),
   results: photo('1530469641172-8ac15d0a7d6a', 'View of an aircraft wing from a window seat', 'Blake Guidry', 'blakeguidry'),
   airports: {
@@ -41,3 +42,8 @@ export const IMAGES = {
 export const allCredits = (): Img[] => [
   IMAGES.hero, IMAGES.results, ...Object.values(IMAGES.airports), ...Object.values(IMAGES.activities),
 ]
+
+// Onboarding photography: photos already in the project with known Unsplash credits (usage rights confirmed with the
+// export). Requested specific shots (Jewel Rain Vortex, Heathrow) could not be licence-checked from the build environment;
+// swap here once verified, e.g. https://unsplash.com/photos/GFp1bgwKAh4 (Rain Vortex) — check it is not an Unsplash+ image.
+IMAGES.onboarding = { connection: IMAGES.airports.SIN, discover: IMAGES.activities.l4, plan: IMAGES.hero }
