@@ -55,7 +55,7 @@
 :root {
   /* Space kept clear under the floating tab bar (bar 4.25rem + gap + home indicator). */
   --safe-bottom: env(safe-area-inset-bottom);
-  --nav-h: calc(5.5rem + var(--safe-bottom));
+  --nav-h: calc(4rem + 1px + var(--safe-bottom));
   /* Real devices: the status bar inset (or a small margin in a browser tab). The desktop device frame overrides it. */
   --safe-top: max(env(safe-area-inset-top), 0.75rem);
   --coral-grad: linear-gradient(135deg, #f26a4b 0%, #ea5139 45%, #d63c3f 100%);
@@ -207,7 +207,8 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
 }
 
 /* ───────────── Motion ───────────── */
-@keyframes screen-in { from { opacity: 0; transform: translateY(12px) scale(0.995); } to { opacity: 1; transform: none; } }
+/* A transform on the screen would make its fixed action bar scroll with the page. */
+@keyframes screen-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sheet-in { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }

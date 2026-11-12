@@ -160,3 +160,8 @@ Not done: real-device iPhone check, Safari backdrop-filter rendering, production
 
 - Build passed. Unit suite: 118 passed, one hosted test skipped.
 - Headless Chromium with simulated Supabase: 42/42 checks passed across the manual and sample booking journeys, including the buffer help toggle and save/reopen behavior. The hosted browser script was updated for the manual form and was not run.
+
+### Fixed navigation and overnight itinerary notice
+
+- Build passed. Unit suite: 118 passed, one hosted test skipped.
+- Headless Chromium with simulated Supabase passed at 320 and 390 px: tabs touch the bottom edge, the primary action stays above them in airport List and Map, and an overnight itinerary shows the separate notice without the old transfer footer.

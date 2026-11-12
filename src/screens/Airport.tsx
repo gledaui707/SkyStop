@@ -4,7 +4,7 @@ import { useApp } from '../store'
 import { ACTIVITIES, getActivities, getAirport, getTemplates } from '../data/mock'
 import { sized } from '../data/images'
 import { budget, fmtDur, layoverMinutesAt, timeSpan } from '../data/time'
-import { ActivityRow, ActivitySheet, Button, CATEGORIES, Chip, ChipRow, Photo, cx } from '../components/ui'
+import { ActionBar, ActivityRow, ActivitySheet, Button, CATEGORIES, Chip, ChipRow, Photo, cx } from '../components/ui'
 import { AirportMap, zoneOf, type Zone } from '../components/AirportMap'
 import { AIRPORT_GEO, terminalKeysOf } from '../data/airportGeo'
 import type { Category } from '../data/types'
@@ -68,6 +68,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
   )
 
   if (view === 'map') {
+    const showMapAction = ready ? items.length > 0 : !focus
     return (
       <div className="relative -mb-[var(--nav-h)] flex min-h-dvh flex-col">
         {/* min height keeps every marker visible above the sheet on short phones; the page scrolls instead */}
@@ -83,7 +84,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
         </div>
 
         {/* Floating preview / summary sheet */}
-        <div className="glass relative z-20 -mt-6 rounded-t-[2rem] !border-b-0 px-4 pb-[calc(var(--nav-h)+0.25rem)] pt-3">
+        <div className={cx("glass relative z-20 -mt-6 rounded-t-[2rem] !border-b-0 px-4 pt-3", showMapAction ? "pb-[calc(var(--nav-h)+5.5rem)]" : "pb-[calc(var(--nav-h)+0.25rem)]")}>
           <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-ink/20" />
           {focus ? (
             <div>
@@ -127,17 +128,16 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                   </ul>
                 </>
               )}
-              {(!ready || items.length > 0) && (
-                <div className="mt-3">
-                  {ready
-                    ? <Button className="w-full" onClick={() => go({ name: 'builder' })}>{`Build itinerary (${items.length})`}</Button>
-                    : <Button className="w-full" onClick={() => startTrip()}>{items.length ? `Set layover times (${items.length} selected)` : 'Set my layover times'}</Button>}
-                </div>)}
             </div>
           )}
-          {focus && ready && items.length > 0 && (
-            <button onClick={() => go({ name: 'builder' })} className="mt-1 min-h-11 w-full text-body font-medium text-accent-dark">Review itinerary ({items.length})</button>)}
         </div>
+        {showMapAction && (
+          <ActionBar>
+            {ready
+              ? <Button className="w-full" onClick={() => go({ name: 'builder' })}>{focus ? 'Review' : 'Build'} itinerary ({items.length})</Button>
+              : <Button className="w-full" onClick={() => startTrip()}>{items.length ? `Set layover times (${items.length} selected)` : 'Set my layover times'}</Button>}
+          </ActionBar>
+        )}
         <ActivitySheet a={acts.find((a) => a.id === details) ?? null} onClose={() => setDetails(null)} />
       </div>
     )
@@ -229,12 +229,10 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
           {!shown.length && <li className="py-6 text-center text-muted-text">No activities match.</li>}
         </ul>
       </div>
-      <div className="pointer-events-none fixed inset-x-0 bottom-[var(--nav-h)] z-30 mx-auto max-w-[480px] px-4 pb-2">
-        <div className="glass pointer-events-auto rounded-[1.75rem] p-2.5">
-          {ready ? <Button className="w-full" onClick={() => go({ name: 'builder' })}>Build itinerary ({planned.length})</Button>
-            : <Button className="w-full" onClick={() => startTrip()}>{planned.length ? `Set layover times (${planned.length} selected)` : 'Set my layover times'}</Button>}
-        </div>
-      </div>
+      <ActionBar>
+        {ready ? <Button className="w-full" onClick={() => go({ name: 'builder' })}>Build itinerary ({planned.length})</Button>
+          : <Button className="w-full" onClick={() => startTrip()}>{planned.length ? `Set layover times (${planned.length} selected)` : 'Set my layover times'}</Button>}
+      </ActionBar>
       <ActivitySheet a={acts.find((a) => a.id === open) ?? null} onClose={() => setOpen(null)} />
     </div>
   )

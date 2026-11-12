@@ -164,7 +164,6 @@ export function Builder() {
         {isSupported(draft.airport)
           ? <Button variant="secondary" icon={Plus} className="mt-6 w-full" onClick={() => go({ name: 'airport', code: draft.airport, view: 'list' })}>Add activities</Button>
           : <p className="mt-6 text-body text-muted-text">No activity guide for {ap.city} yet. You can still see your time budget.</p>}
-        {items.length > 0 && <p className="mt-3 text-sub text-muted-text">{items.length} {items.length === 1 ? 'activity' : 'activities'} · transfer times are estimates, not navigation. Times on the day may vary.</p>}
         {saveError && <div className="mt-4"><Notice tone="warn"><p className="font-semibold">Plan not saved</p><p>{saveError}</p><p>Your changes are still here. Try again.</p></Notice></div>}
         {!canSave && <p className="mt-4 text-sub text-muted-text">Saving is available for airports with a layover guide.</p>}
       </div>

@@ -62,15 +62,15 @@ function Shell() {
   return (
     <div className="mx-auto min-h-dvh max-w-[480px] pb-[var(--nav-h)]">
       <main key={key} className="anim-screen"><Screen /></main>
-      <nav aria-label="Primary" className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] px-5 pb-[calc(var(--safe-bottom)+0.75rem)]">
-        <div className="glass pointer-events-auto mx-auto grid h-[4.25rem] max-w-[22rem] grid-cols-3 gap-1 rounded-full p-1.5">
+      <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] border-t border-line bg-canvas pb-[var(--safe-bottom)]">
+        <div className="grid h-16 grid-cols-3">
         {TABS.map(({ id, label, icon: Icon }) => {
           const on = active === id
           return (
             <button key={id} onClick={() => switchTab(id)} aria-current={on ? 'page' : undefined}
-              className={cx('press flex flex-col items-center justify-center gap-0.5 rounded-full text-tab font-semibold transition-colors duration-300',
-                on ? 'btn-coral' : 'text-muted-text hover:text-ink')}>
-              <Icon size={22} strokeWidth={on ? 2.4 : 1.9} />{label}
+              className={cx('press flex flex-col items-center justify-center gap-1 text-tab font-semibold transition-colors duration-300',
+                on ? 'text-accent-dark' : 'text-muted-text hover:text-ink')}>
+              <Icon size={22} strokeWidth={on ? 2.4 : 1.9} aria-hidden="true" />{label}
             </button>
           )
         })}
