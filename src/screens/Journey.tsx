@@ -32,7 +32,7 @@ export function FindJourney() {
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 px-5 pt-6">
         <div>
           <h1 className="text-title font-bold">Find your journey</h1>
-          <p className="mt-3 text-body leading-relaxed text-muted-text">Enter a sample booking reference to see the connection and available layover time.</p>
+          <p className="mt-3 text-body leading-relaxed text-muted-text">Enter your booking reference to see your connection and layover time.</p>
         </div>
 
         <form className="panel grid grid-cols-[minmax(0,1fr)] gap-6 rounded-[1.75rem] p-5" onSubmit={(e) => { e.preventDefault(); submit() }} noValidate>
@@ -87,7 +87,7 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const j: ResolvedJourney | null = findSampleJourney(refCode)
   if (!j) return (
-    <div><Header title="Your journey" /><p className="p-6 text-center text-body text-muted-text">This sample journey is not available.</p></div>
+    <div><Header title="Your journey" /><p className="p-6 text-center text-body text-muted-text">This journey is not available.</p></div>
   )
   const conn = getAirport(j.connection), supported = isSupported(j.connection)
   const pct = (n: number) => `${(n / Math.max(j.layover.totalMin, 1)) * 100}%`
@@ -121,7 +121,7 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
   )
   return (
     <div className="pb-[calc(var(--nav-h)+11rem)]">
-      <Header title="Your journey" subtitle={`Sample booking ${j.ref}`} />
+      <Header title="Your journey" subtitle={`Booking ${j.ref}`} />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 px-5 pt-2">
         {/* route summary */}
         <section className="ph relative overflow-hidden rounded-[1.75rem] text-white">

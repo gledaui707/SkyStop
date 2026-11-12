@@ -142,14 +142,13 @@ export function AccountAccess() {
           ) : (
             <form className="access__actions" aria-label={mode === 'create' ? 'Create account' : 'Sign in'} noValidate
               onSubmit={(e) => { e.preventDefault(); void submit() }}>
-              <p className="access__title">{mode === 'create' ? 'Create account' : 'Sign in'}</p>
-              <label className="access__label">Email
-                <input className="access__field" type="email" autoComplete="email" inputMode="email" autoFocus value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError(null) }} placeholder="you@example.com" /></label>
-              {mode === 'signin' && plans.length > 0 && (
-                <p className="access__note">The {plans.length} {plans.length === 1 ? 'flight' : 'flights'} saved as a guest here are not merged into that account.</p>)}
-              {error && <p role="alert" className="access__error">{error}</p>}
-              <div className="access__tray grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[2rem] border border-white/70 bg-white/75 p-2.5 shadow-[0_18px_40px_rgb(70_35_25/0.14),inset_0_1px_0_rgb(255_255_255/0.85)] backdrop-blur-[28px] backdrop-saturate-150">
+              <p className="access__title access__title--start">{mode === 'create' ? 'Create account' : 'Sign in'}</p>
+              {/* the whole form sits in the frosted tray */}
+              <div className="access__tray grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[2rem] border border-white/70 bg-white/75 p-2.5 shadow-[0_18px_40px_rgb(70_35_25/0.14),inset_0_1px_0_rgb(255_255_255/0.85)] backdrop-blur-[28px] backdrop-saturate-150 gap-3 p-4">
+                <label className="access__label">Email
+                  <input className="access__field" type="email" autoComplete="email" inputMode="email" autoFocus value={email}
+                    onChange={(e) => { setEmail(e.target.value); setError(null) }} placeholder="you@example.com" /></label>
+                {error && <p role="alert" className="access__error">{error}</p>}
                 <Button type="submit" className="w-full" disabled={busy || !email.trim()}>
                   {busy ? 'Sending…' : mode === 'create' ? 'Send confirmation link' : 'Send sign-in link'}</Button>
               </div>

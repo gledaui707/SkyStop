@@ -93,7 +93,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                 <div className="min-w-0 flex-1">
                   <p className="text-card font-semibold leading-tight">{focus.name}</p>
                   <p className="text-sub text-muted-text">{fmtDur(focus.durationMin)} · {focus.costLabel} · {focus.category}</p>
-                  <p className="text-cap text-muted-text">{[focus.terminal, focus.access === 'Unverified' ? null : focus.access, 'map pin approximate'].filter(Boolean).join(' · ')}{focus.leavesAirport ? ' · leaves airport' : ''}</p>
+                  <p className="text-cap text-muted-text">{[focus.terminal, focus.access === 'Unverified' ? null : focus.access].filter(Boolean).join(' · ')}{focus.leavesAirport ? ' · leaves airport' : ''}</p>
                 </div>
                 <button onClick={() => setFocusId(null)} aria-label="Close preview" className="grid size-11 shrink-0 place-items-center rounded-full bg-ink-tint ring-1 ring-line"><X size={18} /></button>
               </div>
@@ -115,7 +115,6 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                   </div>
                   <p className="mt-0.5 text-sub text-muted-text">
                     {b ? `${fmtDur(b.usable)} usable · ${items.length} planned · ${b.over ? 'over by ' + fmtDur(-b.remaining) : fmtDur(b.remaining) + ' left'}` : `${items.length ? items.length + ' selected · ' : ''}Set your layover times to check what fits.`}</p>
-                  <p className="mt-0.5 text-cap text-muted-text">{tSel ? `Venues in ${tSel.name}.${tSel.approx ? ' Terminal position is approximate.' : ''} ` : ''}Zoom in or tap a terminal to see each venue. Venue pins are approximate spots inside their terminal{unpinned ? `; ${unpinned} venue${unpinned > 1 ? 's have' : ' has'} no confirmed terminal and ${unpinned > 1 ? 'are' : 'is'} listed below only` : ''}. Not for navigation.</p>
                   <ul className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Activities at this airport">
                     {acts.filter((a) => (cat === 'All' || a.category === cat) && (zone === 'all' || zoneOf(a) === zone) && (!terminal || terminalKeysOf(code, a.terminal).includes(terminal))).map((a) => (
                       <li key={a.id} className="shrink-0">

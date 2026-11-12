@@ -112,7 +112,7 @@ export function Results({ origin, destination, date }: { origin: string; destina
                       <span className="text-muted-text">{fmtDur(usable)} usable · {fits(f)} itinerary fits</span></p>
                   </div>
                   <div className="mt-3 flex items-end justify-between gap-3">
-                    <p className="text-h1 font-bold tabular-nums">{money(f.priceUsd)}<span className="block text-cap font-normal text-muted-text">sample price</span></p>
+                    <p className="text-h1 font-bold tabular-nums">{money(f.priceUsd)}</p>
                     <Button variant="secondary" className="min-h-11 px-4 text-sub" onClick={() => go({ name: 'flight', flightId: f.id, origin, destination, date })}>View connection</Button>
                   </div>
                   <label className="mt-3 flex min-h-11 items-center gap-3 border-t border-line pt-2 text-body">
@@ -172,7 +172,7 @@ export function FlightDetails({ flightId, origin, destination, date }: { flightI
         </section>
         {night && <div className="mt-3"><Notice>This is an overnight connection. Check airport service hours.</Notice></div>}
         <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
-          {[['Total', fmtDur(total(f))], ['Layover', fmtDur(f.layoverMin)], ['Sample price', money(f.priceUsd)]].map(([k, v]) => (
+          {[['Total', fmtDur(total(f))], ['Layover', fmtDur(f.layoverMin)], ['Price', money(f.priceUsd)]].map(([k, v]) => (
             <div key={k} className="panel rounded-2xl py-3"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
         </dl>
       </div>
@@ -188,7 +188,7 @@ export function Compare({ ids, origin, destination, date }: { ids: string[]; ori
   const list = searchFlights(origin, destination, date).filter((f) => ids.includes(f.id))
   const rows: [string, (f: Flight) => string][] = [
     
-    ['Sample price', (f) => money(f.priceUsd)],
+    ['Price', (f) => money(f.priceUsd)],
     ['Total time', (f) => fmtDur(total(f))],
     ['Layover', (f) => fmtDur(f.layoverMin)],
     ['Usable time', (f) => fmtDur(Math.max(0, f.layoverMin - DEFAULT_BUFFER))],

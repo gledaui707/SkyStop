@@ -111,7 +111,7 @@ for (const [w, h] of WIDTHS) {
       await page.goto(BASE); await page.waitForTimeout(600);
       await click('button', /^Add flight/); await page.getByLabel('Booking reference').fill(ref);
       await click('button', 'Find my journey'); await click('button', 'Save to My flights');
-      await page.getByRole('heading', { name: /next stop/ }).waitFor();
+      await page.getByRole('button', { name: 'Notifications' }).waitFor();
     }
     await visit('home-flight-stack');
   } catch (e) { total++; console.log(`CRASH ${w}px: ${e.message.split('\n')[0]}`); }

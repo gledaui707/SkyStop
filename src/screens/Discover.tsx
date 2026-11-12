@@ -86,7 +86,7 @@ export function Home() {
             <Bell size={20} />
           </button>
         </div>
-        <h1 className="mt-5 text-title font-bold">Where’s your<br />next stop?</h1>
+        {plans.length === 0 && <h1 className="mt-5 text-title font-bold">Where’s your<br />next stop?</h1>}
       </div>
 
 

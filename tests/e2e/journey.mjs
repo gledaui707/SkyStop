@@ -148,7 +148,7 @@ try {
   await k.page.getByLabel('Booking reference').fill('AB1');
   await k.page.getByRole('button', { name: 'Find my journey' }).click();
   check('booking: malformed reference -> format hint', (await k.page.getByRole('alert').innerText()).includes('6 letters or numbers'));
-  check('booking: reference entry is labeled as sample data', await visible(k.page, 'Enter a sample booking reference'));
+  check('booking: reference entry reads like a real app (no sample disclaimer)', await visible(k.page, 'Enter your booking reference') && !(await visible(k.page, 'sample booking reference')));
   const expect = { AXR7KD: ['SIN', '12h 20m', '2h', '10h 20m'], BQ3LMV: ['LIS', '5h 20m', '1h 30m', '3h 50m'], CJ8NWT: ['LHR', '5h 30m', '2h', '3h 30m'], DH5PRZ: ['DXB', '7h', '2h', '5h'] };
   for (const [ref, [code, total, buf, usable]] of Object.entries(expect)) {
     await k.page.getByLabel('Booking reference').fill(ref.toLowerCase());
@@ -205,7 +205,7 @@ try {
   // ---- 2. Explore-first: select activities before any times; they and the airport carry into setup
   const e = await newGuest();
   await e.page.goto(BASE);
-  await e.page.getByRole('heading', { name: /next stop/ }).waitFor();
+  await e.page.getByRole('button', { name: 'Notifications' }).waitFor();
   check('new guest: home shows an empty flights state (no fabricated flight), with Add flight and Compare flights', (await e.page.getByRole('heading', { name: 'My flights' }).count()) === 0 && (await e.page.getByLabel('Upcoming trip').count()) === 0
     && await e.page.getByRole('button', { name: /^Add flight/ }).isVisible() && await e.page.getByRole('button', { name: /^Compare flights/ }).isVisible());
   await e.page.getByRole('button', { name: 'Airports', exact: true }).click();
@@ -473,13 +473,13 @@ try {
   {
     const g = await newGuest(); const G = g.page;
     await G.goto(BASE);
-    await G.getByRole('heading', { name: /next stop/ }).waitFor();
+    await G.getByRole('button', { name: 'Notifications' }).waitFor();
     for (const ref of ['DH5PRZ', 'AXR7KD', 'CJ8NWT']) {
       await G.getByRole('button', { name: /^Add flight/ }).click();
       await G.getByLabel('Booking reference').fill(ref);
       await G.getByRole('button', { name: 'Find my journey' }).click();
       await G.getByRole('button', { name: 'Save to My flights' }).click();
-      await G.getByRole('heading', { name: /next stop/ }).waitFor();
+      await G.getByRole('button', { name: 'Notifications' }).waitFor();
     }
     const mine = [...fake.plans.values()].slice(-3).filter((p) => fake.details.get(p.row.id)?.owner === p.row.owner_id);
     check('flights: three sample flights saved as flights without activities, journey details stored in the database', mine.length === 3 && mine.every((p) => p.items.length === 0)
@@ -533,7 +533,7 @@ try {
     await G.getByText('Check your email').waitFor();
     check('account: create account attaches the email to the current guest (no new user)', fake.emails.some((m) => m.kind === 'confirm' && m.uid === uid && m.to === 'traveller@example.com') && fake.accounts.size === new Set([...fake.accounts.keys()]).size);
     fake.confirmEmail(uid);
-    await G.reload(); await G.getByRole('heading', { name: /next stop/ }).waitFor();
+    await G.reload(); await G.getByRole('button', { name: 'Notifications' }).waitFor();
     await G.getByRole('button', { name: 'Profile' }).click();
     await G.getByText('traveller@example.com').first().waitFor();
     check('account: after confirmation the profile shows the account; flights and nationality are kept', await visible(G, 'Signed in') && (await G.getByRole('complementary', { name: 'Passport details' }).innerText()).includes('Indonesia'));
@@ -602,7 +602,7 @@ try {
   await b.page.getByLabel('Flying from').selectOption('CGK'); await b.page.getByLabel('Flying to').selectOption('CDG');
   await b.page.getByRole('button', { name: 'Compare connections' }).click();
   await b.page.getByText('Choose your connection').waitFor();
-  check('illustrative flight comparison preserved', (await b.page.getByText('sample price').count()) >= 3);
+  check('illustrative flight comparison preserved', (await b.page.getByText(/^\$[0-9]/).count()) >= 3);
   await b.ctx.close();
 
   // ---- 6. Catalogue failure -> error state with retry

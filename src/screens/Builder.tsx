@@ -253,7 +253,7 @@ function EntryCheck({ names, country, url, onRemove }: { names: string[]; countr
           </div>
           {permission && (
             <p role="status" className="rounded-xl bg-ink-tint px-3 py-2 text-sub text-ink">
-              {permission === 'yes' ? 'Keep that permission with you. SkyStop cannot check it: the immigration officer decides on entry.'
+              {permission === 'yes' ? 'Keep that permission with you. The immigration officer decides on entry.'
                 : permission === 'no' ? 'Without permission to enter, you may not be able to leave the transit area. Check the official guidance before keeping this activity.'
                 : 'Check the official guidance before you travel.'}
               {nationality.trim() && ` Requirements for ${nationality.trim()} passport holders are listed by ${authority}.`}
@@ -261,7 +261,6 @@ function EntryCheck({ names, country, url, onRemove }: { names: string[]; countr
             </p>)}
         </div>)}
       {url && <a href={url} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-11 items-center gap-1.5 text-sub font-semibold text-accent-dark underline underline-offset-2">Check entry requirements with {authority}<ExternalLink size={14} /></a>}
-      <p className="mt-1 text-cap text-muted-text">Your answers stay on this screen. They are not saved or sent anywhere.</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {!provisional && <Button variant="secondary" className="flex-1" onClick={() => setProvisional(true)}>Continue provisionally</Button>}
         <Button variant="secondary" className="flex-1" icon={Trash2} onClick={onRemove}>Remove landside {names.length > 1 ? 'activities' : 'activity'}</Button>

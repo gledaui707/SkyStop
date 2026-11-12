@@ -44,7 +44,7 @@ export function TripTicket({ plan, onView }: Props) {
             <span className="btn-coral rounded-lg px-2 py-0.5 text-[0.8125rem] font-bold leading-tight tracking-[0.02em]">{ap.code}</span>
             <span aria-hidden="true" className="mt-1 flex w-full min-w-0 items-center gap-1.5 text-ink/75">
               <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.5)]" />
-              <Plane size={26} strokeWidth={1.25} className="shrink-0 rotate-45" />
+              <Plane size={24} strokeWidth={1} fill="currentColor" className="shrink-0 rotate-45" />
               <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.5)]" />
             </span>
             <span className="mt-0.5 whitespace-nowrap text-[0.8125rem] font-medium tabular-nums text-ink/60">{fmtDur(total)}</span>

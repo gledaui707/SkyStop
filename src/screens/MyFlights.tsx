@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronRight, Plane, Plus, Trash2 } from 'lucide-react'
+import { Plane, Plus, Trash2 } from 'lucide-react'
 import { useApp } from '../store'
 import { getAirport } from '../data/mock'
 import { airportInfo } from '../data/airportDirectory'
@@ -47,7 +47,6 @@ export function MyFlights() {
           <span className={cx('mt-2 inline-flex rounded-full px-2.5 py-0.5 text-cap font-semibold', n ? 'bg-accent-tint text-accent-dark' : 'bg-ink-tint text-muted-text')}>
             {n ? `Itinerary · ${n} ${n === 1 ? 'activity' : 'activities'}` : 'No itinerary yet'}</span>
         </button>
-        <ChevronRight size={20} aria-hidden="true" className="pointer-events-none absolute right-14 top-5 text-muted" />
         <button onClick={() => { setError(null); setConfirm(p) }} aria-label={`Remove flight ${route ? `${p.origin} to ${p.destination}` : `at ${p.airport}`}`}
           className="press absolute right-2 top-2.5 grid size-11 place-items-center rounded-full text-error active:bg-error-tint"><Trash2 size={19} /></button>
       </li>

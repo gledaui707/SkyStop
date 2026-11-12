@@ -334,3 +334,6 @@
 .access__btn:disabled { opacity: .55; }
 .access__switch { font-size: .9375rem; color: rgb(35 26 23 / .78); text-align: center; }
 .access__switch button { min-height: 2.75rem; font-weight: 700; color: var(--access-ink); text-decoration: underline; text-underline-offset: .25em; }
+
+/* Form heading: left-aligned, white over the glow */
+.access__title--start { text-align: left; color: #fff; text-shadow: 0 1px 12px rgb(120 30 10 / .25); padding-left: .25rem; }
