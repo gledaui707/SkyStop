@@ -5,6 +5,7 @@ import { IMAGES, type Img } from './images'
 import { getSupabase } from '../api/client'
 import { listAirports, listActivities, listTemplates } from '../api/repositories'
 import type { ActivityRow, AirportRow } from '../types/database.types'
+import { layoutMarkers } from './mapLayout'
 
 export const AIRPORTS: Airport[] = []
 export const ACTIVITIES: Activity[] = []
@@ -20,8 +21,6 @@ const PHOTO: Record<string, Partial<Record<ActivityRow['category'], Img>>> = {
   LIS: { food: IMAGES.activities.l1, rest: IMAGES.activities.l3, shopping: IMAGES.activities.l4, culture: IMAGES.activities.l2, work: IMAGES.activities.s4 },
   SIN: { food: IMAGES.activities.s1, rest: IMAGES.activities.s3, shopping: IMAGES.activities.l4, culture: IMAGES.activities.s2, work: IMAGES.activities.s4 },
 }
-const ZONE_Y = { airside: 28, unknown: 65, landside: 88 } as const
-const ZONE_X = [32, 66, 50, 18, 82]
 
 const costLabel = (label: string) =>
   /^unknown$/i.test(label.trim()) ? 'Cost not verified' : `${label.replace(/^illustrative:\s*/i, '').replace(/^./, (c) => c.toUpperCase())} cost (illustrative)`
@@ -32,16 +31,15 @@ function toAirport(r: AirportRow): Airport {
     terminals: 'Terminal details to be confirmed with the airport.', note: r.dataset_label }
 }
 function toActivities(rows: ActivityRow[]): Activity[] {
-  const seen: Record<string, number> = {}
-  return rows.map((r) => {
-    const n = (seen[r.access_zone] = (seen[r.access_zone] ?? 0) + 1) - 1
+  const pos = layoutMarkers(rows.map((r) => r.access_zone))
+  return rows.map((r, i) => {
     return {
       id: r.id, airport: r.airport_id, name: r.name, category: CATEGORY[r.category] ?? 'Rest', durationMin: r.duration_minutes,
       costUsd: 0, costLabel: costLabel(r.budget_label),
       access: r.access_zone === 'airside' ? 'Airside' : r.access_zone === 'landside' ? 'Landside' : 'Unverified',
       terminal: r.terminal, image: PHOTO[r.airport_id]?.[r.category] ?? IMAGES.results, note: r.description,
       leavesAirport: r.access_zone === 'landside',
-      map: { x: ZONE_X[n % ZONE_X.length], y: ZONE_Y[r.access_zone] ?? 65 },
+      map: pos[i],
     }
   })
 }
