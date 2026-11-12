@@ -151,7 +151,8 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
    Use the lightest material that does the job; dense information and forms sit on solid panels.
 
    glass-subtle   navigation and small controls (tab bar, header buttons). `glass` is the same material.
-   glass-medium   floating interactive surfaces (action trays, sheets, secondary pills)
+   glass-medium   floating interactive surfaces (action trays, sheets); opaque enough that text scrolling under it
+                  never competes with the text on it
    glass-premium  hero slabs, at most one per screen (sits over warm light or photography)
    glass-dark     controls and labels over photography
    panel          solid content surface (forms, lists, dense information); no blur
@@ -170,9 +171,9 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
   .glass-medium {
     background:
       var(--glass-specular),
-      linear-gradient(180deg, rgb(255 255 255 / 0.66) 0%, rgb(255 252 249 / 0.42) 45%, rgb(255 246 240 / 0.6) 100%);
-    -webkit-backdrop-filter: blur(22px) saturate(1.8) contrast(1.04);
-    backdrop-filter: blur(22px) saturate(1.8) contrast(1.04);
+      linear-gradient(180deg, rgb(255 255 255 / 0.84) 0%, rgb(255 252 249 / 0.7) 45%, rgb(255 246 240 / 0.8) 100%);
+    -webkit-backdrop-filter: blur(26px) saturate(1.8) contrast(1.04);
+    backdrop-filter: blur(26px) saturate(1.8) contrast(1.04);
     border: 1px solid rgb(255 255 255 / 0.85);
     box-shadow: var(--glass-edge-top), var(--glass-bevel), inset 0 0 0 1px rgb(255 255 255 / 0.35), var(--glass-edge-warm), var(--glass-thickness), var(--shadow-e3);
     color: var(--color-ink);

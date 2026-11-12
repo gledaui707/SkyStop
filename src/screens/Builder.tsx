@@ -175,13 +175,13 @@ export function Builder() {
             ) : (
               <>
                 <span className={cx('block whitespace-nowrap text-card font-bold tabular-nums', over ? 'text-error' : 'text-accent-dark')}>{fmtDur(Math.abs(itin.remaining))}<span className="sr-only">{over ? ' over' : ' left'}</span></span>
-                <span className="block text-cap text-muted-text"><span aria-hidden="true">{over ? 'over' : 'left'} · </span>{saveError ? 'not saved' : draft.planId ? 'unsaved changes' : 'unsaved'}</span>
+                <span className="block whitespace-nowrap text-cap text-muted-text max-[360px]:text-micro"><span aria-hidden="true">{over ? 'over' : 'left'} · </span>{saveError ? 'not saved' : draft.planId ? 'unsaved changes' : 'unsaved'}</span>
               </>
             )}
           </p>
           {saved
             ? <Button variant="secondary" className="shrink-0 px-4" onClick={() => switchTab('plans')}>My plans</Button>
-            : <Button className="shrink-0 px-4" disabled={saving || !canSave} aria-busy={saving} onClick={save}>
+            : <Button className="shrink-0 px-4 max-[360px]:px-3.5 max-[360px]:text-body" disabled={saving || !canSave} aria-busy={saving} onClick={save}>
                 {saving ? 'Saving…' : saveError ? 'Try again' : draft.planId ? 'Save changes' : itin.time === 'exceeds' ? 'Save anyway' : 'Save layover plan'}</Button>}
         </div>
       </ActionBar>
