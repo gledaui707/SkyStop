@@ -6,6 +6,7 @@ on:
     paths: ['tests/hosted/**', '.github/workflows/hosted-db-check.yml']
 jobs:
   ownership:
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
