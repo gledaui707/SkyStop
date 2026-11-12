@@ -215,37 +215,51 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.25rem;
+  gap: 1rem;
   min-height: 15rem;
   padding-top: 5vh;
 }
-.access__lockup {
-  display: flex;
-  align-items: center;
-  gap: clamp(.8rem, 3.8vw, 1.1rem);
-}
-.access__tile {
+/* Monogram: white front S; the rear S is frosted glass (about the 0.8 glossiness of a frosted pane: the glow and the
+   rib edges behind stay readable as soft shapes). */
+.access__mark {
+  position: relative;
   display: block;
-  flex-shrink: 0;
-  width: clamp(4.25rem, 20vw, 5.5rem);
-  aspect-ratio: 1;
-  overflow: hidden;
-  border-radius: 24%;
-  background: linear-gradient(160deg, #fffdfb 0%, #fff6f0 100%);
-  box-shadow: inset 0 1px 0 #fff, inset 0 0 0 1px rgb(255 255 255 / .6), 0 14px 34px rgb(178 52 20 / .3), 0 2px 6px rgb(178 52 20 / .18);
+  width: clamp(9.5rem, 50vw, 13rem);
+  aspect-ratio: 474 / 296;
+  margin-bottom: .35rem;
   animation: access-tile-in 1s var(--ease-ios) .1s both;
 }
-/* The asset's artwork sits 18 of 610 units left of its viewBox centre; shift it so the monogram is optically centred. */
-.access__tile img { display: block; width: 100%; height: 100%; transform: translateX(2.95%); user-select: none; }
+.access__mark-glass {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(150deg, rgb(255 255 255 / .62) 0%, rgb(255 255 255 / .38) 50%, rgb(255 255 255 / .5) 100%);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5) brightness(1.1);
+  backdrop-filter: blur(12px) saturate(1.5) brightness(1.1);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: access-glass-in 1.2s var(--ease-ios) .3s both;
+}
+.access__mark-edge, .access__mark-front {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.access__mark-edge { animation: access-glass-in 1.2s var(--ease-ios) .3s both; }
+.access__mark-front { filter: drop-shadow(0 6px 14px rgb(150 40 15 / .3)) drop-shadow(0 1px 2px rgb(150 40 15 / .2)); }
+@keyframes access-glass-in { from { opacity: 0; transform: translateX(-7%); } to { opacity: 1; transform: none; } }
 .access__wordmark {
   margin: 0;
   color: #fff;
-  font-size: clamp(2.5rem, 12.6vw, 3.4rem);
+  font-size: clamp(2.25rem, 11vw, 3rem);
   font-weight: 650;
   line-height: 1;
   letter-spacing: -.045em;
   text-shadow: 0 1px 1px rgb(150 40 15 / .2), 0 4px 24px rgb(170 50 20 / .38);
-  animation: access-word-in .9s var(--ease-ios) .25s both;
+  animation: access-word-in .9s var(--ease-ios) .35s both;
 }
 /* Charcoal, not white: small text must stay readable (WCAG AA) wherever the glow drifts behind it. */
 .access__tagline {
@@ -309,7 +323,7 @@
 }
 
 @keyframes access-tile-in { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: none; } }
-@keyframes access-word-in { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+@keyframes access-word-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes access-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes access-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
@@ -327,4 +341,5 @@
   .access__strip--frost { background: linear-gradient(90deg, rgb(255 250 244 / .32), rgb(255 255 255 / .14)); }
   .access__strip--haze { background: linear-gradient(180deg, rgb(255 248 240 / .5), rgb(255 255 255 / .18) 40%, rgb(255 248 240 / .44)); }
   .access__btn--secondary { background: rgb(255 255 255 / .88); }
+  .access__mark-glass { background: rgb(255 255 255 / .5); }
 }
