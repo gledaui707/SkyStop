@@ -237,3 +237,8 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
 .leaflet-container { font: inherit; background: #eef0ee; }
 .leaflet-bottom { bottom: 1.75rem; }
 .leaflet-control-attribution { font-size: 0.625rem; background: rgb(255 255 255 / 0.85) !important; border-radius: 0.5rem 0 0 0.5rem; }
+
+/* Toast: drops in from the top, fades away (no motion when reduced motion is preferred). */
+@keyframes toast-in { from { opacity: 0; transform: translateY(-12px) scale(0.98) } to { opacity: 1; transform: none } }
+.anim-toast { animation: toast-in 0.32s cubic-bezier(0.32, 0.72, 0, 1) both; }
+@media (prefers-reduced-motion: reduce) { .anim-toast { animation: none; } }

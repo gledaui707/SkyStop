@@ -1,4 +1,6 @@
 import { MapPin, House, Bookmark, Plane } from 'lucide-react'
+import { useEffect } from 'react'
+import { Check } from 'lucide-react'
 import { AppProvider, useApp, tabOf, type Tab } from './store'
 import { Home, FindFlight, Airports } from './screens/Discover'
 import { Trip } from './screens/Trip'
@@ -40,6 +42,26 @@ const TABS: { id: Tab; label: string; icon: typeof House }[] = [
   { id: 'plans', label: 'My Plans', icon: Bookmark },
 ]
 
+/** Confirmation toast: floats at the top in the same dark style as the tooltips, and leaves after 5 seconds. */
+function Toast() {
+  const { notice, setNotice } = useApp()
+  useEffect(() => {
+    if (!notice) return
+    const t = setTimeout(() => setNotice(null), 5000)
+    return () => clearTimeout(t)
+  }, [notice, setNotice])
+  if (!notice) return null
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] mx-auto flex max-w-[480px] justify-center px-4 pt-[calc(var(--safe-top)+0.5rem)]">
+      <div role="status" aria-live="polite" onClick={() => setNotice(null)}
+        className="anim-toast pointer-events-auto flex max-w-full items-center gap-2.5 rounded-[1.4rem] bg-[#141414] py-3 pl-3.5 pr-4 text-sub font-medium text-white shadow-[0_14px_34px_rgb(0_0_0/0.28)]">
+        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-white/15"><Check size={14} strokeWidth={3} /></span>
+        <span className="min-w-0">{notice}</span>
+      </div>
+    </div>
+  )
+}
+
 function Shell() {
   const { route, switchTab, catalogue, reload } = useApp()
   const active = tabOf(route)
@@ -66,6 +88,7 @@ function Shell() {
   return (
     <div className="mx-auto min-h-dvh max-w-[480px] pb-[var(--nav-h)]">
       <main key={key} className="anim-screen"><Screen /></main>
+      <Toast />
       <nav aria-label="Primary" className="glass fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] border-x-0 border-b-0 border-t border-white/80 pb-[var(--safe-bottom)] shadow-none">
         <div className="grid h-16 grid-cols-3">
         {TABS.map(({ id, label, icon: Icon }) => {

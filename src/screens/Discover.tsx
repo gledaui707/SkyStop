@@ -47,7 +47,7 @@ const Notch = ({ icon: Icon = ArrowUpRight }: { icon?: LucideIcon }) => (
 
 /** Home: discovery-first, with the next saved trip on top when there is one. */
 export function Home() {
-  const { plans, go, switchTab, notice, setNotice } = useApp()
+  const { plans, go, switchTab } = useApp()
   const q = ''
   const [cat, setCat] = useState<'All' | Category>('All')
   const upcoming = nextTrip(plans)
@@ -74,13 +74,6 @@ export function Home() {
         </div>
       </div>
 
-      {notice && (
-        <div role="status" className="anim-rise mx-5 mt-4 flex items-start gap-3 rounded-card border border-success/30 bg-success/10 p-3.5 text-body backdrop-blur-md">
-          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-success/20"><Check size={16} className="text-success" /></span>
-          <p className="min-w-0 flex-1">{notice}</p>
-          <button onClick={() => setNotice(null)} aria-label="Dismiss" className="-m-2 grid size-11 shrink-0 place-items-center text-muted-text"><X size={18} /></button>
-        </div>
-      )}
 
       <div className="mt-6 px-5">
         <div className="mb-3 flex items-end justify-between">

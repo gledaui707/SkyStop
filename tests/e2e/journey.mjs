@@ -107,6 +107,10 @@ try {
   await page.getByRole('button', { name: 'Try again' }).click();
   await page.getByLabel('Upcoming trip').waitFor();
   check('saved once; home confirms the save explicitly', fake.plans.size === 1 && (await page.getByRole('status').innerText()).includes('is saved'));
+  const toastBox = await page.getByRole('status').boundingBox();
+  check('confirmation is a toast floating at the top', toastBox.y < 80, JSON.stringify(toastBox));
+  await page.waitForTimeout(5400);
+  check('toast disappears after 5 seconds', (await page.getByRole('status').count()) === 0);
   const stored = [...fake.plans.values()][0];
   check('stored UTC instants are Lisbon-local 10:00/15:00', stored.row.arrival_at === `${day(7)}T10:00:00Z` && stored.row.departure_at === `${day(7)}T15:00:00Z`, `${stored.row.arrival_at} → ${stored.row.departure_at}`);
   check('stored buffer 90 and 2 ordered activities', stored.row.buffer_minutes === 90 && stored.items.length === 2 && stored.items[0].activity_id.endsWith('1'));
