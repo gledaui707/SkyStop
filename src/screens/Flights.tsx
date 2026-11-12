@@ -82,7 +82,6 @@ export function Results({ origin, destination, date }: { origin: string; destina
           <Chip active={viaF === 'SIN'} onClick={() => setViaF(viaF === 'SIN' ? 'All' : 'SIN')}>Via Singapore</Chip>
           <Chip active={nonStop} onClick={() => setNonStop(!nonStop)}>Non-stop</Chip>
         </ChipRow></div>
-        <p className="mt-2 text-sub text-muted-text">Sample schedules and prices. Tick up to 3 to compare.</p>
         {nonStop ? (
           <div className="mt-3"><Notice>No non-stop flights for this route.</Notice></div>
         ) : flights.length === 0 ? <p className="mt-6 text-center text-muted-text">No flights match.</p> : (
