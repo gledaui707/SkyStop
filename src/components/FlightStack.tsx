@@ -23,11 +23,11 @@ export function FlightStack({ flights, onOpen }: { flights: Plan[]; onOpen: (p: 
         return (
           <button key={f.id} onClick={() => setFrontId(f.id)} aria-label={`Show flight ${f.origin && f.destination ? `${f.origin} to ${f.destination} via ${f.airport}` : `connecting at ${f.airport}`}, ${shortDay(f.arrival)}`}
             style={{ zIndex: i, transform: `scale(${1 - level * 0.035})` }}
-            className={cx('press relative -mb-[1.65rem] flex h-[4.4rem] w-full origin-bottom items-start justify-between gap-3 rounded-t-[1.6rem] rounded-b-xl bg-white px-5 pt-3 text-left',
-              'shadow-[0_-4px_18px_rgb(70_35_25/0.08)] ring-1 ring-[rgb(35_26_23/0.07)] transition-transform duration-300 motion-reduce:transition-none',
-              level === 1 ? 'bg-white' : level === 2 ? 'bg-[#fffaf7]' : 'bg-[#fff5f0]')}>
+            className={cx('press relative -mb-[1.65rem] flex h-[4.4rem] w-full origin-bottom items-start justify-between gap-3 rounded-t-[1.6rem] rounded-b-xl px-5 pt-3 text-left',
+              'shadow-[0_-4px_18px_rgb(70_35_25/0.08)] ring-1 ring-[rgb(234_81_57/0.18)] transition-transform duration-300 motion-reduce:transition-none',
+              level === 1 ? 'bg-[#ffe2d4]' : level === 2 ? 'bg-[#ffc8b0]' : 'bg-[#ffab8c]')}>
             <span className="min-w-0 truncate text-[1.375rem] font-bold leading-none tracking-[-0.02em] text-ink">{route}</span>
-            <span className="shrink-0 text-right text-[0.75rem] leading-tight text-muted-text">via <b className="font-semibold text-ink">{f.airport}</b><br />{shortDay(f.arrival)}</span>
+            <span className="shrink-0 text-right text-[0.75rem] leading-tight text-ink/70">via <b className="font-semibold text-ink">{f.airport}</b><br />{shortDay(f.arrival)}</span>
           </button>
         )
       })}

@@ -23,7 +23,7 @@ export function TripTicket({ plan, onView }: Props) {
   const plusDays = Math.round((Date.parse(plan.departure.slice(0, 10)) - Date.parse(plan.arrival.slice(0, 10))) / 86400000)
 
   // Upper section: [name / CODE / time / caption] at each end, plane in the middle.
-  const code = 'block text-[clamp(2.5rem,12.5vw,3rem)] font-bold leading-[0.95] tracking-[-0.035em] text-ink'
+  const code = 'block text-[clamp(2.25rem,11.5vw,3rem)] font-bold leading-[0.95] tracking-[-0.035em] text-ink'
   const big = 'block text-[clamp(1.875rem,9.5vw,2.25rem)] font-semibold leading-none tracking-[-0.03em] tabular-nums text-ink'
   const name = 'block truncate text-[clamp(1.25rem,6vw,1.5rem)] font-semibold leading-tight tracking-[-0.01em] text-ink/75'
   const caption = 'mt-1.5 block whitespace-nowrap text-[0.6875rem] leading-tight text-muted-text'
@@ -36,8 +36,9 @@ export function TripTicket({ plan, onView }: Props) {
           <span className={name}>{hasRoute ? from?.city ?? plan.origin : 'Arrive'}</span>
           <span className={cx(name, 'text-right')}>{hasRoute ? to?.city ?? plan.destination : 'Depart'}</span>
         </div>
-        {/* codes (or, without a route, the connection times) with the plane on a dashed line between them */}
-        <div className="mt-1 grid grid-cols-[auto_minmax(2.5rem,1fr)_auto] items-center gap-x-2.5">
+        {/* hero grid: codes (or, without a route, the connection times) at the ends with the plane between them; under the
+            plane, the TRANSIT badge (connecting airport + layover length); under the codes, the connection times */}
+        <div className="mt-1 grid grid-cols-[auto_minmax(2.25rem,1fr)_auto] items-center gap-x-2.5">
           <span className={hasRoute ? code : big}>{hasRoute ? plan.origin : time(plan.arrival)}</span>
           <span aria-hidden="true" className="flex min-w-0 items-center gap-1.5">
             <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.28)]" />
@@ -45,17 +46,20 @@ export function TripTicket({ plan, onView }: Props) {
             <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.28)]" />
           </span>
           <span className={cx(hasRoute ? code : big, 'text-right')}>{hasRoute ? plan.destination : time(plan.departure)}</span>
+
+          {hasRoute ? <span className={cx(big, 'mt-3')}>{time(plan.arrival)}</span> : <span className={cx(caption, 'mt-2 self-start')}>at {ap.code} · {day(plan.arrival)}</span>}
+          <span className={cx('flex justify-center', hasRoute ? 'mt-3' : 'mt-2')}>
+            <span aria-label={`Transit ${ap.code}, ${fmtDur(total)} layover`} className="btn-coral inline-flex flex-col items-center rounded-2xl px-2.5 py-1 leading-none shadow-[0_6px_14px_rgb(234_81_57/0.3)]">
+              <span className="text-[0.9375rem] font-bold tracking-[0.02em]">{ap.code}</span>
+              <span className="mt-0.5 whitespace-nowrap text-[0.6875rem] font-semibold tabular-nums text-white/90">{fmtDur(total)}</span>
+            </span>
+          </span>
+          {hasRoute ? <span className={cx(big, 'mt-3 text-right')}>{time(plan.departure)}</span> : <span className={cx(caption, 'mt-2 self-start text-right')}>at {ap.code} · {day(plan.departure)}{plusDays > 0 && <sup className="ml-0.5 font-semibold text-accent-dark">+{plusDays}</sup>}</span>}
         </div>
-        {/* the connection's arrival and departure times beneath the codes */}
-        {hasRoute && (
-          <div className="mt-3 flex justify-between gap-3">
-            <span className={big}>{time(plan.arrival)}</span>
-            <span className={cx(big, 'text-right')}>{time(plan.departure)}</span>
-          </div>)}
-        <div className="flex justify-between gap-3">
+        {hasRoute && <div className="flex justify-between gap-3">
           <span className={caption}>{hasRoute ? `Arrive ${ap.code}` : `at ${ap.code}`} · {day(plan.arrival)}</span>
           <span className={cx(caption, 'text-right')}>{hasRoute ? `Depart ${ap.code}` : `at ${ap.code}`} · {day(plan.departure)}{plusDays > 0 && <sup className="ml-0.5 font-semibold text-accent-dark">+{plusDays}</sup>}</span>
-        </div>
+        </div>}
       </section>
 
       {/* boarding-pass tear line */}
