@@ -191,3 +191,10 @@ Not done: real-device iPhone check, Safari backdrop-filter rendering, production
 - Smaller logo and new tagline (owner request): monogram about 80 px wide at 390 px (was ~195); tagline "Plan your layover" in white. Build, 122 unit tests (one hosted skip), e2e 124/124, no sideways scroll at 320–430 px. Known: white tagline measures 1.4:1 against the glow (below WCAG AA 4.5:1; owner chose white, a warm text shadow aids legibility).
 - Onboarding badge (owner request): the coral plane circle is replaced by a small white SS mark (src/components/SSMark.tsx, original geometry; rear S at 45% white). 29×18 px at 320 and 390 px, no sideways scroll. Build, 122 unit tests (one hosted skip), e2e all pass.
 - Onboarding mark (owner request): pill background and "SkyStop" text removed; bare white SS at 51×32 px with a soft shadow. No sideways scroll at 320/390 px; unit and e2e pass.
+
+### Onboarding transitions (card morph)
+
+- Rebuilt the step change with Motion 14.7.1 (pinned): one persistent glass card morphs between steps (layout spring, ≈0.75 s, corners kept), its content and the headline/body blur out and sharpen in with a stagger, photos crossfade with a slow settle, the coral glow drifts, the CTA reshapes Next ↔ Get started. Content, copy, Skip/Back/Next/Get started, dots, swipe and arrow keys unchanged in behaviour.
+- `npm run test:e2e` 129/129 incl. new checks: old and new headlines overlap with the outgoing one blurred; the same card element morphs (208 px tile ↔ 304 px card, mid-transition width in between); settles to one headline and one photo; reduced motion switches instantly (no blur/fade). Unit 122 (one hosted skip); `npm run test:layout` 0 issues.
+- Frame captures at 80–900 ms for 1→2, 2→3 and 3→2; rapid key presses interrupting transitions leave one headline and one photo, no errors. Every element on all three steps on screen at 320/375/390/430 px (fixed: "Get started" was cut off at 320 px; narrow phones now show the label without the arrow circle).
+- Bundle grows by about 57 KB gzipped (Motion). Not tested on Safari/iPhone; the reference video did not reach this session, timing follows the written brief.

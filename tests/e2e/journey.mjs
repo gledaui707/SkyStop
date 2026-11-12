@@ -281,9 +281,29 @@ try {
   check('onboarding: no account is created by viewing it', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
   await o.page.getByRole('button', { name: 'Next' }).click();
   check('onboarding: Next -> screen 2', await o.page.getByText('Discover what’s possible.').isVisible());
+  {
+    // Transition: the card is one persistent element that morphs; text crossfades through a blur; nothing slides sideways.
+    const card = () => o.page.evaluate(() => { const c = document.querySelector('[aria-roledescription="carousel"] .glass-dark.overflow-hidden'); const r = c.getBoundingClientRect(); return { w: Math.round(r.width), tagged: c.dataset.probe === '1' }; });
+    await o.page.waitForTimeout(1200);
+    const settled2 = await card();
+    await o.page.evaluate(() => { document.querySelector('[aria-roledescription="carousel"] .glass-dark.overflow-hidden').dataset.probe = '1'; });
+    await o.page.getByRole('button', { name: 'Back' }).click();
+    await o.page.waitForTimeout(120);
+    const mid = await o.page.evaluate(() => [...document.querySelectorAll('[aria-roledescription="carousel"] h1')].map((h) => ({ t: h.textContent, blur: parseFloat((/blur\(([\d.]+)px\)/.exec(getComputedStyle(h).filter) || [0, 0])[1]) })));
+    const midCard = await card();
+    await o.page.waitForTimeout(1200);
+    const settled1 = await card();
+    const h1s = await o.page.locator('[aria-roledescription="carousel"] h1').count();
+    check('onboarding transition: old and new headlines overlap, the outgoing one blurred', mid.length === 2 && mid.some((h) => h.t.startsWith('Discover') && h.blur > 0), JSON.stringify(mid));
+    check('onboarding transition: the same card element morphs between steps (compact tile <-> full card)', midCard.tagged && settled1.tagged && settled2.w < settled1.w && midCard.w > settled2.w && midCard.w < settled1.w, JSON.stringify({ settled2, midCard, settled1 }));
+    check('onboarding transition: settles to a single headline', h1s === 1 && await o.page.getByText('Your layover, reimagined.').isVisible());
+    check('onboarding transition: no horizontal photo strip', await o.page.evaluate(() => document.querySelectorAll('[aria-roledescription="carousel"] img').length === 1));
+    await o.page.getByRole('button', { name: 'Next' }).click();
+  }
   const box = (await o.page.locator('[aria-roledescription="carousel"]').boundingBox());
   await o.page.mouse.move(box.width * 0.8, box.height * 0.45); await o.page.mouse.down(); await o.page.mouse.move(box.width * 0.2, box.height * 0.47, { steps: 8 }); await o.page.mouse.up();
   await o.page.getByText('Make every minute count.').waitFor();
+  await o.page.getByRole('button', { name: 'Skip' }).waitFor({ state: 'detached' });
   check('onboarding: swipe left -> screen 3 with "Get started" and no Skip', await o.page.getByRole('button', { name: /Get started/ }).isVisible() && !(await o.page.getByRole('button', { name: 'Skip' }).isVisible()));
   await o.page.getByRole('button', { name: 'Back' }).click();
   check('onboarding: Back -> screen 2', await o.page.getByText('Discover what’s possible.').isVisible());
@@ -335,8 +355,10 @@ try {
   }
   const rm = await newGuest(undefined, { firstVisit: true, reducedMotion: 'reduce' });
   await rm.page.goto(BASE); await rm.page.getByText('Your layover, reimagined.').waitFor();
-  const dur = await rm.page.evaluate(() => getComputedStyle(document.querySelector('[aria-roledescription="carousel"] .flex')).transitionDuration);
-  check('onboarding: reduced motion removes the slide transition', parseFloat(dur) < 0.01, dur);
+  await rm.page.getByRole('button', { name: 'Next' }).click();
+  await rm.page.waitForTimeout(60);
+  const rmState = await rm.page.evaluate(() => [...document.querySelectorAll('[aria-roledescription="carousel"] h1')].map((h) => `${h.textContent}|${getComputedStyle(h).opacity}|${getComputedStyle(h).filter}`));
+  check('onboarding: reduced motion changes steps instantly (no crossfade, blur or scaling)', rmState.length === 1 && rmState[0].startsWith('Discover') && /\|1\|(none|blur\(0px\))$/.test(rmState[0]), JSON.stringify(rmState));
   await rm.page.getByRole('button', { name: 'Skip' }).click(); await rm.page.getByRole('button', { name: 'Create account' }).waitFor();
   check('access: reduced motion shows a still composition', await rm.page.evaluate(() => [...document.querySelectorAll('.access__orbit, .access__blob, .access__strip')].every((e) => getComputedStyle(e).animationName === 'none')));
   await rm.ctx.close();
