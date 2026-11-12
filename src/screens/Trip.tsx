@@ -6,7 +6,7 @@ import { airportInfo } from '../data/airportDirectory'
 import { budget, fmtDur, isOvernight, layoverMinutesAt, timeSpan } from '../data/time'
 import { validateLayover } from '../domain'
 import { AirportPicker } from '../components/AirportPicker'
-import { ActionBar, Button, Header, Field, Photo, cx, inputCls } from '../components/ui'
+import { ActionBar, Button, Header, Field, InfoTip, Photo, cx, inputCls } from '../components/ui'
 
 const BUFFERS = [90, 120, 180]
 const split = (v: string) => { const [d = '', t = ''] = v.split('T'); return { date: d, time: t.slice(0, 5) } }
@@ -21,7 +21,6 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
   const [arr, setArr] = useState('')
   const [dep, setDep] = useState('')
   const [buf, setBuf] = useState(120)
-  const [showBufferHelp, setShowBufferHelp] = useState(false)
   const [tplId, setTplId] = useState(templateId)
 
   const tpl = TEMPLATES.find((t) => t.id === tplId)
@@ -149,17 +148,9 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           <legend className="w-full">
             <span className="flex items-center justify-between gap-3">
               <span id="buffer-label" className="text-body font-semibold">Planning buffer</span>
-              <button type="button" aria-expanded={showBufferHelp} aria-controls="buffer-help"
-                onClick={() => setShowBufferHelp((show) => !show)}
-                className="press min-h-11 shrink-0 text-sub font-semibold text-accent-dark hover:underline">
-                What is this?
-              </button>
+              <InfoTip id="buffer-help" title="Planning buffer">Time kept free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding. Activities only use what is left.</InfoTip>
             </span>
           </legend>
-          <p id="buffer-help" hidden={!showBufferHelp} className="mb-3 text-sub text-muted-text">
-            Time kept free for airport procedures: leaving the aircraft, transfer security or passport control,
-            walking to the gate and boarding. Activities only use what is left.
-          </p>
           <div className="grid grid-cols-3 gap-1 rounded-full bg-ink-tint p-1 ring-1 ring-line">
             {BUFFERS.map((m) => (
               <button type="button" key={m} aria-pressed={buf === m} onClick={() => setBuf(m)}

@@ -1,5 +1,5 @@
 import { ChevronLeft, Info, ShieldAlert, X, type LucideIcon } from 'lucide-react'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useApp } from '../store'
 import type { Activity, Category } from '../data/types'
 import { fmtDur } from '../data/time'
@@ -200,3 +200,39 @@ export function ActivitySheet({ a, onClose, action }: { a: Activity | null; onCl
 }
 
 export const CATEGORIES: ('All' | Category)[] = ['All', 'Food', 'Rest', 'Shopping', 'Sights']
+
+/** "What is this?" link that opens a dark tooltip bubble (title + text) pointing back at the link.
+ *  Tap the link again, tap elsewhere or press Escape to close. The bubble is right-aligned under the link. */
+export function InfoTip({ id, title, children, label = 'What is this?' }: { id: string; title: string; children: ReactNode; label?: string }) {
+  const [open, setOpen] = useState(false)
+  const [above, setAbove] = useState(false)
+  const box = useRef<HTMLSpanElement>(null)
+  const toggle = () => {
+    if (!open && box.current) {
+      // Open upwards when the bubble would run under the bottom navigation.
+      const r = box.current.getBoundingClientRect(), nav = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) * 16 || 88
+      setAbove(r.bottom + 230 > window.innerHeight - nav && r.top > 260)
+    }
+    setOpen(!open)
+  }
+  useEffect(() => {
+    if (!open) return
+    const away = (e: PointerEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false) }
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', away); window.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('pointerdown', away); window.removeEventListener('keydown', esc) }
+  }, [open])
+  return (
+    <span ref={box} className="relative inline-flex shrink-0">
+      <button type="button" aria-expanded={open} aria-controls={id} onClick={toggle}
+        className="press min-h-11 text-sub font-semibold text-accent-dark underline underline-offset-2">{label}</button>
+      <span id={id} role="tooltip" hidden={!open}
+        className={cx('anim-fade absolute right-0 z-50 w-[min(18.5rem,calc(100vw-2.5rem))] rounded-[1.4rem] bg-[#141414] px-4 py-3.5 text-left shadow-[0_14px_34px_rgb(0_0_0/0.28)]',
+          above ? 'bottom-full mb-2.5' : 'top-full mt-2.5')}>
+        <span aria-hidden="true" className={cx('absolute right-8 size-3.5 rotate-45 rounded-[3px] bg-[#141414]', above ? '-bottom-1.5' : '-top-1.5')} />
+        <span className="block text-body font-semibold text-white">{title}</span>
+        <span className="mt-1.5 block text-sub font-normal normal-case leading-relaxed tracking-normal text-white/80">{children}</span>
+      </span>
+    </span>
+  )
+}

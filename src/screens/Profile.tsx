@@ -5,7 +5,7 @@ import { getSupabase } from '../api/client'
 import { avatarUrl, createAccount, removeAvatar, signIn, signOut, updateName, uploadAvatar } from '../api/account'
 import { ensureGuestSession } from '../api/session'
 import { deleteProfile, saveProfile } from '../api/repositories'
-import { Button, Header, Notice, cx, inputCls } from '../components/ui'
+import { Button, Header, InfoTip, Notice, cx, inputCls } from '../components/ui'
 
 /** Country names for the optional nationality / residence fields (ISO 3166 regions known to the browser). */
 function countryNames(): string[] {
@@ -45,7 +45,6 @@ export function Profile() {
   const [nationality, setNationality] = useState(profile?.nationality ?? '')
   const [residence, setResidence] = useState(profile?.residence ?? '')
   const [savedNote, setSavedNote] = useState<string | null>(null)
-  const [docsHelp, setDocsHelp] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [name, setName] = useState(account.name ?? '')
   const [photo, setPhoto] = useState<string | null>(null)
@@ -151,9 +150,7 @@ export function Profile() {
         </Section>
 
         <Section title="Travel documents" action={
-          <button type="button" aria-expanded={docsHelp} aria-controls="docs-help" onClick={() => setDocsHelp(!docsHelp)}
-            className="min-h-9 text-sub font-semibold text-accent-dark underline underline-offset-2">What is this?</button>}>
-          <p id="docs-help" hidden={!docsHelp} className="text-sub text-muted-text">Optional. Used only to tailor entry guidance for activities outside the transit area. It never decides whether you may enter a country. SkyStop does not ask for passport numbers or document photos.</p>
+          <InfoTip id="docs-help" title="Travel documents">Optional. Used only to tailor entry guidance for activities outside the transit area. It never decides whether you may enter a country. SkyStop does not ask for passport numbers or document photos.</InfoTip>}>
           <datalist id="countries">{countries.map((c) => <option key={c} value={c} />)}</datalist>
           <label className="grid gap-1.5 text-sub font-medium text-muted-text">Passport nationality
             <input list="countries" value={nationality} onChange={(e) => { setNationality(e.target.value); setSavedNote(null) }} className={inputCls} placeholder="e.g. Indonesia" autoComplete="off" /></label>
