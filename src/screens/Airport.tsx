@@ -53,7 +53,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
       </div>
       {view === 'map' && (
         <>
-          <div className="no-scrollbar -mx-3 mt-2 flex gap-2 overflow-x-auto px-3 pb-1">
+          <div role="group" aria-label="Filter by category" className="no-scrollbar scroll-fade -mx-3 mt-2 flex gap-2 overflow-x-auto px-3 pb-1">
             {CATEGORIES.map((c) => (
               <button key={c} aria-pressed={cat === c} onClick={() => setCat(c)}
                 className={cx('inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-sub font-medium', cat === c ? 'bg-white text-[#2a1b18]' : 'glass-dark')}>{c}</button>))}
@@ -80,7 +80,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
 
         {/* Floating preview / summary sheet */}
         <div className="glass relative z-20 -mt-6 rounded-t-[2rem] !border-b-0 px-4 pb-[calc(var(--nav-h)+0.25rem)] pt-3">
-          <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-white/30" />
+          <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-ink/20" />
           {focus ? (
             <div>
               <div className="flex items-center gap-3">
@@ -90,7 +90,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                   <p className="text-sub text-muted-text">{fmtDur(focus.durationMin)} · {focus.costLabel} · {focus.category}</p>
                   <p className="text-cap text-muted-text">{focus.access === 'Unverified' ? '' : focus.access}{focus.leavesAirport ? ' · leaves airport' : ''}</p>
                 </div>
-                <button onClick={() => setFocusId(null)} aria-label="Close preview" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/10 ring-1 ring-line"><X size={18} /></button>
+                <button onClick={() => setFocusId(null)} aria-label="Close preview" className="grid size-11 shrink-0 place-items-center rounded-full bg-ink-tint ring-1 ring-line"><X size={18} /></button>
               </div>
               {b && !planned.includes(focus.id) && focus.durationMin > b.remaining && (
                 <p role="alert" className="mt-2 text-sub font-medium text-error">Adds {fmtDur(focus.durationMin - Math.max(b.remaining, 0))} beyond your usable time.</p>)}
@@ -111,7 +111,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                   <ul className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Activities at this airport">
                     {acts.filter((a) => cat === 'All' || a.category === cat).map((a) => (
                       <li key={a.id} className="shrink-0">
-                        <button onClick={() => setFocusId(a.id)} className={cx('press flex w-[13.5rem] items-center gap-2.5 rounded-2xl border p-2 text-left', planned.includes(a.id) ? 'border-accent/70 bg-accent-tint' : 'border-line bg-white/[0.06]')}>
+                        <button onClick={() => setFocusId(a.id)} className={cx('press flex w-[13.5rem] items-center gap-2.5 rounded-2xl border p-2 text-left', planned.includes(a.id) ? 'border-accent/70 bg-accent-tint' : 'border-line bg-white')}>
                           <span className="ph relative size-12 shrink-0 overflow-hidden rounded-xl"><Photo img={a.image} w={48} h={48} className="absolute inset-0 size-full" /></span>
                           <span className="min-w-0"><span className="block truncate text-sub font-semibold">{a.name}</span>
                             <span className="block text-cap text-muted-text">{fmtDur(a.durationMin)}{planned.includes(a.id) ? (ready ? ' · added' : ' · selected') : ''}</span></span>
@@ -157,9 +157,11 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
       <div className="ph relative h-[25rem] overflow-hidden">
         <img src={sized(ap.image, 900, 800)} alt={ap.image.alt} title={`Photo: ${ap.image.credit} / Unsplash`} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent" />
-        <div className="hero-melt absolute inset-x-0 bottom-0 h-[65%]" />
+        {/* dark scrim under the white title, then a thin melt into the light canvas */}
+        <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-deep/90 via-deep/45 to-transparent" />
+        <div className="hero-melt absolute inset-x-0 bottom-0 h-10" />
         {bar}
-        <div className="absolute inset-x-5 bottom-4 text-white">
+        <div className="absolute inset-x-5 bottom-11 text-white">
           <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold uppercase tracking-[0.08em]">{ap.code} · {ap.country}</p>
           <h1 className="mt-2 text-title font-bold leading-tight">{ap.name}</h1>
         </div>
@@ -198,7 +200,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
                   <ol className="relative mt-3 ml-1.5 border-l border-dashed border-accent-dark/50 pl-4 text-body">
                     {items.map((a) => <li key={a.id} className="relative flex justify-between gap-3 py-1"><span aria-hidden="true" className="absolute -left-[1.3rem] top-[0.7rem] size-2.5 rounded-full bg-accent ring-4 ring-[#2a1f1d]" /><span className="min-w-0">{a.name}</span><span className="shrink-0 text-muted-text tabular-nums">{fmtDur(a.durationMin)}</span></li>)}
                   </ol>
-                  <p className={cx('mt-3 rounded-2xl px-3 py-2 text-sub font-medium', fit === null ? 'bg-white/[0.06] text-muted-text' : fit ? 'bg-success/12 text-success' : 'bg-error-tint text-ink')}>
+                  <p className={cx('mt-3 rounded-2xl px-3 py-2 text-sub font-medium', fit === null ? 'bg-ink-tint text-muted-text' : fit ? 'bg-success/12 text-success' : 'bg-error-tint text-ink')}>
                     {fit === null ? 'Set your layover times to check whether it fits.' : fit ? `Fits with ${fmtDur(usable! - dur)} to spare.` : `Needs ${fmtDur(dur - usable!)} more than your usable time. You can trim it.`}</p>
                   <Button variant="secondary" className="mt-3 w-full" onClick={() => applyItinerary(t.id)}>Use this itinerary</Button>
                 </div>
@@ -211,7 +213,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
         <label className="relative block">
           <span className="sr-only">Search activities</span>
           <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search activities" type="search" className="min-h-12 w-full rounded-full border border-line bg-white/[0.06] pl-11 pr-4 text-body backdrop-blur-md focus:border-accent-dark/70 focus:outline-none" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search activities" type="search" className="min-h-12 w-full rounded-full border border-[rgb(35_26_23/0.14)] bg-white pl-11 pr-4 text-body backdrop-blur-md focus:border-accent-dark/70 focus:outline-none" />
         </label>
         <div className="mt-3"><ChipRow>{CATEGORIES.map((c) => <Chip key={c} active={cat === c} onClick={() => setCat(c)}>{c}</Chip>)}</ChipRow></div>
         <ul className="mt-3 grid gap-3">
@@ -219,7 +221,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
             const on = planned.includes(a.id)
             return <ActivityRow key={a.id} a={a} onOpen={() => setOpen(a.id)} action={
               <button aria-label={`${on ? 'Remove' : ready ? 'Add' : 'Select'} ${a.name}`} aria-pressed={on} onClick={() => toggle(a.id)}
-                className={cx('press grid size-11 shrink-0 place-items-center rounded-full transition-colors', on ? 'btn-coral' : 'bg-white/10 text-ink ring-1 ring-line')}>{on ? <Check size={20} strokeWidth={2.6} /> : <Plus size={20} />}</button>} />
+                className={cx('press grid size-11 shrink-0 place-items-center rounded-full transition-colors', on ? 'btn-coral' : 'bg-accent-tint text-accent-dark ring-1 ring-accent/25')}>{on ? <Check size={20} strokeWidth={2.6} /> : <Plus size={20} />}</button>} />
           })}
           {!shown.length && <li className="py-6 text-center text-muted-text">No activities match.</li>}
         </ul>

@@ -30,9 +30,9 @@ export function AirportPicker({ label, value, onChange, placeholder, exclude = [
   const blocked = (a: DirAirport) => exclude.includes(a.code)
   const pick = (a: DirAirport) => { if (blocked(a)) return; onChange(a.code); setQuery(''); setOpen(false) }
   return (
-    <div onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false) }}>
+    <div className="min-w-0" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false) }}>
       <label htmlFor={id} className="mb-1.5 block text-sub font-medium text-muted-text">{label}</label>
-      <div className={cx('flex min-h-[3.25rem] items-center gap-2 rounded-2xl border bg-black/20 px-4 transition-colors focus-within:border-accent-dark/70 focus-within:bg-black/30', sel ? 'border-accent/60' : 'border-line')}>
+      <div className={cx('flex min-h-[3.25rem] items-center gap-2 rounded-2xl border bg-white px-4 transition-colors focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15', sel ? 'border-accent/60' : 'border-[rgb(35_26_23/0.16)]')}>
         {sel ? <span className="btn-coral grid size-6 shrink-0 place-items-center rounded-full"><Check size={14} strokeWidth={3} /></span> : <Search size={20} className="shrink-0 text-muted" />}
         <input id={id} role="combobox" aria-expanded={open} aria-controls={`${id}-list`} autoComplete="off" autoFocus={autoFocus}
           value={open || !sel ? query : `${sel.city} (${sel.code})`}
@@ -49,7 +49,7 @@ export function AirportPicker({ label, value, onChange, placeholder, exclude = [
             <li key={a.code} role="option" aria-selected={value === a.code} aria-disabled={blocked(a)}>
               <button type="button" disabled={blocked(a)} onClick={() => pick(a)} onMouseDown={(e) => e.preventDefault()}
                 className="flex min-h-14 w-full items-center gap-3 border-b border-line px-4 py-2 text-left last:border-b-0 disabled:opacity-45">
-                <span className="grid h-8 w-12 shrink-0 place-items-center rounded-lg bg-white/10 text-sub font-bold tracking-wide">{a.code}</span>
+                <span className="grid h-8 w-12 shrink-0 place-items-center rounded-lg bg-ink-tint text-sub font-bold tracking-wide">{a.code}</span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-body font-medium">{a.city}</span>
                   <span className="block truncate text-cap text-muted-text">{blocked(a) ? 'Already used in this trip' : a.supported ? `${a.name} · layover guide` : a.name}</span></span>
               </button>

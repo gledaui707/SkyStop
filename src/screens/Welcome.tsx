@@ -13,7 +13,7 @@ export function Welcome() {
       <div className="photo-fade absolute inset-x-0 bottom-0 h-[68%]" />
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-[45%] bg-[radial-gradient(80%_60%_at_15%_100%,rgb(234_81_57/0.35),transparent_70%)]" />
 
-      <div className="relative flex flex-1 flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-[calc(var(--safe-top)+0.25rem)]">
+      <div className="relative flex flex-1 flex-col px-5 pb-[calc(var(--safe-bottom)+1.25rem)] pt-[calc(var(--safe-top)+0.25rem)]">
         <div className="flex items-center justify-between">
           <span className="glass-dark flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-4 text-sub font-semibold">
             <span className="btn-coral grid size-8 place-items-center rounded-full"><Plane size={16} className="-rotate-45" /></span>SkyStop

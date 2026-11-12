@@ -210,17 +210,17 @@ export function FindFlight() {
       </div>
       <form id="find" className="mt-5 px-5" onSubmit={(e) => { e.preventDefault(); if (origin && dest && !same) go({ name: 'results', origin, destination: dest, date }) }}>
         <div className="panel-accent relative rounded-[1.75rem] p-2">
-          <div className="rounded-[1.375rem] bg-black/20 px-4 py-2.5">
+          <div className="rounded-[1.375rem] bg-white px-4 py-2.5 ring-1 ring-line">
             <Field label="Flying from"><select className={sel} value={origin} onChange={(e) => setOrigin(e.target.value)}>{opts}</select></Field>
           </div>
           <div className="relative h-2">
             <button type="button" onClick={swap} aria-label="Swap cities" className="glass press absolute right-5 top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full">
               <ArrowUpDown size={18} /></button>
           </div>
-          <div className="rounded-[1.375rem] bg-black/20 px-4 py-2.5">
+          <div className="rounded-[1.375rem] bg-white px-4 py-2.5 ring-1 ring-line">
             <Field label="Flying to"><select className={sel} value={dest} onChange={(e) => setDest(e.target.value)}>{opts}</select></Field>
           </div>
-          <div className="mt-2 rounded-[1.375rem] bg-black/20 px-4 py-2.5">
+          <div className="mt-2 rounded-[1.375rem] bg-white px-4 py-2.5 ring-1 ring-line">
             <Field label="Departure date"><input type="date" required className={sel} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
           </div>
         </div>

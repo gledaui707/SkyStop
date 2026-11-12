@@ -78,7 +78,7 @@ export function Builder() {
 
           {rows.length === 0 && (
             <li className="relative pb-4"><Dot cls="bg-line" />
-              <div className="rounded-card border border-dashed border-white/25 bg-white/[0.03] p-4 text-body text-muted-text">No activities yet. Use “Add activities” below.</div></li>)}
+              <div className="rounded-card border border-dashed border-[rgb(35_26_23/0.2)] bg-white/60 p-4 text-body text-muted-text">No activities yet. Use “Add activities” below.</div></li>)}
 
           {rows.map(({ a, used }, i) => {
             const late = used > b.usable
@@ -104,8 +104,8 @@ export function Builder() {
             )
           })}
 
-          <li className="relative pb-5 pt-1"><Dot cls="bg-white/40" />
-            <div className="rounded-[1.25rem] border border-dashed border-white/20 bg-[repeating-linear-gradient(135deg,rgb(255_255_255/0.04)_0_8px,transparent_8px_16px)] p-3.5">
+          <li className="relative pb-5 pt-1"><Dot cls="bg-muted/60" />
+            <div className="rounded-[1.25rem] border border-dashed border-[rgb(35_26_23/0.18)] bg-[repeating-linear-gradient(135deg,rgb(35_26_23/0.035)_0_8px,transparent_8px_16px)] p-3.5">
               <p className="text-sub font-semibold">Planning buffer · {fmtDur(b.buffer)}</p>
               <p className="text-sub text-muted-text">Kept free across your layover for airport procedures and getting back to the gate.</p></div></li>
           <li className="relative"><span aria-hidden="true" className="btn-coral absolute -left-[2.15rem] top-0.5 grid size-7 place-items-center rounded-full ring-4 ring-canvas"><Plane size={14} className="-rotate-45" /></span>

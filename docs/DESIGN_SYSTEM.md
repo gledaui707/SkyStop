@@ -1,20 +1,18 @@
-# SkyStop design system ("Dusk")
-Inspiration: `design-references/` (composition and glass quality only; not their typography or features).
+# SkyStop design system ("Daylight & dusk")
+Inspiration: `design-references/` (composition, photography and glass quality only; not their typography or features).
 
-**Type**: system font stack (SF Pro on Apple devices), iOS-sized rem scale in `src/index.css` (`title`, `h1`, `h2`, `card`, `body`, `sub`, `cap`, `tab`); tight negative tracking on headings. No decorative fonts.
+**Direction** (owner decision, 2026-11-12): a balanced light-and-dark, premium iOS-inspired travel app — not a dark dashboard and not a light/dark toggle.
+- *Light* for functional screens: plan a layover / booking entry, forms, activity lists, itinerary builder, My Plans. Warm off-white canvas `#FAF6F2` with soft peach/coral ambient washes, charcoal text `#231A17`, white frosted panels.
+- *Dark/atmospheric* only where photography leads: onboarding, photo heroes (airport, plan detail, home cards), the airport zone map. White text there always sits on a dark scrim (`photo-fade` or a `from-deep` gradient), never on a light melt.
 
-**Colour**: primary coral `#EA5139` (`accent`, gradient `btn-coral`), complemented by amber `#F6A04D`, rose and plum glows. Dark warm canvas `#171110` with a fixed ambient gradient (`body::before`) so glass surfaces have light to blur. Coral text on dark uses `accent-dark` (#FF8F78) for contrast. `color-scheme: dark` makes native date/time pickers match.
+**Colour**: primary coral `#EA5139` (`accent`, gradient `btn-coral`); soft coral `#FFB5A5` (`aqua`), peach `#FFD9C7`, amber `#F6A04D`. Coral text on light uses `accent-dark` `#C23B24` (AA on the canvas). The time budget is the one strong coral surface (`sunset`, white text).
 
-**Materials** (`@layer components`):
-- `glass` — floating chrome: tab bar, action bar, header buttons, sheets.
-- `glass-dark` / `glass-light` — chips and controls laid over photography.
-- `panel` — content surfaces (forms, rows, cards); `panel-accent` — the one highlighted surface per screen (time budget, selection).
-- `ph` — warm gradient placeholder behind every photo; shown while loading or if the image fails.
-- `photo-fade` (progressive blur at the bottom of photos) and `hero-melt` (full-bleed hero fades into the canvas).
-All glass has a solid fallback when `backdrop-filter` is unsupported.
+**Materials** (`@layer components`): `glass` light frosted chrome (tab bar, action bar, header buttons, sheets, dropdowns) · `glass-dark` / `glass-light` controls over photography · `panel` white content cards · `panel-accent` peach-washed highlight (selection, journey) · `sunset` coral time budget · `ph` warm photo placeholder · `photo-fade` dark progressive blur under text on photos · `hero-melt` thin fade from a photo into the canvas · `scroll-fade` faded edges on horizontal scrollers. Solid fallbacks when `backdrop-filter` is unsupported.
 
-**Composition**: full-bleed heroes for Welcome, Airport and Plan detail; one dominant coral action per screen (floating action bar above the floating tab bar); photo cards with a coral "notch" action; arrive → depart rail in the setup form; itinerary timeline with plane markers, photo thumbnails and a hatched buffer block.
+**Type**: system font stack (SF Pro on Apple devices), iOS rem scale (`title`, `h1`, `h2`, `card`, `body`, `sub`, `cap`, `tab`), tight negative tracking on headings.
 
-**Motion**: screen entrance on every route change (`anim-screen`), sheet slide-up, staggered card rise, Ken Burns on heroes, press-scale on tappable cards. All disabled under `prefers-reduced-motion`.
+**Layout rules** (enforced by `npm run test:layout`, 320/375/390/430 px): nothing wider than the screen (fields use `min-w-0`, grids use `minmax(0,1fr)`; no page-wide `overflow-x: hidden`); the sticky header is an opaque frosted band; every screen pads its bottom by `--nav-h` (+ the action bar where present) so content scrolls clear of the floating bars; insets via `--safe-top` / `--safe-bottom` (`viewport-fit=cover`).
 
-**Safe areas**: `--safe-top` and `env(safe-area-inset-bottom)` for headers, tab bar and action bar; `viewport-fit=cover` in index.html.
+**Desktop presentation**: on desktop-class browsers (fine pointer, ≥ 820 px) the same app loads in an iframe at 390 × 844 inside a phone silhouette (`src/DeviceFrame.tsx`), scaled to the window; `?frame=off` opens it without the frame. Phones always get the app full screen.
+
+**Motion**: screen entrance, sheet slide-up, staggered rise, Ken Burns on heroes, press-scale; all disabled under `prefers-reduced-motion`.

@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test:hosted": "RUN_HOSTED=1 vitest run src/api/hosted.journey.test.ts",
     "test:e2e": "node tests/e2e/journey.mjs",
-    "test:live": "node tests/e2e/live.mjs"
+    "test:live": "node tests/e2e/live.mjs",
+    "test:layout": "node tests/e2e/layout-audit.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

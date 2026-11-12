@@ -1,10 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import { DeviceFrame, presentation } from './DeviceFrame'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    {presentation() === 'frame' ? <DeviceFrame /> : <App />}
   </React.StrictMode>,
 )

@@ -105,9 +105,9 @@ export function Results({ origin, destination, date }: { origin: string; destina
                     <div className="text-right"><p className="text-h1 font-semibold leading-none tabular-nums">{fmtTime(arriveDest(f))}<sup className="text-cap text-muted-text">{dayOffset(f)}</sup></p><p className="mt-1 text-sub text-muted-text">{f.destination}</p></div>
                   </div>
                   <div className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full" role="img" aria-label={`Flight ${fmtDur(f.legOneMin)}, layover ${fmtDur(f.layoverMin)}, flight ${fmtDur(f.legTwoMin)}`}>
-                    <span className="rounded-l-full bg-white/25" style={{ flex: f.legOneMin }} /><span className="bg-gradient-to-r from-[#f6a04d] to-accent" style={{ flex: f.layoverMin }} /><span className="rounded-r-full bg-white/25" style={{ flex: f.legTwoMin }} />
+                    <span className="rounded-l-full bg-ink/15" style={{ flex: f.legOneMin }} /><span className="bg-gradient-to-r from-[#f6a04d] to-accent" style={{ flex: f.layoverMin }} /><span className="rounded-r-full bg-ink/15" style={{ flex: f.legTwoMin }} />
                   </div>
-                  <div className="mt-3 flex items-center gap-3 rounded-2xl bg-white/[0.06] p-2.5 ring-1 ring-line">
+                  <div className="mt-3 flex items-center gap-3 rounded-2xl bg-ink-tint p-2.5 ring-1 ring-line">
                     <span className="ph relative size-11 shrink-0 overflow-hidden rounded-xl"><Photo img={IMAGES.airports[f.via]} w={44} h={44} className="absolute inset-0 size-full" /></span>
                     <p className="text-sub leading-snug">Layover <b>{fmtDur(f.layoverMin)}</b> in {f.via}<br />
                       <span className="text-muted-text">{fmtDur(usable)} usable · {fits(f)} itinerary fits</span></p>

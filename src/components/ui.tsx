@@ -16,9 +16,9 @@ export function Photo({ img, w, h, className }: { img: Img; w: number; h?: numbe
 export function Header({ title, subtitle, right, onBack }: { title: string; subtitle?: string; right?: ReactNode; onBack?: () => void }) {
   const { back } = useApp()
   return (
-    <header className="sticky top-0 z-20 px-4 pb-3 pt-[calc(var(--safe-top)+0.25rem)]">
-      {/* frosted band that fades out downward so content scrolls softly beneath the header */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-b from-canvas/85 via-canvas/55 to-transparent backdrop-blur-xl [mask-image:linear-gradient(to_bottom,#000_65%,transparent)]" />
+    <header className="sticky top-0 z-20 px-4 pb-2.5 pt-[calc(var(--safe-top)+0.25rem)]">
+      {/* opaque frosted band with a hairline: content scrolls under it without showing through the title */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 border-b border-line bg-canvas/[0.93] backdrop-blur-xl" />
       <div className="relative grid grid-cols-[3rem_1fr_3rem] items-center gap-2">
         <button onClick={onBack ?? back} aria-label="Back" className="glass press grid size-12 place-items-center rounded-full text-ink">
           <ChevronLeft size={26} strokeWidth={2.4} />
@@ -57,7 +57,7 @@ export function Button({ variant = 'primary', icon: Icon, className, ...p }:
     <button {...p} className={cx(
       'press inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-full px-6 text-body font-semibold disabled:opacity-40 disabled:shadow-none',
       variant === 'primary' && 'btn-coral text-[1.125rem] font-bold',
-      variant === 'secondary' && 'bg-white/10 text-ink ring-1 ring-white/20 backdrop-blur-md active:bg-white/15',
+      variant === 'secondary' && 'bg-white text-ink ring-1 ring-line shadow-[0_1px_2px_rgb(70_35_25/0.06)] active:bg-ink-tint',
       variant === 'ghost' && 'text-accent-dark active:bg-ink-tint',
       variant === 'danger' && 'text-error ring-1 ring-error/30 active:bg-error-tint',
       className)}>
@@ -70,23 +70,24 @@ export function Chip({ active, children, ...p }: React.ButtonHTMLAttributes<HTML
   return (
     <button {...p} aria-pressed={active} className={cx(
       'press inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sub font-medium transition-colors',
-      active ? 'border-transparent bg-white text-[#2a1b18] shadow-[0_6px_18px_rgb(0_0_0/0.25)]' : 'border-line bg-white/[0.06] text-ink backdrop-blur-md', p.className)}>
+      active ? 'border-transparent bg-ink text-white shadow-[0_6px_16px_rgb(35_26_23/0.22)]' : 'border-line bg-white text-ink', p.className)}>
       {children}
     </button>
   )
 }
 
 export function ChipRow({ children }: { children: ReactNode }) {
-  return <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">{children}</div>
+  // Edges fade so the cut-off chip signals that the row scrolls sideways.
+  return <div role="group" className="no-scrollbar scroll-fade -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">{children}<span aria-hidden="true" className="w-3 shrink-0" /></div>
 }
 
 export function Segmented<T extends string>({ value, onChange, options }:
   { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div role="tablist" className="grid rounded-full bg-white/[0.07] p-1 ring-1 ring-line" style={{ gridTemplateColumns: `repeat(${options.length},1fr)` }}>
+    <div role="tablist" className="grid rounded-full bg-ink-tint p-1 ring-1 ring-line" style={{ gridTemplateColumns: `repeat(${options.length},1fr)` }}>
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={value === o.value} onClick={() => onChange(o.value)}
-          className={cx('min-h-11 rounded-full text-sub font-semibold transition-colors', value === o.value ? 'bg-white text-[#2a1b18] shadow-sm' : 'text-muted-text')}>
+          className={cx('min-h-11 rounded-full text-sub font-semibold transition-colors', value === o.value ? 'bg-white text-ink shadow-sm' : 'text-muted-text')}>
           {o.label}
         </button>
       ))}
@@ -107,7 +108,7 @@ export function Notice({ children, tone = 'info' }: { children: ReactNode; tone?
   const Icon = tone === 'warn' ? ShieldAlert : Info
   return (
     <div role={tone === 'warn' ? 'alert' : 'note'} className={cx('flex gap-3 rounded-card border p-3.5 text-sub backdrop-blur-md',
-      tone === 'warn' ? 'border-error/35 bg-error-tint text-ink' : 'border-line bg-white/[0.05] text-muted-text')}>
+      tone === 'warn' ? 'border-error/30 bg-error-tint text-ink' : 'border-line bg-white/80 text-muted-text')}>
       <Icon size={20} className={cx('mt-px shrink-0', tone === 'warn' ? 'text-error' : 'text-accent-dark')} />
       <div className="min-w-0">{children}</div>
     </div>
@@ -128,7 +129,7 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   return <label className="grid min-w-0 gap-1.5 text-sub font-medium text-muted-text">{label}{children}</label>
 }
 // min-w-0: date/time inputs have a large intrinsic width and otherwise push narrow (320 px) screens sideways.
-export const inputCls = 'min-h-[3.25rem] w-full min-w-0 max-w-full rounded-2xl border border-line bg-black/20 px-4 text-body text-ink transition-colors focus:border-accent-dark/70 focus:bg-black/30 focus:outline-none'
+export const inputCls = 'block min-h-[3.25rem] w-full min-w-0 max-w-full rounded-2xl border border-[rgb(35_26_23/0.16)] bg-white px-4 text-body font-medium text-ink shadow-[inset_0_1px_2px_rgb(35_26_23/0.04)] transition-colors focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15'
 
 export function ActivityRow({ a, action, onOpen }: { a: Activity; action?: ReactNode; onOpen?: () => void }) {
   return (
@@ -160,13 +161,13 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   }, [open, onClose])
   if (!open) return null
   return (
-    <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-[3px]" onClick={onClose}>
+    <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-[rgb(35_26_23/0.38)] backdrop-blur-[3px]" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
-        className="glass anim-sheet max-h-[85dvh] w-full max-w-[480px] overflow-y-auto rounded-t-[2rem] !border-b-0 pb-[calc(env(safe-area-inset-bottom)+1rem)] text-ink">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-gradient-to-b from-[#2e221f] via-[#2e221f]/90 to-transparent px-5 pb-3 pt-3">
-          <span className="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-white/30" />
+        className="glass anim-sheet max-h-[85dvh] w-full max-w-[480px] overflow-y-auto rounded-t-[2rem] !border-b-0 pb-[calc(var(--safe-bottom)+1rem)] text-ink">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-white/90 px-5 pb-3 pt-3 backdrop-blur-xl">
+          <span className="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-ink/20" />
           <h2 className="mt-3 min-w-0 text-h2 font-bold">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="press mt-3 grid size-11 shrink-0 place-items-center rounded-full bg-white/10 ring-1 ring-line"><X size={18} /></button>
+          <button onClick={onClose} aria-label="Close" className="press mt-3 grid size-11 shrink-0 place-items-center rounded-full bg-ink-tint ring-1 ring-line"><X size={18} /></button>
         </div>
         <div className="px-5">{children}</div>
       </div>
@@ -187,7 +188,7 @@ export function ActivitySheet({ a, onClose, action }: { a: Activity | null; onCl
             {[['Duration', fmtDur(a.durationMin)], ['Cost', a.costLabel.replace(' (illustrative)', '')], ['Access', a.access === 'Unverified' ? 'Unverified' : a.access]].map(([k, v]) => (
               <div key={k} className="panel rounded-2xl px-1 py-2.5"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
           </dl>
-          <p className="text-body text-ink/90">{a.note}</p>
+          <p className="text-body text-ink/85">{a.note}</p>
           {action}
         </div>
       )}

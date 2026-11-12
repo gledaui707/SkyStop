@@ -120,7 +120,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-sub text-muted-text">Layover guides:</span>
               {AIRPORTS.filter((a) => a.code !== origin && a.code !== destination).map((a) => (
-                <button key={a.code} type="button" onClick={() => setConn(a.code)} className="press min-h-11 rounded-full border border-line bg-white/[0.06] px-4 text-sub font-medium">{a.city} {a.code}</button>))}
+                <button key={a.code} type="button" onClick={() => setConn(a.code)} className="press min-h-11 rounded-full border border-line bg-white px-4 text-sub font-medium">{a.city} {a.code}</button>))}
             </div>
           ) : !supported && <p className="mt-2 text-sub text-muted-text">No activity guide for this airport yet. You can still see your time budget.</p>}
 
@@ -143,10 +143,10 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
         <fieldset>
           <legend className="mb-1 text-body font-semibold">Planning buffer</legend>
           <p id="buffer-help" className="mb-3 text-sub text-muted-text">Time kept free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding. Activities only use what is left.</p>
-          <div className="grid grid-cols-3 gap-1 rounded-full bg-white/[0.07] p-1 ring-1 ring-line" aria-describedby="buffer-help">
+          <div className="grid grid-cols-3 gap-1 rounded-full bg-ink-tint p-1 ring-1 ring-line" aria-describedby="buffer-help">
             {BUFFERS.map((m) => (
               <button type="button" key={m} aria-pressed={buf === m} onClick={() => setBuf(m)}
-                className={cx('press min-h-12 rounded-full text-body font-semibold transition-colors', buf === m ? 'bg-white text-[#2a1b18] shadow-[0_6px_18px_rgb(0_0_0/0.3)]' : 'text-muted-text')}>{fmtDur(m)}</button>))}
+                className={cx('press min-h-12 rounded-full text-body font-semibold transition-colors', buf === m ? 'bg-white text-ink shadow-[0_4px_12px_rgb(70_35_25/0.14)]' : 'text-muted-text')}>{fmtDur(m)}</button>))}
           </div>
         </fieldset>
 
@@ -159,13 +159,13 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
               </div>
               <Clock size={28} className="mb-1 text-accent-dark" aria-hidden="true" />
             </div>
-            <div className="mt-4 flex h-3 gap-0.5 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
-              <div className="bg-white/30" style={{ width: pct(b.buffer) }} />
+            <div className="mt-4 flex h-3 gap-0.5 overflow-hidden rounded-full bg-ink-tint" aria-hidden="true">
+              <div className="bg-muted/45" style={{ width: pct(b.buffer) }} />
               <div className="rounded-r-full bg-gradient-to-r from-[#f6a04d] to-accent" style={{ width: pct(b.usable) }} />
             </div>
             <dl className="mt-4 grid gap-2 text-body">
               <div className="flex justify-between"><dt className="text-muted-text">Total layover</dt><dd className="font-semibold">{fmtDur(b.total)}</dd></div>
-              <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted-text"><span className="size-2.5 rounded-full bg-white/40" />Planning buffer</dt><dd className="font-semibold">− {fmtDur(b.buffer)}</dd></div>
+              <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted-text"><span className="size-2.5 rounded-full bg-muted/60" />Planning buffer</dt><dd className="font-semibold">− {fmtDur(b.buffer)}</dd></div>
               <div className="flex justify-between border-t border-line pt-2"><dt className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-accent" />Usable time</dt><dd className="text-card font-bold text-accent-dark">{fmtDur(b.usable)}</dd></div>
             </dl>
             {b.usable === 0 && <p role="alert" className="mt-3 text-sub font-medium text-error">No usable time after the buffer. A shorter buffer may help.</p>}
@@ -178,7 +178,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
             <span>Journey details <span className="font-normal text-muted-text">(optional)</span>{route.includes('→') && <span className="block text-sub font-normal text-accent-dark">{route}</span>}</span>
             <ChevronDown size={20} className="shrink-0 text-muted-text transition-transform group-open:rotate-180" />
           </summary>
-          <div className="grid gap-4 px-4 pb-4">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 px-4 pb-4">
             <p className="text-sub text-muted-text">Where your trip starts and ends. Used only to label your plan.</p>
             <AirportPicker label="Flying from" value={origin} onChange={setOrigin} exclude={[conn, destination].filter(Boolean)} placeholder="City, airport or code, e.g. CGK" />
             <AirportPicker label="Final destination" value={destination} onChange={setDestination} exclude={[conn, origin].filter(Boolean)} placeholder="City, airport or code, e.g. CDG" />

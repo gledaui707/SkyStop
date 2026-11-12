@@ -59,7 +59,7 @@ function Shell() {
   return (
     <div className="mx-auto min-h-dvh max-w-[480px] pb-[var(--nav-h)]">
       <main key={key} className="anim-screen"><Screen /></main>
-      <nav aria-label="Primary" className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] px-5 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+      <nav aria-label="Primary" className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] px-5 pb-[calc(var(--safe-bottom)+0.75rem)]">
         <div className="glass pointer-events-auto mx-auto grid h-[4.25rem] max-w-[22rem] grid-cols-3 gap-1 rounded-full p-1.5">
         {TABS.map(({ id, label, icon: Icon }) => {
           const on = active === id

@@ -72,9 +72,10 @@ export function PlanDetail({ id }: { id: string }) {
       <div className="ph relative h-[19rem] overflow-hidden">
         <img src={sized(ap.image, 900, 620)} alt={ap.image.alt} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent" />
-        <div className="hero-melt absolute inset-x-0 bottom-0 h-[70%]" />
+        <div className="absolute inset-x-0 bottom-0 h-[65%] bg-gradient-to-t from-deep/90 via-deep/45 to-transparent" />
+        <div className="hero-melt absolute inset-x-0 bottom-0 h-10" />
         <button onClick={back} aria-label="Back" className="glass-dark press absolute left-4 top-[calc(var(--safe-top)+0.25rem)] grid size-12 place-items-center rounded-full text-white"><ChevronLeft size={26} strokeWidth={2.4} /></button>
-        <div className="absolute inset-x-5 bottom-3 text-white">
+        <div className="absolute inset-x-5 bottom-10 text-white">
           <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold uppercase tracking-[0.08em]">{ap.name} ({ap.code})</p>
           <h1 className="mt-2 text-title font-bold leading-tight">{p.name}</h1>
         </div>
