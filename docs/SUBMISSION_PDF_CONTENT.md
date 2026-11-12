@@ -168,6 +168,8 @@ erDiagram
 ## 4. Application screenshots (real, from the deployed app)
 Captured on 2026-11-12 from https://skystop.vercel.app in a phone-sized browser (iPhone 13 viewport) while running the complete journey against the live database (files in `docs/screenshots/`). Photos are illustrative Unsplash images.
 
+✏️ **These screenshots show the build before the UX refinement of 2026-11-12 (`97e2972`)**: setup was two steps and the main button said "Add my flight". Retake them before submitting, either on your phone or with `SHOTS=docs/screenshots npm run test:live` (this creates one synthetic guest and plan in the database), then regenerate this PDF.
+
 **Figure — Welcome screen (first visit): one action to add a flight.**
 
 ![Welcome screen (first visit): one action to add a flight.](screenshots/01-welcome.png)
@@ -215,10 +217,10 @@ Captured on 2026-11-12 from https://skystop.vercel.app in a phone-sized browser 
 ## 5. Testing and verification (what was actually run)
 | What | How | Result (2026-11-12) |
 |---|---|---|
-| Domain logic and data layer (time zones, overnight, daylight-saving gap/overlap, 48 h limit, zero usable time, budget, filters, map layout) | `npm test -- --run` | 70 passed (1 hosted test skipped by default) |
+| Domain logic and data layer (time zones, overnight, daylight-saving gap/overlap, 48 h limit, zero usable time, budget, filters, map layout) | `npm test -- --run` | 76 passed (1 hosted test skipped by default) |
 | Database rules (tables, RLS, ownership, atomic save, rollback) in an in-memory PostgreSQL | `npm test --prefix tests/database` | 15/15 passed |
-| Full user journey in a real browser (phone viewport) against a **simulated** API: add flight → explore → build → fail/retry save → save → refresh → retrieve → edit → second guest sees nothing → curated itinerary → error and retry states | `npm run build && npm run test:e2e` | 24/24 passed |
-| Full user journey in a real browser on the **deployed app and live database** (add flight → explore → over-budget warning → build → save → refresh → retrieve → edit → refresh) | `npm run test:live` | 16/16 passed; all Supabase responses HTTP 200 |
+| Full user journey in a real browser (phone viewport) against a **simulated** API: plan a layover → explore (List and Map) → build → fail/retry save → save → refresh → retrieve → edit; explore-first and itinerary-first paths; builder layout at 320/375/390 px; error and retry states | `npm run build && npm run test:e2e` | 41/41 passed |
+| Full user journey in a real browser on the **deployed app and live database** (explore → over-budget warning → build → save → refresh → retrieve → edit → refresh) | `npm run test:live` | 16/16 passed on the build before the UX refinement; after it, a read-only live check (no save) passed 7/7 |
 | Real-database journey through the app's own data layer, including a second guest who cannot see or open the first guest's plan | `npm run test:hosted` (run once on the fresh project) | passed |
 | Production build | `npm run build` | passed |
 AI review of the key screens from phone-sized screenshots was done on 2026-11-12 (findings and fixes in docs/UI_REVIEW.md). Desktop widths, keyboard/accessibility checks and a real-phone check were **not** done. ✏️ Add your own manual check on a real phone.

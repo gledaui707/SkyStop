@@ -122,3 +122,9 @@ Production: `skystop.vercel.app` served commit `06e4725` (checked through the Ve
 `npm test -- --run`: 70 passed, 1 skipped. Production build passes.
 Map fixes with geometry tests: see docs/UI_REVIEW.md.
 Not done: real-phone check, desktop widths, keyboard/accessibility audit, hosted conflict-path (`PT409`) exercise, Safari.
+
+## 2026-11-12 — UX refinement (commit `97e2972`)
+`npm test -- --run`: 76 passed, 1 skipped (new: `src/data/time.test.ts`, 6 tests for time-zone-aware durations). Production build passes. `npm test --prefix tests/database`: 15/15.
+`npm run build && npm run test:e2e` (simulated API, real Chromium): **41/41** — booked-flight journey (Plan a layover → List-first discovery → List↔Map keeps the plan → build → failed save keeps the draft → save with confirmation → refresh → retrieve → edit → "All changes saved" → refresh), explore-first (selections and airport carried into setup), itinerary-first (name carried), builder layout at 320×568 / 375×667 / 390×664 (content ends above the bars, no sideways scroll, no clipped or overflowing bar text), flight comparison, catalogue error/retry.
+Production `skystop.vercel.app` = `97e2972` (Vercel READY). **Read-only** live check (no Save pressed, no records created, by instruction): 7/7 — welcome CTA, catalogue from Supabase, List-first, Map keeps selection, setup carries airport + selection, overnight 23:30→02:00 = 2h 30m / 1h usable, builder bar; only catalogue GETs were made.
+Not run on production after this change: save/refresh/edit (would create records). The previous build passed it live 16/16.

@@ -621,6 +621,7 @@ p strong:first-child { page-break-after: avoid; }
 </table>
 <h2>4. Application screenshots (real, from the deployed app)</h2>
 <p>Captured on 2026-11-12 from https://skystop.vercel.app in a phone-sized browser (iPhone 13 viewport) while running the complete journey against the live database (files in <code>docs/screenshots/</code>). Photos are illustrative Unsplash images.</p>
+<p>✏️ <strong>These screenshots show the build before the UX refinement of 2026-11-12 (<code>97e2972</code>)</strong>: setup was two steps and the main button said "Add my flight". Retake them before submitting, either on your phone or with <code>SHOTS=docs/screenshots npm run test:live</code> (this creates one synthetic guest and plan in the database), then regenerate this PDF.</p>
 <div class="fig"><p><strong>Figure — Welcome screen (first visit): one action to add a flight.</strong></p>
 <p><img alt="Welcome screen (first visit): one action to add a flight." src="screenshots/01-welcome.png" /></p></div>
 <div class="fig"><p><strong>Figure — Step 1: the traveller enters the booked route (origin and destination airports).</strong></p>
@@ -656,7 +657,7 @@ p strong:first-child { page-break-after: avoid; }
 <tr>
 <td>Domain logic and data layer (time zones, overnight, daylight-saving gap/overlap, 48 h limit, zero usable time, budget, filters, map layout)</td>
 <td><code>npm test -- --run</code></td>
-<td>70 passed (1 hosted test skipped by default)</td>
+<td>76 passed (1 hosted test skipped by default)</td>
 </tr>
 <tr>
 <td>Database rules (tables, RLS, ownership, atomic save, rollback) in an in-memory PostgreSQL</td>
@@ -664,14 +665,14 @@ p strong:first-child { page-break-after: avoid; }
 <td>15/15 passed</td>
 </tr>
 <tr>
-<td>Full user journey in a real browser (phone viewport) against a <strong>simulated</strong> API: add flight → explore → build → fail/retry save → save → refresh → retrieve → edit → second guest sees nothing → curated itinerary → error and retry states</td>
+<td>Full user journey in a real browser (phone viewport) against a <strong>simulated</strong> API: plan a layover → explore (List and Map) → build → fail/retry save → save → refresh → retrieve → edit; explore-first and itinerary-first paths; builder layout at 320/375/390 px; error and retry states</td>
 <td><code>npm run build &amp;&amp; npm run test:e2e</code></td>
-<td>24/24 passed</td>
+<td>41/41 passed</td>
 </tr>
 <tr>
-<td>Full user journey in a real browser on the <strong>deployed app and live database</strong> (add flight → explore → over-budget warning → build → save → refresh → retrieve → edit → refresh)</td>
+<td>Full user journey in a real browser on the <strong>deployed app and live database</strong> (explore → over-budget warning → build → save → refresh → retrieve → edit → refresh)</td>
 <td><code>npm run test:live</code></td>
-<td>16/16 passed; all Supabase responses HTTP 200</td>
+<td>16/16 passed on the build before the UX refinement; after it, a read-only live check (no save) passed 7/7</td>
 </tr>
 <tr>
 <td>Real-database journey through the app's own data layer, including a second guest who cannot see or open the first guest's plan</td>
