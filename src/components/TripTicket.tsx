@@ -13,10 +13,10 @@ export function TripTicket({ plan, onView, onAdd }: Props) {
   const arr = new Date(plan.arrival), dep = new Date(plan.departure)
   const items = plan.activityIds.map((id) => ACTIVITIES.find((a) => a.id === id)!).filter(Boolean)
   const b = budget(layoverMinutesAt(plan.arrival, plan.departure, ap.timezone), plan.bufferMin, items)
-  const card = 'rounded-[1.75rem] bg-white px-4 py-4 text-ink shadow-[0_8px_30px_rgb(0_0_0/0.08)] ring-1 ring-line sm:px-5'
+  const paper = 'bg-white px-4 py-4 sm:px-5'
   return (
-    <article aria-label="Upcoming trip" className="grid gap-3">
-      <div className={card}>
+    <article aria-label="Upcoming trip" className="overflow-hidden rounded-[1.75rem] text-ink drop-shadow-[0_8px_18px_rgb(0_0_0/0.08)]">
+      <div className={paper}>
         <p className="flex items-center gap-1.5 text-cap font-bold uppercase tracking-wide text-accent-dark">
           <Plane size={14} aria-hidden="true" /> Next connection
         </p>
@@ -30,7 +30,12 @@ export function TripTicket({ plan, onView, onAdd }: Props) {
           <div className="mt-3"><p className="text-sub text-muted-text">{ap.city}</p><p className="text-[2rem] font-bold leading-tight tracking-tight">{ap.code}</p></div>
         )}
       </div>
-      <section aria-label="Transit" className={card}>
+      <div aria-hidden="true" className="flex h-6 items-center bg-white px-5" style={{
+        mask: 'radial-gradient(circle at left center, transparent 11px, black 12px) left / 51% 100% no-repeat, radial-gradient(circle at right center, transparent 11px, black 12px) right / 51% 100% no-repeat',
+      }}>
+        <div className="w-full border-t-2 border-dotted border-line" />
+      </div>
+      <section aria-label="Transit" className={paper}>
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <h2 className="text-card font-semibold">Transit in <span className="text-accent-dark">{ap.city} ({ap.code})</span></h2>
           <p className="text-cap text-muted-text">{fmtDur(b.total)} layover</p>
