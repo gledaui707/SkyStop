@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "temporal-polyfill": "^0.3.0"
   },
   "devDependencies": {

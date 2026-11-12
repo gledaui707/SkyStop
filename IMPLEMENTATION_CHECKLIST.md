@@ -17,3 +17,8 @@ As of architecture handoff, 2026-11-11. Update with evidence, not optimism.
 - [ ] Produce final real-screenshot PDF and submit URL/PDF on Moodle.
 - [ ] Book demo and rehearse twice in five minutes.
 Database harness results and limits: docs/VALIDATION.md.
+
+## Scope decision (owner, 2026-11-12)
+Demo is a five-minute happy flow only. Revision-conflict handling is out of the demo scope; known issue recorded in docs/VALIDATION.md (conflict-path save_plan calls hang on the hosted API; ownership, create, read, edit and rollback paths work). The app must disable the save button while saving so a double-submit cannot hit that path. Revisit only if the assignment brief requires it.
+- [x] Data layer written (src/data: client, guest session, repositories) with 5 mock-based unit tests; types in src/types/database.types.ts are HAND-WRITTEN, not CLI-generated.
+- [ ] Wire data layer into the Figma Make export (waiting on the export).
