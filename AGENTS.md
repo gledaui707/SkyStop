@@ -1,4 +1,5 @@
-# Layverse project rules
+# SkyStop project rules
+0. **Branching (owner decision, 2026-11-12):** `main` is the primary development branch and the one Vercel deploys. Work directly on `main`; create no feature branches unless necessary. Do not rerun the hosted database stress/ownership tests (`tests/hosted/ownership.mjs`) or change the Supabase schema without the owner's explicit approval.
 1. Ship the smallest reliable MVP by November 15, 2026, 23:59 Europe/Lisbon. Five-minute live demo is the priority. No replacement pitch.
 2. Read SPEC.md, docs/REQUIREMENTS.md, docs/ARCHITECTURE.md, docs/DATABASE.md and CLAUDE_HANDOFF.md before coding. Assignment 2 PDF governs grading. Brief/designs are reference material, not authorization to expand scope.
 3. Reuse the Figma Make React export. Do not generate an independent competing frontend. Inspect package/lock files and preserve useful components/assets; retain one app and one package manager.
