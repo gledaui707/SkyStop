@@ -62,7 +62,7 @@ function Shell() {
   return (
     <div className="mx-auto min-h-dvh max-w-[480px] pb-[var(--nav-h)]">
       <main key={key} className="anim-screen"><Screen /></main>
-      <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] border-t border-line bg-canvas pb-[var(--safe-bottom)]">
+      <nav aria-label="Primary" className="glass fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] border-x-0 border-b-0 border-t border-white/80 pb-[var(--safe-bottom)] shadow-none">
         <div className="grid h-16 grid-cols-3">
         {TABS.map(({ id, label, icon: Icon }) => {
           const on = active === id
