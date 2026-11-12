@@ -22,7 +22,7 @@ export function FindJourney() {
   const submit = (value = ref) => {
     const r = normaliseRef(value)
     if (!isRefFormat(r)) { setError('A booking reference has 6 letters or numbers, for example AXR7KD.'); return }
-    if (!findSampleJourney(r)) { setError(`We couldn't find a sample journey with reference ${r}. SkyStop only opens the sample references below — or enter your flight details manually.`); setShowSamples(true); return }
+    if (!findSampleJourney(r)) { setError('Booking number not found.'); setShowSamples(true); return }
     setError(null); go({ name: 'journey', ref: r })
   }
 

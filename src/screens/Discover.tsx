@@ -47,7 +47,7 @@ const Notch = ({ icon: Icon = ArrowUpRight }: { icon?: LucideIcon }) => (
 
 /** Home: discovery-first, with the next saved trip on top when there is one. */
 export function Home() {
-  const { plans, go, switchTab } = useApp()
+  const { plans, go, switchTab, account } = useApp()
   const q = ''
   const [cat, setCat] = useState<'All' | Category>('All')
   const upcoming = nextTrip(plans)
@@ -67,7 +67,7 @@ export function Home() {
       <div className="px-5 pt-[calc(var(--safe-top)+0.5rem)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sub font-medium text-muted-text">{greeting()}</p>
+            <p className="text-sub font-medium text-muted-text">{greeting()}{account.status === 'registered' && account.name ? `, ${account.name.split(' ')[0]}` : ''}</p>
             <h1 className="mt-0.5 text-title font-bold">Where’s your<br />next stop?</h1>
           </div>
           <button onClick={() => go({ name: 'profile' })} aria-label="Profile" className="glass press mt-1 grid size-12 shrink-0 place-items-center rounded-full"><UserRound size={21} /></button>

@@ -144,7 +144,7 @@ try {
   await k.page.getByLabel('Booking reference').fill('zz9zz9');
   await k.page.getByRole('button', { name: 'Find my journey' }).click();
   const unk = await k.page.getByRole('alert').allInnerTexts();
-  check('booking: unknown reference -> clear error, no journey shown', unk.some((t) => t.includes("find a sample journey with reference ZZ9ZZ9")) && (await k.page.getByRole('heading', { name: 'Your journey', exact: true }).count()) === 0, JSON.stringify(unk));
+  check('booking: unknown reference -> clear error, no journey shown', unk.some((t) => t.includes('Booking number not found.')) && (await k.page.getByRole('heading', { name: 'Your journey', exact: true }).count()) === 0, JSON.stringify(unk));
   await k.page.getByLabel('Booking reference').fill('AB1');
   await k.page.getByRole('button', { name: 'Find my journey' }).click();
   check('booking: malformed reference -> format hint', (await k.page.getByRole('alert').innerText()).includes('6 letters or numbers'));
@@ -510,6 +510,9 @@ try {
     await G.getByRole('button', { name: 'Remove photo' }).click();
     await G.getByRole('button', { name: 'Add profile picture' }).waitFor();
     check('account: picture can be removed', !fake.avatars.has(`${uid}/avatar.jpg`));
+    await G.getByRole('button', { name: 'Home' }).click();
+    check('home: greeting uses the signed-in name', /^Good (night|morning|afternoon|evening), Glenda$/.test((await G.getByText(/^Good (night|morning|afternoon|evening)/).first().innerText()).trim()));
+    await G.getByRole('button', { name: 'Profile' }).click();
     // Another device: sign in to the same account
     const other = await browser.newContext({ ...devices['iPhone 13'] });
     await other.addInitScript((s) => { localStorage.setItem('skystop.onboarded.v2', '1'); localStorage.setItem('sb-sgwbtgwccskqamzttczz-auth-token', s) }, JSON.stringify(fake.sessionFor(uid)));

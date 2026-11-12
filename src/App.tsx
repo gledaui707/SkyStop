@@ -1,4 +1,4 @@
-import { MapPin, House, Bookmark, Plane } from 'lucide-react'
+import { Earth, House, Bookmark, Plane } from 'lucide-react'
 import { useEffect } from 'react'
 import { Check } from 'lucide-react'
 import { AppProvider, useApp, tabOf, type Tab } from './store'
@@ -38,9 +38,21 @@ function Screen() {
   }
 }
 
-const TABS: { id: Tab; label: string; icon: typeof House }[] = [
+/** Airports tab icon: a globe with a small plane flying across its lower right. */
+function AirportsIcon({ size = 22, strokeWidth = 2 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <span aria-hidden="true" className="relative inline-block" style={{ width: size, height: size }}>
+      <Earth size={size} strokeWidth={strokeWidth} />
+      <span className="absolute -bottom-1 -right-1.5 grid place-items-center rounded-full bg-[var(--color-canvas)] p-[1.5px]">
+        <Plane size={Math.round(size * 0.5)} strokeWidth={strokeWidth} fill="currentColor" className="rotate-[-20deg]" />
+      </span>
+    </span>
+  )
+}
+
+const TABS: { id: Tab; label: string; icon: typeof House | typeof AirportsIcon }[] = [
   { id: 'home', label: 'Home', icon: House },
-  { id: 'airports', label: 'Airports', icon: MapPin },
+  { id: 'airports', label: 'Airports', icon: AirportsIcon },
   { id: 'plans', label: 'My Plans', icon: Bookmark },
 ]
 
