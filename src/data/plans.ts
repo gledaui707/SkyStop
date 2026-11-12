@@ -7,6 +7,7 @@ import { getSupabase } from '../api/client'
 import { hasGuestSession } from '../api/session'
 import * as repo from '../api/repositories'
 import { instantToLocal, validateLayover } from '../domain'
+import { SAMPLE_JOURNEYS } from './journeys'
 
 interface Meta { name?: string; origin?: string; destination?: string; bookingRef?: string; arrivalLocation?: string | null; departureLocation?: string | null }
 const META_KEY = 'skystop.planmeta.v1'
@@ -17,6 +18,10 @@ export function toUiPlan(row: repo.Plan): Plan {
   const ap = getAirport(row.airport_id)
   const local = (iso: string) => { const l = instantToLocal(iso, ap.timezone); return `${l.date}T${l.time}` }
   const meta = readMeta()[row.id] ?? {}
+  // A plan started from a sample booking reference always has a known route; restore it if the label is missing
+  // (older saves, or labels cleared), but only when the sample's connection matches the saved airport.
+  const sample = meta.bookingRef ? SAMPLE_JOURNEYS.find((j) => j.ref === meta.bookingRef && j.connection === row.airport_id) : undefined
+  if (sample) { meta.origin ??= sample.origin; meta.destination ??= sample.destination }
   return {
     id: row.id, name: meta.name || `${ap.city} layover`, airport: row.airport_id,
     arrival: local(row.arrival_at), departure: local(row.departure_at), bufferMin: row.buffer_minutes,

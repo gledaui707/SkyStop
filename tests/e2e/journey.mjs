@@ -111,7 +111,8 @@ try {
   check('stored buffer 90 and 2 ordered activities', stored.row.buffer_minutes === 90 && stored.items.length === 2 && stored.items[0].activity_id.endsWith('1'));
   const ticket = await page.getByLabel('Upcoming trip').innerText();
   check('manual Home card shows only the actual transit airport and times', ['LIS', '10:00', '15:00', '3h 30m', '2 activities saved'].every((value) => ticket.includes(value))
-    && await page.getByRole('group', { name: 'Full route' }).count() === 0 && !ticket.includes('—'));
+    && await page.getByRole('region', { name: /^Journey / }).count() === 0 && await page.getByRole('region', { name: 'Connection at LIS' }).isVisible()
+    && ticket.includes('Origin and destination were not added') && !ticket.includes('—'));
   await shot(page, '05-home-saved');
 
   await page.reload();
@@ -178,17 +179,20 @@ try {
   const before = fake.plans.size;
   await k.page.getByRole('button', { name: 'Save plan' }).click();
   await k.page.getByLabel('Upcoming trip').waitFor();
-  const route = await k.page.getByRole('group', { name: 'Full route' }).innerText();
-  const transit = await k.page.getByRole('region', { name: 'Transit' }).innerText();
-  check('sample Home card separates CGK–SIN–CDG from SIN layover times', /CGK[\s\S]*SIN[\s\S]*CDG/.test(route)
-    && ['11:15', '23:35', '10h 20m'].every((value) => transit.includes(value)));
+  const journey = (await k.page.getByRole('region', { name: 'Journey CGK to CDG via SIN' }).innerText()).replace(/\s+/g, ' ');
+  const layover = (await k.page.getByRole('region', { name: 'Layover' }).innerText()).replace(/\s+/g, ' ');
+  check('sample Home card: CGK and CDG at the ends, SIN connection times beneath, labelled as SIN arrival/departure', /Jakarta.*Paris.*CGK.*CDG.*11:15.*23:35.*Arrive SIN.*Depart SIN/.test(journey), journey);
+  check('sample Home card: transit SIN, 10h 20m to explore = 12h 20m connection − 2h buffer', ['SIN · Singapore', '10h 20m', '12h 20m connection − 2h buffer'].every((v) => layover.includes(v)), layover);
+  await k.page.evaluate(() => { const m = JSON.parse(localStorage.getItem('skystop.planmeta.v1')); for (const v of Object.values(m)) { delete v.origin; delete v.destination } localStorage.setItem('skystop.planmeta.v1', JSON.stringify(m)) });
+  await k.page.reload(); await k.page.getByLabel('Upcoming trip').waitFor();
+  check('sample route is restored from the booking reference when its stored labels are missing', await k.page.getByRole('region', { name: 'Journey CGK to CDG via SIN' }).isVisible());
   const viewLayover = k.page.getByRole('button', { name: 'View layover' });
   await viewLayover.scrollIntoViewIfNeeded();
   const actionBox = await viewLayover.boundingBox();
   const navBox = await k.page.getByRole('navigation', { name: 'Primary' }).boundingBox();
   check('320px Home card has no horizontal overflow and its action clears the tabs', await k.page.evaluate(() =>
     document.documentElement.scrollWidth <= document.documentElement.clientWidth)
-    && actionBox.y + actionBox.height <= navBox.y);
+    && actionBox.y + actionBox.height <= navBox.y, JSON.stringify({ actionBox, navBox, sw: await k.page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]) }));
   const kp = [...fake.plans.values()].find((p) => p.row.airport_id === 'SIN');
   check('booking: saved through the same save_plan path; SIN 11:15 local stored as 03:15Z', fake.plans.size === before + 1 && !!kp && kp.row.arrival_at.endsWith('T03:15:00Z') && kp.row.buffer_minutes === 120, kp?.row.arrival_at);
   await k.ctx.close();
