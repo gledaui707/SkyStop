@@ -1,11 +1,12 @@
 {
-  "name": "skystop-domain",
+  "name": "skystop",
   "private": true,
   "type": "module",
   "description": "Pure time/plan domain logic. Merge into the Figma Make export's package.json when it arrives; keep one app and one lockfile.",
   "scripts": {
     "test": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:hosted": "RUN_HOSTED=1 vitest run src/data/hosted.journey.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

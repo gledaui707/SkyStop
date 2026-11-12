@@ -115,3 +115,10 @@ export function validateLayover(input: LayoverInput): LayoverResult {
     },
   };
 }
+
+/** UTC instant (ISO, any offset) -> airport-local form fields. */
+export function instantToLocal(iso: string, timezone: string): { date: string; time: string } {
+  const z = Temporal.Instant.from(iso).toZonedDateTimeISO(timezone);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return { date: `${z.year}-${p(z.month)}-${p(z.day)}`, time: `${p(z.hour)}:${p(z.minute)}` };
+}

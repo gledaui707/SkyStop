@@ -1,21 +1,29 @@
-name: Hosted database ownership check
+name: Hosted database checks (manual only)
+# Manual runs only. No push/schedule triggers: these tests create synthetic guests/plans in the hosted project.
 on:
   workflow_dispatch:
-  push:
-    branches: [claude/tender-keller-cxp9ac]
-    paths: ['tests/hosted/**', '.github/workflows/hosted-db-check.yml']
+    inputs:
+      suite:
+        description: "journey = happy-path app data layer; ownership = advanced two-session test (conflict path known to hang)"
+        type: choice
+        options: [journey, ownership]
+        default: journey
 jobs:
-  ownership:
-    timeout-minutes: 5
+  hosted:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: https://rdrkskrzdyqezzopnena.supabase.co
+      # Public browser key (safe to commit); never put a service-role key here.
+      SUPABASE_PUBLISHABLE_KEY: sb_publishable_fSu0PKPg6Y4T4JICz-Cczg_CEn5jP30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Two-session ownership, save, edit and rollback test
-        env:
-          SUPABASE_URL: https://rdrkskrzdyqezzopnena.supabase.co
-          # Public browser key (safe to commit); never put a service-role key here.
-          SUPABASE_PUBLISHABLE_KEY: sb_publishable_fSu0PKPg6Y4T4JICz-Cczg_CEn5jP30
+      - name: Happy-path journey through the real data layer
+        if: inputs.suite == 'journey'
+        run: npm ci && npm run test:hosted
+      - name: Advanced two-session ownership test
+        if: inputs.suite == 'ownership'
         run: node tests/hosted/ownership.mjs
