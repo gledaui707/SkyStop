@@ -25,7 +25,7 @@ export function TripTicket({ plan, onView }: Props) {
   // Upper section: [name / CODE / time / caption] at each end, plane in the middle.
   const code = 'block text-[clamp(2.5rem,12.5vw,3rem)] font-bold leading-[0.95] tracking-[-0.035em] text-ink'
   const big = 'block text-[clamp(1.875rem,9.5vw,2.25rem)] font-semibold leading-none tracking-[-0.03em] tabular-nums text-ink'
-  const name = 'block truncate text-[0.8125rem] text-muted-text'
+  const name = 'block truncate text-[clamp(1.25rem,6vw,1.5rem)] font-semibold leading-tight tracking-[-0.01em] text-ink/75'
   const caption = 'mt-1.5 block whitespace-nowrap text-[0.6875rem] leading-tight text-muted-text'
 
   return (
@@ -41,7 +41,7 @@ export function TripTicket({ plan, onView }: Props) {
           <span className={hasRoute ? code : big}>{hasRoute ? plan.origin : time(plan.arrival)}</span>
           <span aria-hidden="true" className="flex min-w-0 items-center gap-1.5">
             <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.28)]" />
-            <Plane size={18} strokeWidth={2} className="shrink-0 rotate-45 text-accent" />
+            <Plane size={30} strokeWidth={1.5} fill="currentColor" className="shrink-0 rotate-45 text-ink" />
             <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.28)]" />
           </span>
           <span className={cx(hasRoute ? code : big, 'text-right')}>{hasRoute ? plan.destination : time(plan.departure)}</span>
