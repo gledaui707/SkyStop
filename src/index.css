@@ -230,3 +230,8 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
     scroll-behavior: auto !important;
   }
 }
+
+/* Real airport map (Leaflet): keep the attribution above the overlapping bottom sheet, in the app's type. */
+.leaflet-container { font: inherit; background: #eef0ee; }
+.leaflet-bottom { bottom: 1.75rem; }
+.leaflet-control-attribution { font-size: 0.625rem; background: rgb(255 255 255 / 0.85) !important; border-radius: 0.5rem 0 0 0.5rem; }

@@ -56,7 +56,7 @@ const browser = await chromium.launch();
 let total = 0;
 for (const [w, h] of WIDTHS) {
   const ctx = await browser.newContext({ ...devices['iPhone 13'], viewport: { width: w, height: h } });
-  await ctx.route('**://*.supabase.co/**', fake.handler); await ctx.route('**://images.unsplash.com/**', (r) => r.abort());
+  await ctx.route('**://*.supabase.co/**', fake.handler); await ctx.route('**://images.unsplash.com/**', (r) => r.abort()); await ctx.route('**://*.basemaps.cartocdn.com/**', (r) => r.abort());
   const page = await ctx.newPage();
   const visit = async (name) => {
     await page.waitForTimeout(450);

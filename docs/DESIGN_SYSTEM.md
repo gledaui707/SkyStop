@@ -3,7 +3,7 @@ Inspiration: `design-references/` (composition, photography and glass quality on
 
 **Direction** (owner decision, 2026-11-12): a balanced light-and-dark, premium iOS-inspired travel app — not a dark dashboard and not a light/dark toggle.
 - *Light* for functional screens: plan a layover / booking entry, forms, activity lists, itinerary builder, My Plans. Warm off-white canvas `#FAF6F2` with soft peach/coral ambient washes, charcoal text `#231A17`, white frosted panels.
-- *Dark/atmospheric* only where photography leads: onboarding, photo heroes (airport, plan detail, home cards), the airport zone map. White text there always sits on a dark scrim (`photo-fade` or a `from-deep` gradient), never on a light melt.
+- *Dark/atmospheric* only where photography leads: onboarding, photo heroes (airport, plan detail, home cards). White text there always sits on a dark scrim (`photo-fade` or a `from-deep` gradient), never on a light melt.
 
 **Colour**: primary coral `#EA5139` (`accent`, gradient `btn-coral`); soft coral `#FFB5A5` (`aqua`), peach `#FFD9C7`, amber `#F6A04D`. Coral text on light uses `accent-dark` `#C23B24` (AA on the canvas). The time budget is the one strong coral surface (`sunset`, white text).
 
@@ -16,3 +16,5 @@ Inspiration: `design-references/` (composition, photography and glass quality on
 **Desktop presentation**: on desktop-class browsers (fine pointer, ≥ 820 px) the same app loads in an iframe at 390 × 844 inside a phone silhouette (`src/DeviceFrame.tsx`), scaled to the window; `?frame=off` opens it without the frame. Phones always get the app full screen.
 
 **Motion**: screen entrance, sheet slide-up, staggered rise, Ken Burns on heroes, press-scale; all disabled under `prefers-reduced-motion`.
+
+**Airport map**: a real map (Leaflet + CARTO Voyager tiles from OpenStreetMap data, attribution always visible) with one pin per terminal at its published coordinates (`src/data/airportGeo.ts`). Venues are grouped on their terminal pin because the catalogue has no venue-level coordinates; venues that span several terminals are not pinned. Labels are placed by `placePins` so they never overlap, joined to the true point by a leader line. Not for navigation.

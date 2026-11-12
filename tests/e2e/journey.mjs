@@ -26,6 +26,7 @@ const newGuest = async (viewport, { firstVisit = false, reducedMotion } = {}) =>
   if (!firstVisit) await ctx.addInitScript(() => { try { localStorage.setItem('skystop.onboarded.v2', '1'); } catch { /* ignore */ } });
   await ctx.route('**://*.supabase.co/**', fake.handler);
   await ctx.route('**://images.unsplash.com/**', (r) => r.abort());
+  await ctx.route('**://*.basemaps.cartocdn.com/**', (r) => r.abort());
   const page = await ctx.newPage();
   page.on('pageerror', (e) => { console.log('PAGE ERROR', e.message); failed++; });
   return { ctx, page };
@@ -77,8 +78,10 @@ try {
   await shot(page, '02-airport-list');
   // List <-> Map keeps the plan
   await page.getByRole('tab', { name: 'map' }).click();
-  await page.getByText('Airside zone').waitFor();
-  check('map: still available; shows the 2 planned activities and the time left', await page.getByRole('button', { name: /ANA Lounge, Rest, in your itinerary/ }).isVisible() && await visible(page, '2 planned') && await visible(page, '1h 50m left'));
+  await page.getByRole('button', { name: /^Terminal 1: / }).waitFor();
+  check('map: real-map view shows the Terminal 1 pin with the 2 planned activities and the time left', /6 of 6 venues, 2 in your itinerary/.test(await page.getByRole('button', { name: /^Terminal 1: / }).getAttribute('aria-label')) && await visible(page, '2 planned') && await visible(page, '1h 50m left') && await visible(page, 'OpenStreetMap'));
+  await page.getByRole('button', { name: /^Terminal 1: / }).click();
+  check('map: tapping a terminal lists its venues', await visible(page, 'Terminal 1 · Lisbon') && await page.getByRole('button', { name: /ANA Lounge/ }).first().isVisible());
   await shot(page, '03-airport-map');
   await page.getByRole('tab', { name: 'list' }).click();
   check('back in list: selection unchanged', (await page.getByRole('button', { name: 'Remove ANA Lounge' }).getAttribute('aria-pressed')) === 'true' && await page.getByRole('button', { name: 'Build itinerary (2)' }).isVisible());
@@ -185,7 +188,7 @@ try {
   await e.page.getByRole('button', { name: 'Select ANA Lounge' }).click();
   await e.page.getByRole('button', { name: 'Select Lisboa Duty Free' }).click();
   await e.page.getByRole('tab', { name: 'map' }).click();
-  check('explore-first: map shows the selection', await e.page.getByRole('button', { name: /Lisboa Duty Free, Shopping, in your itinerary/ }).isVisible() && await visible(e.page, '2 selected'));
+  check('explore-first: map shows the selection', /2 in your itinerary/.test(await e.page.getByRole('button', { name: /^Terminal 1: / }).getAttribute('aria-label')) && await visible(e.page, '2 selected'));
   await e.page.getByRole('tab', { name: 'list' }).click();
   await e.page.getByRole('button', { name: 'Set layover times (2 selected)' }).click();
   check('explore-first: setup shows the airport and the 2 selected activities', (await e.page.getByLabel('Connecting airport', { exact: true }).inputValue()).includes('LIS') && await visible(e.page, '2 activities selected'));

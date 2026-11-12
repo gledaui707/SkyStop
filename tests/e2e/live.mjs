@@ -46,7 +46,7 @@ try {
   check('curated itinerary shown with fit check', await visible(page, 'Market lunch and lounge') && await visible(page, 'Fits with 1h 50m to spare'));
   await shot(page, '05-airport-list');
   await page.getByRole('tab', { name: 'map' }).click();
-  await page.getByText('Airside zone').waitFor({ timeout: T });
+  await page.getByRole('button', { name: /^Terminal 1: / }).waitFor({ timeout: T });
   await shot(page, '04-airport-map');
   await page.getByRole('tab', { name: 'list' }).click();
   await page.getByRole('button', { name: 'Add O Mercado food court' }).click();
