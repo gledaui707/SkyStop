@@ -2,6 +2,7 @@ import { useEffect, useRef, type CSSProperties } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { useApp } from '../../store'
 import { getSupabase } from '../../api/client'
+import { Button } from '../../components/ui'
 // Original SS path data (splashscreen/): the same geometry as the logo files, recoloured here.
 import { cutout, letter } from '../splash/geometry'
 import './access.css'
@@ -116,12 +117,13 @@ export function AccountAccess() {
         </div>
 
         <div className="access__actions" role="group" aria-label="Account">
-          <button type="button" className="access__btn access__btn--primary press" onClick={() => finishAccess({ name: 'profile', auth: 'create' })}>
-            Create account
-          </button>
-          <button type="button" className="access__btn access__btn--secondary press" onClick={() => finishAccess({ name: 'profile', auth: 'signin' })}>
-            Sign in
-          </button>
+          {/* Same frosted tray and pills as the app's action bar (e.g. Explore / Save to My flights). */}
+          <div className="access__tray grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[2rem] border border-white/70 bg-white/75 p-2.5 shadow-[0_18px_40px_rgb(70_35_25/0.14),inset_0_1px_0_rgb(255_255_255/0.85)] backdrop-blur-[28px] backdrop-saturate-150">
+            <Button className="w-full" onClick={() => finishAccess({ name: 'profile', auth: 'create' })}>Create account</Button>
+            <button type="button" onClick={() => finishAccess({ name: 'profile', auth: 'signin' })}
+              className="press flex min-h-[3.25rem] w-full items-center justify-center rounded-full border border-white/90 bg-white/70 text-body font-semibold text-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.9)] backdrop-blur-xl">
+              Sign in</button>
+          </div>
           <button type="button" className="access__guest press" onClick={() => finishAccess()}>
             Continue as guest<ArrowRight size={18} aria-hidden="true" />
           </button>
