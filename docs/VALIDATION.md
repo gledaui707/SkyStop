@@ -69,3 +69,8 @@ FAIL (all three are the same cause): `B cannot take over A UUID via create`, `st
 Proposed fix withdrawn: a schema change was drafted but removed from the branch at the owner's direction. No schema or RLS change is made on the basis of this timeout; the cause is still being investigated through the test harness.
 
 Not done: database types (`src/types/database.types.ts`) — needs Supabase CLI login; no hosted Auth abuse controls/CAPTCHA verification.
+
+## 2026-11-12 — Hardened hosted test: run 43136955343 (commit c0225c9)
+Known issue (open, **unresolved**): `save_plan` calls that hit the conflict path (takeover by another user, stale revision, re-creating an existing UUID) receive no response — 15 s timeout, and still none after a 60 s repeat. Stored data was unchanged each time (revision/item count verified by follow-up read). After the stale-revision hang, plain reads of `layovers` also timed out three times, suggesting hung server-side requests were still running. Normal-path and other-error saves answered in 0.2–0.5 s. Cause not proven (hypothesis: API layer retrying SQLSTATE 40001). No schema/RLS change was made. Server logs were not inspected.
+Impact: ownership held; user-facing conflict messages cannot work until this is understood. Run crashed at step "conflict left data intact" (harness bug, now null-safe), so the duplicate-create check and all rollback cases did not run in this run; they passed in run 43136585630 but are re-marked **unverified** pending a complete passing run.
+Harness now sends at most one 10 s request per conflict check, never repeats it, and skips (marks UNVERIFIED) the remaining conflict-path checks after the first hang. Not rerun yet, deliberately, to avoid loading the database.

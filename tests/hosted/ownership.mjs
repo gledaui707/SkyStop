@@ -37,6 +37,9 @@ const call = async (path, { method = 'GET', token, body, headers = {}, timeoutMs
   return last;
 };
 const timedOut = (r) => r.status === 0;
+let conflictPathHung = false;
+const CONFLICT_TIMEOUT_MS = 10000;
+const skip = (name) => { results.push({ name, ok: true, skipped: true }); log(`SKIP  ${name}  -> UNVERIFIED (conflict path hung earlier in this run)`); };
 const guest = async () => { const r = await call('/auth/v1/signup', { method: 'POST', body: {} }); if (!r.body?.access_token) throw new Error('anon signin failed ' + JSON.stringify(r.body)); return { token: r.body.access_token, id: r.body.user.id, role: r.body.user.role, anon: r.body.user.is_anonymous }; };
 const save = (token, p, opts) => call('/rest/v1/rpc/save_plan', { method: 'POST', token, body: p, ...opts });
 const fetchPlan = (token, id) => call(`/rest/v1/layovers?id=eq.${id}&select=*,plan_items(position,activity_id,duration_minutes)&plan_items.order=position`, { token });
@@ -46,9 +49,9 @@ const diagnoseTimeout = async (label, token, id, payload, expectedRevision, expe
   log(`  DIAG ${label}: write timed out; checking server state`);
   const p = (await fetchPlan(token, id)).body?.[0];
   log(`  DIAG state: revision=${p?.revision} items=${p?.plan_items?.length} (expected ${expectedRevision}/${expectedItems})`);
-  const t0 = Date.now(); const again = await save(token, payload, { timeoutMs: 60000 });
-  log(`  DIAG repeat with 60s wait: status=${again.status} code=${again.body?.code} after ${Date.now() - t0}ms`);
-  return { unchanged: p?.revision === expectedRevision && p?.plan_items?.length === expectedItems, repeatStatus: again.status, repeatCode: again.body?.code };
+  conflictPathHung = true; // do not send further conflict-path requests: hung calls may keep running server-side
+  log('  DIAG no repeat is sent (avoids adding load). Remaining conflict-path checks will be SKIPPED (unverified).');
+  return { unchanged: p?.revision === expectedRevision && p?.plan_items?.length === expectedItems };
 };
 
 const acts = (await call('/rest/v1/activities?select=id,airport_id,duration_minutes&order=id')).body;
@@ -61,17 +64,18 @@ const base = { p_id: id, p_expected_revision: 0, p_airport_id: 'LIS', p_arrival_
 step('A create (rev 0)');
 let r = await save(A.token, base);
 step('A create (rev 0)'); check('A create (rev 0)', r.status < 300, JSON.stringify(r.body).slice(0, 120));
-r = await fetchPlan(A.token, id); let p = r.body[0];
-step('A reads own plan, revision 1, ordered items'); check('A reads own plan, revision 1, ordered items', p && p.revision === 1 && p.owner_id === A.id && p.plan_items.map(i => i.activity_id).join() === [lis[1].id, lis[0].id].join(), JSON.stringify(p?.plan_items?.map(i => [i.position, i.duration_minutes])));
+r = await fetchPlan(A.token, id); let p = r.body?.[0];
+step('A reads own plan, revision 1, ordered items'); check('A reads own plan, revision 1, ordered items', p?.revision === 1 && p.owner_id === A.id && p.plan_items.map(i => i.activity_id).join() === [lis[1].id, lis[0].id].join(), JSON.stringify(p?.plan_items?.map(i => [i.position, i.duration_minutes])));
 step('duration snapshot copied by server'); check('duration snapshot copied by server', p?.plan_items?.[0]?.duration_minutes === lis[1].duration_minutes);
 
 step('B cannot read A plan'); r = await fetchPlan(B.token, id); check('B cannot read A plan', r.status === 200 && r.body.length === 0, `rows=${r.body.length}`);
 step('B list has no A rows'); r = await call('/rest/v1/layovers?select=id', { token: B.token }); check('B list has no A rows', Array.isArray(r.body) && !r.body.some(x => x.id === id));
 step('B cannot edit A plan'); r = await save(B.token, { ...base, p_expected_revision: 1, p_activity_ids: [] }); check('B cannot edit A plan', r.status >= 400, `${r.status} ${r.body.code}`);
-step('B cannot take over A UUID via create'); r = await save(B.token, base);
+step('B cannot take over A UUID via create'); if (conflictPathHung) skip('B cannot take over A UUID via create'); else {
+r = await save(B.token, base, { timeoutMs: CONFLICT_TIMEOUT_MS });
 if (timedOut(r)) await diagnoseTimeout('takeover', A.token, id, base, 1, 2);
-check('B cannot take over A UUID via create', r.status >= 400 && !timedOut(r), `${r.status} ${r.body.code}`);
-step('A plan unchanged after B attempts'); r = await fetchPlan(A.token, id); check('A plan unchanged after B attempts', r.body[0].revision === 1 && r.body[0].plan_items.length === 2);
+check('B cannot take over A UUID via create', r.status >= 400 && !timedOut(r), `${r.status} ${r.body.code}`); }
+step('A plan unchanged after B attempts'); r = await fetchPlan(A.token, id); check('A plan unchanged after B attempts', r.body?.[0]?.revision === 1 && r.body?.[0]?.plan_items?.length === 2);
 step('direct UPDATE denied even for owner'); r = await call(`/rest/v1/layovers?id=eq.${id}`, { method: 'PATCH', token: A.token, body: { buffer_minutes: 0 } }); check('direct UPDATE denied even for owner', r.status >= 400, `${r.status}`);
 step('direct INSERT denied'); r = await call('/rest/v1/layovers', { method: 'POST', token: A.token, body: { id: randomUUID(), owner_id: A.id, airport_id: 'LIS', arrival_at: base.p_arrival_at, departure_at: base.p_departure_at, buffer_minutes: 0 } }); check('direct INSERT denied', r.status >= 400, `${r.status}`);
 step('direct DELETE does not remove'); r = await call(`/rest/v1/layovers?id=eq.${id}`, { method: 'DELETE', token: A.token }); check('direct DELETE does not remove', (await fetchPlan(A.token, id)).body.length === 1);
@@ -80,21 +84,24 @@ step('direct DELETE does not remove'); r = await call(`/rest/v1/layovers?id=eq.$
 step('A edit with revision 1');
 r = await save(A.token, { ...base, p_expected_revision: 1, p_buffer_minutes: 30, p_activity_ids: [lis[2].id, lis[0].id, lis[1].id] });
 step('A edit with revision 1'); check('A edit with revision 1', r.status < 300, JSON.stringify(r.body).slice(0, 100));
-p = (await fetchPlan(A.token, id)).body[0];
-step('edit → revision 2, buffer 30, 3 ordered items'); check('edit → revision 2, buffer 30, 3 ordered items', p.revision === 2 && p.buffer_minutes === 30 && p.plan_items.map(i => i.activity_id).join() === [lis[2].id, lis[0].id, lis[1].id].join());
+p = (await fetchPlan(A.token, id)).body?.[0];
+step('edit → revision 2, buffer 30, 3 ordered items'); check('edit → revision 2, buffer 30, 3 ordered items', p?.revision === 2 && p?.buffer_minutes === 30 && p?.plan_items?.map(i => i.activity_id).join() === [lis[2].id, lis[0].id, lis[1].id].join());
 // conflict
 step('stale revision → conflict');
-const stale = { ...base, p_expected_revision: 1, p_activity_ids: [] }; r = await save(A.token, stale);
+const stale = { ...base, p_expected_revision: 1, p_activity_ids: [] }; if (conflictPathHung) skip('stale revision → conflict'); else {
+r = await save(A.token, stale, { timeoutMs: CONFLICT_TIMEOUT_MS });
 if (timedOut(r)) await diagnoseTimeout('stale revision', A.token, id, stale, 2, 3);
-check('stale revision → conflict', r.status >= 400 && !timedOut(r), `${r.status} ${r.body.code}`);
-step('conflict left data intact'); check('conflict left data intact', (await fetchPlan(A.token, id)).body[0].plan_items.length === 3);
+check('stale revision → conflict', r.status >= 400 && !timedOut(r), `${r.status} ${r.body.code}`); }
+step('conflict left data intact'); check('conflict left data intact', (await fetchPlan(A.token, id)).body?.[0]?.plan_items?.length === 3);
 // duplicate create
-step('re-create same UUID → conflict, no duplicate'); r = await save(A.token, base);
+step('re-create same UUID → conflict, no duplicate');
+if (conflictPathHung) skip('re-create same UUID → conflict, no duplicate'); else {
+r = await save(A.token, base, { timeoutMs: CONFLICT_TIMEOUT_MS });
 if (timedOut(r)) await diagnoseTimeout('re-create', A.token, id, base, 2, 3);
-check('re-create same UUID → conflict, no duplicate', r.status >= 400 && !timedOut(r), `${r.status} ${r.body.code}`);
+check('re-create same UUID → conflict, no duplicate', r.status >= 400 && !timedOut(r), `${r.status} ${r.body.code}`); }
 // rollback cases: each must leave rev 2 / 3 items
-const before = JSON.stringify((await fetchPlan(A.token, id)).body[0]);
-const bad = async (name, patch) => { step('rollback: ' + name); const rr = await save(A.token, { ...base, p_expected_revision: 2, ...patch }); if (timedOut(rr)) log('  (timed out; not counted as a pass)'); const same = JSON.stringify((await fetchPlan(A.token, id)).body[0]) === before; check(`rollback: ${name}`, rr.status >= 400 && same, `${rr.status} ${rr.body.code}`); };
+const before = JSON.stringify((await fetchPlan(A.token, id)).body?.[0]);
+const bad = async (name, patch) => { step('rollback: ' + name); const rr = await save(A.token, { ...base, p_expected_revision: 2, ...patch }); if (timedOut(rr)) log('  (timed out; not counted as a pass)'); const same = JSON.stringify((await fetchPlan(A.token, id)).body?.[0]) === before; check(`rollback: ${name}`, rr.status >= 400 && same, `${rr.status} ${rr.body.code}`); };
 await bad('cross-airport activity', { p_activity_ids: [lis[0].id, sin.id] });
 await bad('duplicate activity ids', { p_activity_ids: [lis[0].id, lis[0].id] });
 await bad('nonexistent activity', { p_activity_ids: [lis[0].id, randomUUID()] });
@@ -110,6 +117,7 @@ step('empty plan valid'); const id2 = randomUUID(); r = await save(A.token, { ..
 step('no session cannot save'); r = await save(undefined, { ...base, p_id: randomUUID() }); check('no session cannot save', r.status >= 400, `${r.status}`);
 step('no session cannot read plans'); r = await call('/rest/v1/layovers?select=id', {}); check('no session cannot read plans', r.status >= 400 || (Array.isArray(r.body) && r.body.length === 0), `${r.status}`);
 step('signed-in user cannot mutate catalogue'); r = await call('/rest/v1/airports', { method: 'POST', token: A.token, body: { id: 'ZZZ', name: 'x', timezone: 'UTC' } }); check('signed-in user cannot mutate catalogue', r.status >= 400, `${r.status}`);
-step('signed-in cannot update activity'); r = await call('/rest/v1/activities?id=eq.' + lis[0].id, { method: 'PATCH', token: A.token, body: { duration_minutes: 1 } }); check('signed-in cannot update activity', (await call('/rest/v1/activities?id=eq.' + lis[0].id + '&select=duration_minutes')).body[0].duration_minutes === lis[0].duration_minutes);
+step('signed-in cannot update activity'); r = await call('/rest/v1/activities?id=eq.' + lis[0].id, { method: 'PATCH', token: A.token, body: { duration_minutes: 1 } }); check('signed-in cannot update activity', (await call('/rest/v1/activities?id=eq.' + lis[0].id + '&select=duration_minutes')).body?.[0]?.duration_minutes === lis[0].duration_minutes);
 step('B still sees zero A plans'); r = await call('/rest/v1/layovers?select=id', { token: B.token }); check('B still sees zero A plans', r.body.length === 0);
-log(`${results.length - failed}/${results.length} passed`); if (failed) log('FAILED: ' + results.filter(x => !x.ok).map(x => x.name).join(' | ')); process.exit(failed ? 1 : 0);
+const skipped = results.filter(x => x.skipped).length;
+log(`${results.length - failed - skipped}/${results.length} passed, ${failed} failed, ${skipped} skipped (unverified)`); if (failed) log('FAILED: ' + results.filter(x => !x.ok).map(x => x.name).join(' | ')); process.exit(failed ? 1 : 0);
