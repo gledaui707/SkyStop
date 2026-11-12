@@ -1,7 +1,9 @@
 # SkyStop — Smart Layover Planner
 More than a connection.
 
-Architecture and implementation handoff for Assignment 2 MVP. Deadline: November 15, 2026, 23:59 Europe/Lisbon. This repository currently contains preparation and SQL foundations, not a deployed application.
+React + Vite app (Figma Make frontend) backed by Supabase (PostgreSQL, anonymous guest sessions). Deadline: November 15, 2026, 23:59 Europe/Lisbon. Not deployed yet — see [deployment steps](docs/DEPLOY_VERCEL.md) and [current status](IMPLEMENTATION_CHECKLIST.md).
+
+Run locally: `npm install`, `npm run dev`. Tests: `npm test -- --run`, `npm run build && npm run test:e2e`. How the frontend is wired: [docs/FRONTEND_INTEGRATION.md](docs/FRONTEND_INTEGRATION.md).
 
 Start with [CLAUDE_HANDOFF.md](CLAUDE_HANDOFF.md), [SPEC.md](SPEC.md) and [AGENTS.md](AGENTS.md).
 

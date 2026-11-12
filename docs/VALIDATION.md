@@ -77,3 +77,23 @@ Harness now sends at most one 10 s request per conflict check, never repeats it,
 
 ## 2026-11-12 — Data layer unit tests
 `npx vitest run` → 40 passed (35 domain + 5 data layer: one anonymous identity under concurrent calls, existing session reused, exact `save_plan` args, no success on RPC error, read-back failure surfaces). Mock-based; the real-API happy path (sign-in → create → read → edit, plus user isolation) is evidenced by the hosted runs above. Types are hand-written, not generated.
+
+## 2026-11-12 — Frontend integration (commit 7713d33)
+Figma Make source obtained through the Figma connector (26 source files + 5 airline logos; baseline in `figma-export/`) and wired to Supabase. See docs/FRONTEND_INTEGRATION.md.
+
+| Check | Command | Result |
+|---|---|---|
+| Typecheck + production build | `npm run build` | PASS |
+| Unit tests (domain, data layer, headless store) | `npm test -- --run` | 55 passed, 1 skipped (hosted) |
+| Browser journey, iPhone 13 viewport, built app | `npm run test:e2e` | 23/23 PASS |
+
+Browser journey covers: welcome → add flight → connection details (5h total, 3h30 usable) → map view → list view with curated itinerary fit → add/remove activities → remaining time 1h50 → failed save keeps draft and shows no success → save → Home shows personalised trip → refresh retrieves it → edit → save (revision 2) → refresh → My Plans shows the edit; a second guest sees no trip and an empty list; illustrative flight comparison; catalogue error + retry; no guest account is created just by opening the app.
+**Limitation:** the browser journey runs against a *simulated* Supabase API (`tests/e2e/fake-supabase.mjs`) because this environment cannot send user sessions to the real project. It proves the UI wiring, not the hosted database. Real-database evidence for the same calls (sign-in, create, read, edit, isolation) is the earlier run 43136585630. The deployed app has **not** been verified against the real project.
+
+## 2026-11-12 — OPEN BLOCKER: hosted REST API not answering
+Observed ~02:00–02:20 UTC: `GET /rest/v1/airports?select=id&limit=1` and every other table read time out (20–25 s, no bytes) while `/auth/v1/health` and `/auth/v1/settings` answer in <1 s. The manual happy-path run 43138789191 signed in successfully and then timed out three times reading `layovers`. Catalogue reads answered normally at 01:20–01:50 UTC, before/around the conflict-path tests.
+Most likely cause (not confirmed from server logs): each `save_plan` call that raises SQLSTATE 40001 is retried indefinitely by the API layer (PostgREST retries serialization failures), holding one database connection forever. The hosted ownership tests sent roughly ten such calls across runs, which is enough to exhaust the API's connection pool. **This was triggered by the test runs made in this session.**
+Effect: the app currently shows "We could not load the airports" against the real project. No data was changed or lost.
+Recovery (owner, dashboard): Project Settings → General → **Restart project** (or pause/resume). Then reads should answer again.
+Prevention: `docs/proposed-fix-conflict-errcode.sql` (function-only change, NOT applied) stops conflicts from using 40001. Without it, any user who triggers ~10 conflicts (e.g. saving the same plan from two tabs) can stall the API again. The app reduces the risk: the Save button is disabled while saving, and a retried first save continues from the server's revision instead of re-creating the plan.
+The hosted workflow is manual-only and has not been run again since the owner asked to stop.
