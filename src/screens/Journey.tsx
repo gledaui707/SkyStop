@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, Bookmark, Clock, Compass, Info, PenLine, Plane, Search } from 'lucide-react'
+import { ArrowRight, Clock, Info, PenLine, Plane, Search } from 'lucide-react'
 import { useApp } from '../store'
 import { SAMPLE_JOURNEYS, findSampleJourney, isRefFormat, normaliseRef, resolveJourney, type ResolvedJourney } from '../data/journeys'
 import { airportInfo } from '../data/airportDirectory'
@@ -170,22 +170,11 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
       <ActionBar>
         <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
           {saveError && <p role="alert" className="text-sub font-medium text-error">{saveError}</p>}
-          {/* Same tile style as Home's Add flight / Compare flights */}
-          <div className={cx('grid gap-3', supported ? 'grid-cols-2' : 'grid-cols-1')}>
-            <button onClick={start} aria-label={supported ? `Explore ${city(j.connection)}` : 'Build my itinerary'}
-              className="btn-coral press flex min-h-[5.75rem] flex-col items-start justify-between gap-2 rounded-[1.4rem] p-3.5 text-left">
-              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/20"><Compass size={19} /></span>
-              <span className="min-w-0"><b className="block text-body font-semibold leading-tight">{supported ? `Explore ${city(j.connection)}` : 'Build my itinerary'}</b>
-                <span className="block text-cap text-white/85">Find activities</span></span>
-            </button>
-            {supported && (
-              <button onClick={saveFlight} disabled={saving} aria-label={existing ? 'Open in My flights' : 'Save to My flights'}
-                className="panel press flex min-h-[5.75rem] flex-col items-start justify-between gap-2 rounded-[1.4rem] p-3.5 text-left disabled:opacity-60">
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><Bookmark size={19} /></span>
-                <span className="min-w-0"><b className="block text-body font-semibold leading-tight">{existing ? 'Open in My flights' : saving ? 'Saving…' : 'Save to My flights'}</b>
-                  <span className="block text-cap text-muted-text">{existing ? 'Already saved' : 'Plan later'}</span></span>
-              </button>)}
-          </div>
+          <Button className="w-full" onClick={start}>{supported ? `Explore ${city(j.connection)}` : 'Build my itinerary'}</Button>
+          {supported && (
+            <button type="button" onClick={saveFlight} disabled={saving}
+              className="press flex min-h-[3.25rem] w-full items-center justify-center rounded-full border border-white/90 bg-white/70 text-body font-semibold text-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.9)] backdrop-blur-xl disabled:opacity-60">
+              {existing ? 'Open in My flights' : saving ? 'Saving…' : 'Save to My flights'}</button>)}
         </div>
       </ActionBar>
     </div>

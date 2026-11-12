@@ -36,7 +36,7 @@ export function Header({ title, subtitle, right, onBack }: { title: string; subt
 export function ActionBar({ children }: { children: ReactNode }) {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[var(--nav-h)] z-30 mx-auto max-w-[480px] px-4 pb-2">
-      <div className="glass pointer-events-auto rounded-[1.75rem] p-2.5">{children}</div>
+      <div className="pointer-events-auto rounded-[2rem] border border-white/70 bg-white/75 p-2.5 shadow-[0_18px_40px_rgb(70_35_25/0.14),inset_0_1px_0_rgb(255_255_255/0.85)] backdrop-blur-[28px] backdrop-saturate-150">{children}</div>
     </div>
   )
 }
