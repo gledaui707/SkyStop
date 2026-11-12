@@ -49,18 +49,48 @@ export const AIRPORT_GEO: Record<string, AirportGeo> = {
   },
 }
 
-/** Which terminal pin a venue belongs on, from its verified terminal text. A venue that spans several terminals,
- *  or whose terminal is unknown, gets no pin (null) rather than an invented position. */
-export function terminalKeyOf(airport: string, terminal?: string): string | null {
-  if (!terminal) return null
+/** Every terminal a venue is in, from its verified terminal text ("Terminals 2, 3, 4 and 5", "T1–T4", "Jewel…").
+ *  Only terminals with a recorded map point are returned; an unknown terminal gives []. */
+export function terminalKeysOf(airport: string, terminal?: string): string[] {
   const geo = AIRPORT_GEO[airport]
-  if (!geo) return null
-  if (/^jewel/i.test(terminal)) return geo.terminals.some((t) => t.key === 'JEWEL') ? 'JEWEL' : null
-  if (/T\d\s*[–-]\s*T\d/.test(terminal)) return null // a range such as "T1–T4"
-  const nums = new Set([...terminal.matchAll(/(?:Terminals?\s+|\bT)(\d)/g)].map((m) => m[1]))
-  // "Terminals 2, 3, 4 and 5": the first number is captured above; the rest follow the plural word
+  if (!terminal || !geo) return []
+  const has = (k: string) => geo.terminals.some((t) => t.key === k)
+  if (/^jewel/i.test(terminal)) return has('JEWEL') ? ['JEWEL'] : []
+  const nums = new Set<string>()
+  const range = terminal.match(/T(\d)\s*[–-]\s*T(\d)/)
+  if (range) for (let n = +range[1]; n <= +range[2]; n++) nums.add(String(n))
+  for (const m of terminal.matchAll(/(?:Terminals?\s+|\bT)(\d)/g)) nums.add(m[1])
   if (/Terminals\s/i.test(terminal)) for (const m of terminal.matchAll(/\b(\d)\b/g)) nums.add(m[1])
-  if (nums.size !== 1) return null
-  const key = `T${[...nums][0]}`
-  return geo.terminals.some((t) => t.key === key) ? key : null
+  return [...nums].sort().map((n) => `T${n}`).filter(has)
+}
+
+/** The single terminal a venue is in, or null when it spans several or is unknown. */
+export function terminalKeyOf(airport: string, terminal?: string): string | null {
+  const keys = terminalKeysOf(airport, terminal)
+  return keys.length === 1 ? keys[0] : null
+}
+
+export interface VenueSpot { id: string; key: string; activityId: string; terminal: string; lat: number; lng: number }
+
+/** Map positions for venues. Sources give a venue's terminal (sometimes its gates), not an exact spot, so each venue
+ *  is placed at an APPROXIMATE position inside its terminal: spread evenly around the terminal's published point,
+ *  deterministic (same place every time). A venue in several terminals gets one spot per terminal. */
+export function venueSpots(airport: string, venues: { id: string; terminal?: string }[]): VenueSpot[] {
+  const geo = AIRPORT_GEO[airport]
+  if (!geo) return []
+  const out: VenueSpot[] = []
+  for (const t of geo.terminals) {
+    const here = venues.filter((v) => terminalKeysOf(airport, v.terminal).includes(t.key)).sort((a, b) => a.id.localeCompare(b.id))
+    const n = here.length
+    // two staggered columns around the terminal point (names go on the outer side of each column)
+    const rows = Math.ceil(n / 2)
+    here.forEach((v, i) => {
+      const col = n === 1 ? 0 : i % 2 === 0 ? -1 : 1
+      const row = Math.floor(i / 2) - (rows - 1) / 2 + (col === 1 ? 0.35 : 0)
+      const dx = col * 22, dy = row * 30 // metres east, south
+      out.push({ id: `${v.id}@${t.key}`, key: t.key, activityId: v.id, terminal: t.name,
+        lat: t.lat - dy / 111_320, lng: t.lng + dx / (111_320 * Math.cos((t.lat * Math.PI) / 180)) })
+    })
+  }
+  return out
 }

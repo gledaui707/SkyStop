@@ -82,6 +82,11 @@ try {
   check('map: real-map view shows the Terminal 1 pin with the 2 planned activities and the time left', /6 of 6 venues, 2 in your itinerary/.test(await page.getByRole('button', { name: /^Terminal 1: / }).getAttribute('aria-label')) && await visible(page, '2 planned') && await visible(page, '1h 50m left') && await visible(page, 'OpenStreetMap'));
   await page.getByRole('button', { name: /^Terminal 1: / }).click();
   check('map: tapping a terminal lists its venues', await visible(page, 'Terminal 1 · Lisbon') && await page.getByRole('button', { name: /ANA Lounge/ }).first().isVisible());
+  await page.waitForTimeout(900);
+  check('map: zoomed into the terminal, each venue has its own pin (approximate spot), planned ones marked', await page.getByRole('button', { name: /^ANA Lounge, Rest, Terminal 1 \(approximate location\), in your itinerary/ }).isVisible() && await page.getByRole('button', { name: /^LEGO Store, Shopping, Terminal 1 \(approximate location\)$/ }).isVisible());
+  await page.getByRole('button', { name: /^LEGO Store, Shopping/ }).click();
+  check('map: tapping a venue pin opens its preview', await visible(page, 'map pin approximate') && await page.getByRole('button', { name: 'Close preview' }).isVisible());
+  await page.getByRole('button', { name: 'Close preview' }).click();
   await shot(page, '03-airport-map');
   await page.getByRole('tab', { name: 'list' }).click();
   check('back in list: selection unchanged', (await page.getByRole('button', { name: 'Remove ANA Lounge' }).getAttribute('aria-pressed')) === 'true' && await page.getByRole('button', { name: 'Build itinerary (2)' }).isVisible());

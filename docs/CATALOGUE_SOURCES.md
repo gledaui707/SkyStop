@@ -62,7 +62,7 @@ Rules used: facts come from the airports' official websites, checked 12 Nov 2026
 - **Emirati dinner and spa** (DXB): Al Majlis → Timeless Spa
 
 ## Map positions (terminal level)
-The map pins terminals, not venues. Coordinates and sources are in `src/data/airportGeo.ts`: Lisbon T1 (via the Aeroporto metro station beneath it, approximate); Changi Jewel (Wikipedia), T3 and T4 (Wikidata), T1 (single third-party source, approximate); Heathrow T2–T5 (Wikipedia); Dubai T3 (Wikipedia) and T1 (its metro station, approximate). Venues spanning several terminals (e.g. Changi Snooze Lounges, Harrods, Dubai Duty Free) and venues with an unverified terminal are listed under the map but not pinned.
+Terminal pins use published coordinates. Venue pins are approximate positions inside the venue's terminal (the official sources give terminal and sometimes gates, not exact spots); a venue in several terminals is pinned in each. Coordinates and sources are in `src/data/airportGeo.ts`: Lisbon T1 (via the Aeroporto metro station beneath it, approximate); Changi Jewel (Wikipedia), T3 and T4 (Wikidata), T1 (single third-party source, approximate); Heathrow T2–T5 (Wikipedia); Dubai T3 (Wikipedia) and T1 (its metro station, approximate). Venues spanning several terminals (e.g. Changi Snooze Lounges, Harrods, Dubai Duty Free) and venues with an unverified terminal are listed under the map but not pinned.
 
 ## Known gaps
 - Specific photos of Jewel's Rain Vortex and Heathrow could not be licence-checked from the build environment (Unsplash pages were blocked by a bot check), so airport/venue photos remain illustrative.

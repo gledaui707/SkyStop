@@ -6,7 +6,7 @@ import { sized } from '../data/images'
 import { budget, fmtDur, layoverMinutesAt, timeSpan } from '../data/time'
 import { ActivityRow, ActivitySheet, Button, CATEGORIES, Chip, ChipRow, Photo, cx } from '../components/ui'
 import { AirportMap, zoneOf, type Zone } from '../components/AirportMap'
-import { AIRPORT_GEO, terminalKeyOf } from '../data/airportGeo'
+import { AIRPORT_GEO, terminalKeysOf } from '../data/airportGeo'
 import type { Category } from '../data/types'
 
 type View = 'map' | 'list'
@@ -33,7 +33,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
   const b = ready ? budget(layoverMinutesAt(draft!.arrival, draft!.departure, ap.timezone), draft!.bufferMin, items) : null
   const focus = acts.find((a) => a.id === focusId) ?? null
   const tSel = AIRPORT_GEO[code]?.terminals.find((t) => t.key === terminal) ?? null
-  const unpinned = acts.filter((a) => !terminalKeyOf(code, a.terminal)).length
+  const unpinned = acts.filter((a) => !terminalKeysOf(code, a.terminal).length).length
 
   const toggle = (id: string) => {
     if (!ready || !draft) { setPicked({ airport: code, ids: planned.includes(id) ? planned.filter((x) => x !== id) : [...planned, id] }); return }
@@ -72,7 +72,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
       <div className="relative -mb-[var(--nav-h)] flex min-h-dvh flex-col">
         {/* min height keeps every marker visible above the sheet on short phones; the page scrolls instead */}
         <div className="relative min-h-[28rem] flex-1">
-          <AirportMap airport={code} activities={acts} planned={planned} terminal={terminal} onTerminal={(k) => { setTerminal(k); setFocusId(null) }} cat={cat} zone={zone} />
+          <AirportMap airport={code} activities={acts} planned={planned} terminal={terminal} onTerminal={(k) => { setTerminal(k); setFocusId(null) }} focusId={focusId} onFocus={setFocusId} cat={cat} zone={zone} />
           {bar}
           <div className="absolute right-3 top-[11.5rem] z-20 grid gap-2">
             <button onClick={() => setZone(ZONES[(ZONES.indexOf(zone) + 1) % 3])} aria-label={`Map layers: ${zone === 'all' ? 'all zones' : zone}. Tap to change.`}
@@ -92,7 +92,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                 <div className="min-w-0 flex-1">
                   <p className="text-card font-semibold leading-tight">{focus.name}</p>
                   <p className="text-sub text-muted-text">{fmtDur(focus.durationMin)} · {focus.costLabel} · {focus.category}</p>
-                  <p className="text-cap text-muted-text">{[focus.terminal, focus.access === 'Unverified' ? null : focus.access].filter(Boolean).join(' · ')}{focus.leavesAirport ? ' · leaves airport' : ''}</p>
+                  <p className="text-cap text-muted-text">{[focus.terminal, focus.access === 'Unverified' ? null : focus.access, 'map pin approximate'].filter(Boolean).join(' · ')}{focus.leavesAirport ? ' · leaves airport' : ''}</p>
                 </div>
                 <button onClick={() => setFocusId(null)} aria-label="Close preview" className="grid size-11 shrink-0 place-items-center rounded-full bg-ink-tint ring-1 ring-line"><X size={18} /></button>
               </div>
@@ -114,9 +114,9 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                   </div>
                   <p className="mt-0.5 text-sub text-muted-text">
                     {b ? `${fmtDur(b.usable)} usable · ${items.length} planned · ${b.over ? 'over by ' + fmtDur(-b.remaining) : fmtDur(b.remaining) + ' left'}` : `${items.length ? items.length + ' selected · ' : ''}Set your layover times to check what fits.`}</p>
-                  <p className="mt-0.5 text-cap text-muted-text">{tSel ? `Venues listed for this terminal.${tSel.approx ? ' Pin position is approximate.' : ''} ` : unpinned ? `Pins mark terminals at their real positions; ${unpinned} venue${unpinned > 1 ? 's span' : ' spans'} several terminals and ${unpinned > 1 ? 'are' : 'is'} listed below only. ` : 'Pins mark terminals at their real positions, not exact venue spots. '}Not for navigation.</p>
+                  <p className="mt-0.5 text-cap text-muted-text">{tSel ? `Venues in ${tSel.name}.${tSel.approx ? ' Terminal position is approximate.' : ''} ` : ''}Zoom in or tap a terminal to see each venue. Venue pins are approximate spots inside their terminal{unpinned ? `; ${unpinned} venue${unpinned > 1 ? 's have' : ' has'} no confirmed terminal and ${unpinned > 1 ? 'are' : 'is'} listed below only` : ''}. Not for navigation.</p>
                   <ul className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Activities at this airport">
-                    {acts.filter((a) => (cat === 'All' || a.category === cat) && (zone === 'all' || zoneOf(a) === zone) && (!terminal || terminalKeyOf(code, a.terminal) === terminal)).map((a) => (
+                    {acts.filter((a) => (cat === 'All' || a.category === cat) && (zone === 'all' || zoneOf(a) === zone) && (!terminal || terminalKeysOf(code, a.terminal).includes(terminal))).map((a) => (
                       <li key={a.id} className="shrink-0">
                         <button onClick={() => setFocusId(a.id)} className={cx('press flex w-[13.5rem] items-center gap-2.5 rounded-2xl border p-2 text-left', planned.includes(a.id) ? 'border-accent/70 bg-accent-tint' : 'border-line bg-white')}>
                           <span className="ph relative size-12 shrink-0 overflow-hidden rounded-xl"><Photo img={a.image} w={48} h={48} className="absolute inset-0 size-full" /></span>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpDown, ArrowUpRight, Bed, Check, ChevronRight, Info, X, Clock, Compass, Laptop, ListChecks, MapPin, Plane, Plus, Search, ShoppingBag, Sparkles, TramFront, Utensils, type LucideIcon } from 'lucide-react'
+import { ArrowUpDown, ArrowUpRight, Bed, Check, ChevronRight, Info, X, Clock, Compass, Laptop, ListChecks, MapPin, Plane, Plus, Search, ShoppingBag, Sparkles, Landmark, Utensils, type LucideIcon } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, AIRPORTS, CITIES, TEMPLATES, getActivities, getAirport, getTemplates } from '../data/mock'
 import { IMAGES, sized } from '../data/images'
@@ -15,7 +15,7 @@ const Heading = ({ children, action }: { children: React.ReactNode; action?: Rea
 const nextTrip = (plans: Plan[]) =>
   [...plans].filter((p) => new Date(p.departure).getTime() >= Date.now()).sort((a, b) => +new Date(a.arrival) - +new Date(b.arrival))
 
-const CAT_ICONS: Record<string, LucideIcon> = { All: Sparkles, Food: Utensils, Rest: Bed, Shopping: ShoppingBag, Work: Laptop, Sights: TramFront }
+const CAT_ICONS: Record<string, LucideIcon> = { All: Sparkles, Food: Utensils, Rest: Bed, Shopping: ShoppingBag, Work: Laptop, Sights: Landmark }
 
 const greeting = () => { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening' }
 
