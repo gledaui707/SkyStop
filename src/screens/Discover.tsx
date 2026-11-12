@@ -238,7 +238,7 @@ export function Airports() {
   }
   return (
     <div className="pb-8">
-      <LargeTitle sub="Explore what a connection can offer.">Airports</LargeTitle>
+      <LargeTitle>Airports</LargeTitle>
       <ul className="grid gap-4 px-5">
         {airports.map((a, i) => (
           <li key={a.code} className="anim-rise" style={{ animationDelay: `${i * 70}ms` }}>
