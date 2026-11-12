@@ -28,9 +28,13 @@ interface Props {
 }
 
 const rem = () => parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
-// Light OpenStreetMap basemap by CARTO (attribution shown on the map, as both licences require).
-const TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-const ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>'
+// Basemap: CARTO Voyager (OpenStreetMap data) when a CARTO key is configured at build time (VITE_CARTO_KEY, set in
+// Vercel, not in git); otherwise OpenStreetMap's own tiles, which need no key. Attribution is shown either way.
+const CARTO_KEY = import.meta.env.VITE_CARTO_KEY as string | undefined
+const OSM = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors'
+const BASEMAP = CARTO_KEY
+  ? { url: `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(CARTO_KEY)}`, subdomains: '', attribution: `${OSM} © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>` }
+  : { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', subdomains: '', attribution: OSM }
 
 /** Real map of the airport. One pin per terminal at its published position; venues are grouped on their terminal's
  *  pin (the catalogue has no venue-level coordinates). Venues across several terminals are not pinned. */
@@ -49,7 +53,7 @@ export function AirportMap({ airport, activities, planned, terminal, onTerminal,
   useEffect(() => {
     if (!el.current || !terminals.length) return
     const m = L.map(el.current, { zoomControl: false, attributionControl: true, zoomSnap: 0.25 })
-    L.tileLayer(TILES, { attribution: ATTRIBUTION, subdomains: 'abcd', maxZoom: 19 }).addTo(m)
+    L.tileLayer(BASEMAP.url, { attribution: BASEMAP.attribution, maxZoom: 19 }).addTo(m)
     m.attributionControl.setPrefix(false)
     const pts = terminals.map((t) => L.latLng(t.lat, t.lng))
     const r = rem()

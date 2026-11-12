@@ -26,7 +26,7 @@ const newGuest = async (viewport, { firstVisit = false, reducedMotion } = {}) =>
   if (!firstVisit) await ctx.addInitScript(() => { try { localStorage.setItem('skystop.onboarded.v2', '1'); } catch { /* ignore */ } });
   await ctx.route('**://*.supabase.co/**', fake.handler);
   await ctx.route('**://images.unsplash.com/**', (r) => r.abort());
-  await ctx.route('**://*.basemaps.cartocdn.com/**', (r) => r.abort());
+  await ctx.route(/(basemaps\.cartocdn\.com|tile\.openstreetmap\.org)/, (r) => r.abort());
   const page = await ctx.newPage();
   page.on('pageerror', (e) => { console.log('PAGE ERROR', e.message); failed++; });
   return { ctx, page };
