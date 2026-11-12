@@ -164,8 +164,8 @@ try {
     await k.page.getByRole('button', { name: 'Back' }).click();
     await k.page.getByRole('heading', { name: 'Find your journey' }).waitFor();
   }
-  await k.page.getByRole('button', { name: 'Try a sample booking' }).click();
-  await k.page.getByRole('button', { name: /AXR7KD/ }).click();
+  await k.page.getByLabel('Booking reference').fill('AXR7KD');
+  await k.page.getByRole('button', { name: 'Find my journey' }).click();
   await k.page.getByRole('heading', { name: 'Your journey' }).waitFor();
   await k.page.getByRole('button', { name: 'Explore Singapore' }).click();
   await k.page.getByRole('heading', { name: 'Curated itineraries' }).waitFor();

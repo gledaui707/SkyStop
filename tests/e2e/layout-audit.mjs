@@ -73,7 +73,8 @@ for (const [w, h] of WIDTHS) {
     await page.goto(BASE); await page.waitForTimeout(800);
     await visit('home');
     await click('button', /Plan a layover/); await page.getByRole('heading', { name: 'Find your journey' }).waitFor(); await visit('booking');
-    await click('button', 'Try a sample booking'); await visit('booking-samples');
+    await page.getByLabel('Booking reference').fill('ZZ9ZZ9');
+    await click('button', 'Find my journey'); await visit('booking-samples');
     await click('button', /AXR7KD/); await page.getByRole('heading', { name: 'Your journey' }).waitFor(); await visit('journey-overview');
     await page.goto(BASE); await page.waitForTimeout(800);
     await click('button', 'Airports', { exact: true }); await visit('airports');

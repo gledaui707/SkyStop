@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, Clock, Info, PenLine, Plane, Search, Sparkles } from 'lucide-react'
+import { ArrowRight, Clock, Info, PenLine, Plane, Search } from 'lucide-react'
 import { useApp } from '../store'
 import { SAMPLE_JOURNEYS, findSampleJourney, isRefFormat, normaliseRef, resolveJourney, type ResolvedJourney } from '../data/journeys'
 import { airportInfo } from '../data/airportDirectory'
@@ -48,8 +48,8 @@ export function FindJourney() {
             ? <p id="ref-error" role="alert" className="text-sub font-medium text-error">{error}</p>
             : <p id="ref-help" className="text-cap text-muted-text">6 letters or numbers.</p>}
           <Button type="submit" className="w-full" disabled={!ref.trim()}>Find my journey</Button>
-          <button type="button" onClick={() => setShowSamples(!showSamples)} aria-expanded={showSamples}
-            className="mx-auto flex min-h-11 items-center gap-1.5 px-3 text-sub font-semibold text-accent-dark"><Sparkles size={16} />Try a sample booking</button>
+          <Button type="button" variant="ghost" icon={PenLine} className="w-full border border-accent-dark px-3"
+            onClick={() => go({ name: 'trip' })}>Enter flight details manually</Button>
         </form>
 
         {showSamples && (
@@ -70,9 +70,6 @@ export function FindJourney() {
             })}
           </section>
         )}
-
-        <div className="flex items-center gap-3 text-cap font-semibold uppercase tracking-[0.1em] text-muted"><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
-        <Button variant="secondary" icon={PenLine} className="w-full" onClick={() => go({ name: 'trip' })}>Enter flight details manually</Button>
       </div>
     </div>
   )
