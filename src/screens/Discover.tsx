@@ -236,11 +236,18 @@ export function FindFlight() {
 /** Airports tab: browse independently of a trip. */
 export function Airports() {
   const { go } = useApp()
+  const airports = [...AIRPORTS]
+  const singapore = airports.findIndex((airport) => airport.code === 'SIN')
+  if (singapore !== -1 && airports.some((airport) => airport.code === 'DXB')) {
+    const [changi] = airports.splice(singapore, 1)
+    const dubai = airports.findIndex((airport) => airport.code === 'DXB')
+    airports.splice(dubai + 1, 0, changi)
+  }
   return (
     <div className="pb-8">
       <LargeTitle sub="Explore what a connection can offer.">Airports</LargeTitle>
       <ul className="grid gap-4 px-5">
-        {AIRPORTS.map((a, i) => (
+        {airports.map((a, i) => (
           <li key={a.code} className="anim-rise" style={{ animationDelay: `${i * 70}ms` }}>
             <button onClick={() => go({ name: 'airport', code: a.code, view: 'list' })} className="ph press relative block h-[19rem] w-full overflow-hidden rounded-[2rem] text-left text-white shadow-[0_18px_40px_rgb(0_0_0/0.35)]">
               <Photo img={a.image} w={420} h={304} className="absolute inset-0 size-full" />
