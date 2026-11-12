@@ -3,20 +3,20 @@ import { ChevronLeft, Clock, Layers, ListChecks, LocateFixed, Plus, Check, Searc
 import { useApp } from '../store'
 import { ACTIVITIES, getActivities, getAirport, getTemplates } from '../data/mock'
 import { sized } from '../data/images'
-import { budget, fmtDur, layoverMinutes, timeSpan } from '../data/time'
+import { budget, fmtDur, layoverMinutesAt, timeSpan } from '../data/time'
 import { ActivityRow, ActivitySheet, Button, CATEGORIES, Chip, ChipRow, Photo, cx } from '../components/ui'
 import { AirportMap, type Zone } from '../components/AirportMap'
-import { Coach } from '../components/Coach'
 import type { Category } from '../data/types'
 
 type View = 'map' | 'list'
 const ZONES: Zone[] = ['all', 'Airside', 'Landside']
 
-/** Screen 3: discover your layover. Map-led, with a list alternative. */
+/** Discover a layover airport. List first (curated itineraries, then activities); the map is an illustrative
+ *  zone schematic behind a toggle. Planning state lives in the store, so switching views keeps everything. */
 export function Airport({ code, view: initialView }: { code: string; view?: View }) {
-  const { go, back, draft, setDraft, hint } = useApp()
+  const { go, back, draft, setDraft, picked, setPicked } = useApp()
   const ap = getAirport(code)
-  const [view, setView] = useState<View>(initialView ?? 'map')
+  const [view, setView] = useState<View>(initialView ?? 'list')
   const [cat, setCat] = useState<'All' | Category>('All')
   const [zone, setZone] = useState<Zone>('all')
   const [focusId, setFocusId] = useState<string | null>(null)
@@ -25,16 +25,17 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
 
   const acts = getActivities(code)
   const ready = !!draft && draft.airport === code
-  const planned = ready ? draft!.activityIds : []
+  // Before layover times exist, activities can still be selected; they are carried into the setup form.
+  const planned = ready ? draft!.activityIds : picked?.airport === code ? picked.ids : []
   const items = planned.map((id) => ACTIVITIES.find((a) => a.id === id)!).filter(Boolean)
-  const b = ready ? budget(layoverMinutes(draft!.arrival, draft!.departure), draft!.bufferMin, items) : null
+  const b = ready ? budget(layoverMinutesAt(draft!.arrival, draft!.departure, ap.timezone), draft!.bufferMin, items) : null
   const focus = acts.find((a) => a.id === focusId) ?? null
 
   const toggle = (id: string) => {
-    if (!ready || !draft) { startTrip(); return }
+    if (!ready || !draft) { setPicked({ airport: code, ids: planned.includes(id) ? planned.filter((x) => x !== id) : [...planned, id] }); return }
     setDraft({ ...draft, activityIds: draft.activityIds.includes(id) ? draft.activityIds.filter((x) => x !== id) : [...draft.activityIds, id] })
   }
-  const customize = (templateId: string) => {
+  const applyItinerary = (templateId: string) => {
     const t = getTemplates(code).find((x) => x.id === templateId)!
     if (ready && draft) { setDraft({ ...draft, name: t.name, activityIds: [...t.activityIds] }); go({ name: 'builder' }) }
     else startTrip(templateId)
@@ -45,7 +46,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
       <div className="flex items-center gap-2">
         <button onClick={back} aria-label="Back" className="glass-dark grid size-12 shrink-0 place-items-center rounded-full"><ChevronLeft size={26} strokeWidth={2.4} /></button>
         <div role="tablist" aria-label="Airport view" className="glass-dark grid flex-1 grid-cols-2 rounded-full p-1">
-          {(['map', 'list'] as View[]).map((v) => (
+          {(['list', 'map'] as View[]).map((v) => (
             <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
               className={cx('min-h-10 rounded-full text-sub font-semibold capitalize', view === v ? 'bg-white text-accent-dark' : 'text-white')}>{v}</button>))}
         </div>
@@ -64,8 +65,9 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
 
   if (view === 'map') {
     return (
-      <div className="relative -mb-[var(--nav-h)] flex h-dvh flex-col">
-        <div className="relative min-h-0 flex-1">
+      <div className="relative -mb-[var(--nav-h)] flex min-h-dvh flex-col">
+        {/* min height keeps every marker visible above the sheet on short phones; the page scrolls instead */}
+        <div className="relative min-h-[28rem] flex-1">
           <AirportMap activities={acts} planned={planned} focusId={focusId} onFocus={setFocusId} cat={cat} zone={zone} />
           {bar}
           <div className="absolute right-3 top-[11.5rem] z-20 grid gap-2">
@@ -94,34 +96,35 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                 <p role="alert" className="mt-2 text-sub font-medium text-error">Adds {fmtDur(focus.durationMin - Math.max(b.remaining, 0))} beyond your usable time.</p>)}
               <div className="mt-3 flex gap-2">
                 <Button variant={planned.includes(focus.id) ? 'secondary' : 'primary'} className="flex-1" icon={planned.includes(focus.id) ? Check : Plus} onClick={() => toggle(focus.id)}>
-                  {!ready ? 'Set layover to add' : planned.includes(focus.id) ? 'Added' : 'Add to itinerary'}</Button>
+                  {planned.includes(focus.id) ? (ready ? 'Added' : 'Selected') : ready ? 'Add to itinerary' : 'Select'}</Button>
                 <Button variant="secondary" onClick={() => setDetails(focus.id)}>Details</Button>
               </div>
             </div>
           ) : (
             <div>
-              {hint === 3 ? <Coach step={3} /> : (
+              {(
                 <>
                   <p className="text-card font-semibold leading-tight">{ap.name}</p>
                   <p className="mt-0.5 text-sub text-muted-text">
-                    {b ? `${fmtDur(b.usable)} usable · ${items.length} planned · ${b.over ? 'over by ' + fmtDur(-b.remaining) : fmtDur(b.remaining) + ' left'}` : 'Tap a marker or pick an activity below.'}</p>
+                    {b ? `${fmtDur(b.usable)} usable · ${items.length} planned · ${b.over ? 'over by ' + fmtDur(-b.remaining) : fmtDur(b.remaining) + ' left'}` : `${items.length ? items.length + ' selected · ' : ''}Set your layover times to check what fits.`}</p>
+                  <p className="mt-0.5 text-cap text-muted-text">Illustrative zone schematic, not a navigation map.</p>
                   <ul className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]" aria-label="Activities at this airport">
                     {acts.filter((a) => cat === 'All' || a.category === cat).map((a) => (
                       <li key={a.id} className="shrink-0">
                         <button onClick={() => setFocusId(a.id)} className={cx('flex w-[13.5rem] items-center gap-2.5 rounded-xl border p-2 text-left', planned.includes(a.id) ? 'border-accent bg-accent-tint' : 'border-line bg-surface')}>
                           <Photo img={a.image} w={48} h={48} className="size-12 shrink-0 rounded-lg" />
                           <span className="min-w-0"><span className="block truncate text-sub font-semibold">{a.name}</span>
-                            <span className="block text-cap text-muted-text">{fmtDur(a.durationMin)}{planned.includes(a.id) ? ' · added' : ''}</span></span>
+                            <span className="block text-cap text-muted-text">{fmtDur(a.durationMin)}{planned.includes(a.id) ? (ready ? ' · added' : ' · selected') : ''}</span></span>
                         </button>
                       </li>))}
                   </ul>
                 </>
               )}
-              {hint !== 3 && (!ready || items.length > 0) && (
+              {(!ready || items.length > 0) && (
                 <div className="mt-3">
                   {ready
                     ? <Button className="w-full" onClick={() => go({ name: 'builder' })}>{`Build itinerary (${items.length})`}</Button>
-                    : <Button className="w-full" onClick={() => startTrip()}>Set my layover</Button>}
+                    : <Button className="w-full" onClick={() => startTrip()}>{items.length ? `Set layover times (${items.length} selected)` : 'Set my layover times'}</Button>}
                 </div>)}
             </div>
           )}
@@ -133,24 +136,23 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
     )
   }
 
-  return <List {...{ code, bar, ready, planned, b, toggle, customize, startTrip }} />
+  return <List {...{ code, bar, ready, planned, b, toggle, applyItinerary, startTrip, cat, setCat }} />
 }
 
-function List({ code, bar, ready, planned, b, toggle, customize, startTrip }: {
+function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip, cat, setCat }: {
   code: string; bar: React.ReactNode; ready: boolean; planned: string[]; b: ReturnType<typeof budget> | null
-  toggle: (id: string) => void; customize: (id: string) => void
-  startTrip: () => void
+  toggle: (id: string) => void; applyItinerary: (id: string) => void
+  startTrip: () => void; cat: 'All' | Category; setCat: (c: 'All' | Category) => void
 }) {
   const { go } = useApp()
   const ap = getAirport(code)
-  const [cat, setCat] = useState<'All' | Category>('All')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
   const acts = getActivities(code)
   const shown = acts.filter((a) => (cat === 'All' || a.category === cat) && a.name.toLowerCase().includes(q.toLowerCase()))
   const usable = b?.usable
   return (
-    <div className="pb-40">
+    <div className="pb-[calc(var(--nav-h)+6.5rem)]">
       <div className="relative h-72 overflow-hidden bg-deep">
         <img src={sized(ap.image, 900, 580)} alt={ap.image.alt} title={`Photo: ${ap.image.credit} / Unsplash`} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-deep/55 via-transparent to-deep/50" />
@@ -167,9 +169,12 @@ function List({ code, bar, ready, planned, b, toggle, customize, startTrip }: {
             })}
           </dl>
         </div>
-        <div className="mt-5"><Coach step={3} /></div>
+        <p className="mt-5 rounded-card bg-surface px-4 py-3 text-sub text-muted-text">
+          {usable !== undefined
+            ? <>Everything below is checked against your <b className="text-ink">{fmtDur(usable)}</b> usable time{b && !b.over ? <>, <b className="text-ink">{fmtDur(b.remaining)}</b> still free</> : b?.over ? <>; your plan is <b className="text-error">{fmtDur(-b.remaining)} over</b></> : null}.</>
+            : <>Pick a curated itinerary or select single activities. Set your layover times to check what fits; your selection is kept.</>}
+        </p>
         <h2 className="mb-3 mt-6 text-h2 font-bold">Curated itineraries</h2>
-        {usable !== undefined && <p className="-mt-1 mb-3 text-body text-muted-text">Checked against your <b className="text-ink">{fmtDur(usable)}</b> usable time.</p>}
         <ul className="grid gap-4">
           {getTemplates(code).map((t) => {
             const items = t.activityIds.map((id) => ACTIVITIES.find((a) => a.id === id)!)
@@ -189,8 +194,8 @@ function List({ code, bar, ready, planned, b, toggle, customize, startTrip }: {
                   <p className="text-body text-muted-text">{t.blurb}</p>
                   <ul className="mt-2 text-body">{items.map((a) => <li key={a.id} className="flex justify-between py-0.5"><span>{a.name}</span><span className="text-muted-text">{fmtDur(a.durationMin)}</span></li>)}</ul>
                   <p className={cx('mt-3 rounded-xl px-3 py-2 text-sub font-medium', fit === null ? 'bg-canvas text-muted-text' : fit ? 'bg-success/10 text-success' : 'bg-error-tint text-ink')}>
-                    {fit === null ? 'Set your layover to check suitability.' : fit ? `Fits with ${fmtDur(usable! - dur)} to spare.` : `Needs ${fmtDur(dur - usable!)} more than your usable time. You can trim it.`}</p>
-                  <Button variant="secondary" className="mt-3 w-full" onClick={() => customize(t.id)}>Customize itinerary</Button>
+                    {fit === null ? 'Set your layover times to check whether it fits.' : fit ? `Fits with ${fmtDur(usable! - dur)} to spare.` : `Needs ${fmtDur(dur - usable!)} more than your usable time. You can trim it.`}</p>
+                  <Button variant="secondary" className="mt-3 w-full" onClick={() => applyItinerary(t.id)}>Use this itinerary</Button>
                 </div>
               </li>
             )
@@ -208,7 +213,7 @@ function List({ code, bar, ready, planned, b, toggle, customize, startTrip }: {
           {shown.map((a) => {
             const on = planned.includes(a.id)
             return <ActivityRow key={a.id} a={a} onOpen={() => setOpen(a.id)} action={
-              <button aria-label={`${on ? 'Remove' : 'Add'} ${a.name}`} aria-pressed={on} onClick={() => toggle(a.id)}
+              <button aria-label={`${on ? 'Remove' : ready ? 'Add' : 'Select'} ${a.name}`} aria-pressed={on} onClick={() => toggle(a.id)}
                 className={cx('grid size-11 shrink-0 place-items-center rounded-full', on ? 'bg-accent text-white' : 'bg-accent-tint text-accent-dark')}>{on ? <Check size={20} /> : <Plus size={20} />}</button>} />
           })}
           {!shown.length && <li className="py-6 text-center text-muted-text">No activities match.</li>}
@@ -217,7 +222,7 @@ function List({ code, bar, ready, planned, b, toggle, customize, startTrip }: {
       <div className="pointer-events-none fixed inset-x-0 bottom-[var(--nav-h)] z-30 mx-auto max-w-[480px] px-4 pb-2">
         <div className="glass pointer-events-auto rounded-[1.25rem] p-2.5">
           {ready ? <Button className="w-full" onClick={() => go({ name: 'builder' })}>Build itinerary ({planned.length})</Button>
-            : <Button className="w-full" onClick={startTrip}>Set my layover</Button>}
+            : <Button className="w-full" onClick={startTrip}>{planned.length ? `Set layover times (${planned.length} selected)` : 'Set my layover times'}</Button>}
         </div>
       </div>
       <ActivitySheet a={acts.find((a) => a.id === open) ?? null} onClose={() => setOpen(null)} />

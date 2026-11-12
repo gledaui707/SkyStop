@@ -1,7 +1,7 @@
 import { ChevronRight, Pencil } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, getAirport } from '../data/mock'
-import { budget, fmtDur, isOvernight, layoverMinutes } from '../data/time'
+import { budget, fmtDur, isOvernight, layoverMinutesAt } from '../data/time'
 import type { Plan } from '../data/types'
 import { BudgetHero } from '../components/BudgetHero'
 import { ActivityRow, Button, DemoNote, Header, LargeTitle, Notice, Photo, SectionTitle, cx } from '../components/ui'
@@ -26,13 +26,13 @@ export function Plans() {
           <div className="rounded-card border border-dashed border-muted p-6 text-center">
             <p className="text-card font-semibold">No saved plans yet</p>
             <p className="mt-1 text-body text-muted-text">Choose a connection or an airport, add activities and save your itinerary.</p>
-            <Button className="mt-4 w-full" onClick={() => go({ name: 'trip' })}>Plan my layover</Button>
+            <Button className="mt-4 w-full" onClick={() => go({ name: 'trip' })}>Plan a layover</Button>
           </div>
         ) : (
           <ul className="grid gap-3">
             {plans.map((p) => {
-              const b = budget(layoverMinutes(p.arrival, p.departure), p.bufferMin, itemsOf(p))
               const ap = getAirport(p.airport)
+              const b = budget(layoverMinutesAt(p.arrival, p.departure, ap.timezone), p.bufferMin, itemsOf(p))
               return (
                 <li key={p.id}>
                   <button onClick={() => go({ name: 'plan', id: p.id })} className="flex w-full items-center gap-3 rounded-card border border-line bg-surface p-3 text-left">
@@ -59,9 +59,9 @@ export function PlanDetail({ id }: { id: string }) {
   const p = plans.find((x) => x.id === id)
   if (!p) return <div><Header title="Plan" /><p className="p-6 text-center text-muted-text">{plansState.status === 'loading' ? 'Loading your plan…' : 'This plan is not available.'}</p></div>
   const items = itemsOf(p)
-  const mins = layoverMinutes(p.arrival, p.departure)
-  const b = budget(mins, p.bufferMin, items)
   const ap = getAirport(p.airport)
+  const mins = layoverMinutesAt(p.arrival, p.departure, ap.timezone)
+  const b = budget(mins, p.bufferMin, items)
   return (
     <div className="pb-8">
       <Header title={p.name} subtitle={`${ap.name} (${ap.code})`} />

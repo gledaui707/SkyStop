@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpRight, Bed, ChevronRight, Clock, Compass, Laptop, ListChecks, MapPin, Plane, Plus, Search, ShoppingBag, Sparkles, TramFront, Utensils, type LucideIcon } from 'lucide-react'
+import { ArrowUpRight, Bed, Check, ChevronRight, X, Clock, Compass, Laptop, ListChecks, MapPin, Plane, Plus, Search, ShoppingBag, Sparkles, TramFront, Utensils, type LucideIcon } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, AIRPORTS, CITIES, TEMPLATES, getActivities, getAirport, getTemplates } from '../data/mock'
 import { IMAGES, sized } from '../data/images'
@@ -26,7 +26,7 @@ const Meta = ({ icon: Icon, value, label }: { icon: LucideIcon; value: string; l
 
 /** Home: discovery-first, with the next saved trip on top when there is one. */
 export function Home() {
-  const { plans, go, switchTab } = useApp()
+  const { plans, go, switchTab, notice, setNotice } = useApp()
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<'All' | Category>('All')
   const upcoming = nextTrip(plans)
@@ -52,6 +52,13 @@ export function Home() {
         </label>
       </div>
 
+      {notice && (
+        <div role="status" className="mx-5 mt-4 flex items-start gap-3 rounded-card border border-success/30 bg-success/10 p-3.5 text-body">
+          <Check size={20} className="mt-0.5 shrink-0 text-success" />
+          <p className="min-w-0 flex-1">{notice}</p>
+          <button onClick={() => setNotice(null)} aria-label="Dismiss" className="-m-2 grid size-11 shrink-0 place-items-center text-muted-text"><X size={18} /></button>
+        </div>
+      )}
       <div className="mt-4 px-5">
         {trip ? (
           <>
@@ -67,7 +74,7 @@ export function Home() {
               <span className="photo-fade absolute inset-x-0 bottom-0 h-[78%]" />
               <span className="glass-dark absolute left-3 top-3 rounded-full px-3 py-1 text-sub font-medium">Your trip</span>
               <span className="absolute inset-x-4 bottom-4 block">
-                <span className="block text-h2 font-bold leading-tight">Add flight</span>
+                <span className="block text-h2 font-bold leading-tight">Plan a layover</span>
                 <span className="mb-3 block text-sub text-white/80">See your usable time</span>
                 <span className="grid size-11 place-items-center rounded-full bg-accent text-white"><Plus size={22} strokeWidth={2.4} /></span>
               </span>
@@ -113,7 +120,7 @@ export function Home() {
               const mins = acts.map((x) => x.durationMin)
               return (
                 <li key={a.code} className="shrink-0 snap-start">
-                  <button onClick={() => go({ name: 'airport', code: a.code, view: 'map' })} className="relative block h-60 w-[20rem] overflow-hidden rounded-[1.5rem] bg-deep text-left text-white">
+                  <button onClick={() => go({ name: 'airport', code: a.code, view: 'list' })} className="relative block h-60 w-[20rem] overflow-hidden rounded-[1.5rem] bg-deep text-left text-white">
                     <Photo img={a.image} w={312} h={240} className="absolute inset-0 size-full" />
                     <span className="photo-fade absolute inset-x-0 bottom-0 h-[78%]" />
                     <span className="glass-dark absolute right-3 top-3 grid size-10 place-items-center rounded-full"><ArrowUpRight size={20} /></span>
@@ -194,7 +201,7 @@ export function Airports() {
       <ul className="grid gap-4 px-5">
         {AIRPORTS.map((a) => (
           <li key={a.code}>
-            <button onClick={() => go({ name: 'airport', code: a.code, view: 'map' })} className="relative block h-52 w-full overflow-hidden rounded-[1.25rem] bg-deep text-left text-white">
+            <button onClick={() => go({ name: 'airport', code: a.code, view: 'list' })} className="relative block h-52 w-full overflow-hidden rounded-[1.25rem] bg-deep text-left text-white">
               <Photo img={a.image} w={400} h={210} className="absolute inset-0 size-full" />
               <span className="photo-fade absolute inset-x-0 bottom-0 h-[78%]" />
               <span className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-2">

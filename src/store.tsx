@@ -52,6 +52,12 @@ interface Ctx {
   savePlan: (d: Draft) => Promise<Plan>
   draft: Draft | null
   setDraft: (d: Draft | null) => void
+  /** Activities chosen while exploring an airport before layover times exist. Carried into the setup form. */
+  picked: Picked | null
+  setPicked: (p: Picked | null) => void
+  /** One-off confirmation shown on the next screen (e.g. after a first save). */
+  notice: string | null
+  setNotice: (n: string | null) => void
   welcomed: boolean
   finishWelcome: (to: Route) => void
   hint: HintStage
@@ -59,6 +65,7 @@ interface Ctx {
   nextHint: () => void
   skipHints: () => void
 }
+export interface Picked { airport: string; ids: string[] }
 const C = createContext<Ctx>(null!)
 export const useApp = () => useContext(C)
 
@@ -81,12 +88,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [draft, setDraftState] = useState<Draft | null>(null)
   /** Every unsaved draft gets one client-generated id, reused if a save has to be retried. */
   const setDraft = useCallback((d: Draft | null) => setDraftState(d && !d.planId && !d.newId ? { ...d, newId: crypto.randomUUID() } : d), [])
+  const [picked, setPicked] = useState<Picked | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [hint, setHintState] = useState<HintStage>(boot.hint)
   const setHint = (h: HintStage) => { setHintState(h); try { sessionStorage.setItem(HINT_KEY, String(h)) } catch { /* ignore */ } }
-  const go = useCallback((r: Route) => { setStack((s) => [...s, r]); window.scrollTo(0, 0) }, [])
+  const go = useCallback((r: Route) => { setNotice(null); setStack((s) => [...s, r]); window.scrollTo(0, 0) }, [])
   const replace = useCallback((r: Route) => { setStack((s) => [...s.slice(0, -1), r]); window.scrollTo(0, 0) }, [])
   const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), [])
   const switchTab = useCallback((t: Tab) => {
+    setNotice(null)
     setStack([{ name: t === 'home' ? 'discover' : t }])
     window.scrollTo(0, 0)
   }, [])
@@ -118,7 +128,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const nextHint = () => { if (hint === 'done') return; setHint(hint >= 3 ? 'done' : ((hint + 1) as HintStage)) }
   const skipHints = () => setHint('done')
   return (
-    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, draft, setDraft, welcomed, finishWelcome, hint, advanceHint, nextHint, skipHints }}>
+    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, hint, advanceHint, nextHint, skipHints }}>
       {children}
     </C.Provider>
   )

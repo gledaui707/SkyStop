@@ -1,4 +1,5 @@
 import type { Activity } from './types'
+import { localToInstant } from '../domain'
 
 export const DEFAULT_BUFFER = 120
 
@@ -21,6 +22,19 @@ export const layoverMinutes = (arrival: string, departure: string) => {
   const a = new Date(arrival).getTime(), b = new Date(departure).getTime()
   if (isNaN(a) || isNaN(b)) return 0
   return Math.round((b - a) / 60000)
+}
+/** Minutes between two airport-local 'YYYY-MM-DDTHH:mm' values, measured in the airport's own time zone, so the
+ *  result does not depend on the browser's zone and stays correct across daylight-saving changes. Unknown or
+ *  unrepresentable times fall back to plain wall-clock difference. */
+export function layoverMinutesAt(arrival: string, departure: string, timezone = 'UTC'): number {
+  const split = (v: string) => { const [d, t = ''] = v.split('T'); return [d, t.slice(0, 5)] as const }
+  try {
+    const [ad, at] = split(arrival), [dd, dt] = split(departure)
+    return Math.round((localToInstant(dd, dt, timezone).epochMilliseconds - localToInstant(ad, at, timezone).epochMilliseconds) / 60000)
+  } catch {
+    const a = Date.parse(`${arrival}Z`), b = Date.parse(`${departure}Z`)
+    return isNaN(a) || isNaN(b) ? 0 : Math.round((b - a) / 60000)
+  }
 }
 export const isOvernight = (arrival: Date, departure: Date) =>
   arrival.toDateString() !== departure.toDateString() &&

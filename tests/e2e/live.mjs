@@ -22,31 +22,33 @@ page.on('pageerror', (e) => { console.log('PAGE ERROR', e.message); failed++; })
 const T = 20000;
 try {
   await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  await page.getByRole('button', { name: 'Add my flight' }).waitFor({ timeout: T });
+  await page.getByRole('button', { name: 'Plan a layover' }).waitFor({ timeout: T });
   check('live site loads; airports loaded from the database (welcome screen shown)', true);
   check('no guest account created just by opening the app', !api.some((a) => a.includes('/auth/v1/signup')));
   await shot(page, '01-welcome');
-  await page.getByRole('button', { name: 'Add my flight' }).click();
+  await page.getByRole('button', { name: 'Plan a layover' }).click();
 
   const pick = async (label, text) => { await page.getByLabel(label, { exact: true }).fill(text); await page.getByRole('option').first().getByRole('button').click(); };
-  await pick('Flying from', 'CGK'); await pick('Flying to', 'CDG');
-  await shot(page, '02-trip-step1');
-  await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Lisbon LIS' }).click();
-  await page.getByLabel('Arrival at connecting airport (local time)').fill(`${day(7)}T10:00`);
+  await page.getByLabel('Arrival at the connecting airport (local time)').fill(`${day(7)}T10:00`);
   await page.getByLabel('Onward departure (local time)').fill(`${day(7)}T15:00`);
   await page.getByRole('button', { name: '1h 30m' }).click();
   const bd = (await page.getByLabel('Layover time breakdown').innerText()).replace(/\n/g, ' ');
   check('time breakdown: 5h total, 3h 30m usable', bd.includes('5h') && bd.includes('3h 30m'), bd);
-  await shot(page, '03-trip-step2-times');
-  await page.getByRole('button', { name: 'See what I can do' }).click();
+  await shot(page, '02-plan-a-layover');
+  await page.getByText('Journey details').click();
+  await pick('Flying from', 'CGK'); await pick('Final destination', 'CDG');
+  await shot(page, '03-journey-details');
+  await page.getByRole('button', { name: 'Explore activities' }).click();
 
-  await page.getByRole('tab', { name: 'map' }).waitFor({ timeout: T });
-  await shot(page, '04-airport-map');
-  await page.getByRole('tab', { name: 'list' }).click();
   await page.getByRole('heading', { name: 'Curated itineraries' }).waitFor({ timeout: T });
+  check('discovery opens in List view', (await page.getByRole('tab', { name: 'list' }).getAttribute('aria-selected')) === 'true');
   check('curated itinerary shown with fit check', await visible(page, 'Demo snack and rest') && await visible(page, 'Fits with 1h 50m to spare'));
   await shot(page, '05-airport-list');
+  await page.getByRole('tab', { name: 'map' }).click();
+  await page.getByText('Airside zone').waitFor({ timeout: T });
+  await shot(page, '04-airport-map');
+  await page.getByRole('tab', { name: 'list' }).click();
   await page.getByRole('button', { name: 'Add Demo Portuguese snack break' }).click();
   await page.getByRole('button', { name: 'Add Demo quiet rest' }).click();
   await page.getByRole('button', { name: 'Add Demo gift browse' }).click();
@@ -55,7 +57,7 @@ try {
   await page.getByRole('button', { name: 'Build itinerary (3)' }).click();
   const over = (await page.getByLabel('Time budget').innerText()).replace(/\n/g, ' ');
   check('over budget: 100 + 180 = 280 min against 210 usable -> over by 1h 10m, with a warning', over.includes('Over your usable time by') && over.includes('1h 10m') && over.includes('This plan does not fit'), over.slice(0, 70));
-  check('over-budget plan can still be saved ("Save plan anyway")', await page.getByRole('button', { name: 'Save plan anyway' }).isVisible());
+  check('over-budget plan can still be saved ("Save anyway")', await page.getByRole('button', { name: 'Save anyway' }).isVisible());
   await shot(page, '06a-builder-over-budget');
   await page.getByRole('button', { name: 'Remove Demo extended work break' }).click();
   const hero = (await page.getByLabel('Time budget').innerText()).replace(/\n/g, ' ');
@@ -64,7 +66,7 @@ try {
 
   await page.getByRole('button', { name: 'Save plan' }).click();
   await page.getByLabel('Upcoming trip').waitFor({ timeout: T });
-  check('save succeeded: Home shows the personalised upcoming trip', true);
+  check('save succeeded: Home shows the personalised upcoming trip and a save confirmation', (await page.getByRole('status').innerText()).includes('is saved'));
   check('guest was created on save (one sign-up) and RPC save_plan answered 200', api.filter((a) => a.includes('/auth/v1/signup')).length === 1 && api.some((a) => a.startsWith('200 POST /rest/v1/rpc/save_plan')), api.filter((a) => a.includes('save_plan') || a.includes('signup')).join(' | '));
   const t1 = (await page.getByLabel('Upcoming trip').innerText()).replace(/\n/g, ' ');
   check('ticket shows CGK/CDG, 10:00-15:00, 3h 30m usable, 2 activities', ['CGK', 'CDG', '10:00', '15:00', '3h 30m', '2 activities saved'].every((x) => t1.includes(x)), t1.slice(0, 110));
@@ -83,8 +85,8 @@ try {
   await page.getByRole('button', { name: 'Remove Demo Portuguese snack break' }).click();
   check('edit: remaining time recalculated to 2h 30m', (await page.getByLabel('Time budget').innerText()).includes('2h 30m'));
   await shot(page, '09-edit-plan');
-  await page.getByRole('button', { name: 'Save plan' }).click();
-  await page.getByText('Plan saved').waitFor({ timeout: T });
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.getByText('All changes saved').waitFor({ timeout: T });
   check('edit saved (server confirmed)', api.filter((a) => a.startsWith('200 POST /rest/v1/rpc/save_plan')).length === 2);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'My Plans' }).click();

@@ -13,9 +13,10 @@ export function Welcome() {
       <div className="relative flex flex-1 flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-[calc(var(--safe-top)+0.75rem)]">
         <div className="mt-auto">
           <h1 className="text-title font-bold">More than a connection.</h1>
-          <Button className="mt-6 w-full" onClick={() => finishWelcome({ name: 'trip' })}>Add my flight</Button>
+          <p className="mt-2 text-body text-white/85">See how much usable time your layover really has, then plan it.</p>
+          <Button className="mt-6 w-full" onClick={() => finishWelcome({ name: 'trip' })}>Plan a layover</Button>
           <button onClick={() => finishWelcome({ name: 'find' })}
-            className="glass-dark mt-3 min-h-[3.25rem] w-full rounded-[0.875rem] text-body font-semibold">Plan ahead</button>
+            className="glass-dark mt-3 min-h-[3.25rem] w-full rounded-[0.875rem] text-body font-semibold">Compare connections</button>
           <button onClick={() => finishWelcome({ name: 'discover' })} className="mx-auto mt-2 block min-h-11 px-6 text-body text-white/80">Skip</button>
         </div>
       </div>

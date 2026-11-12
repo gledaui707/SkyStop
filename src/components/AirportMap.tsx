@@ -10,8 +10,10 @@ const ICONS: Record<Category, LucideIcon> = { Food: Utensils, Rest: Bed, Shoppin
  *  markers use only the space below it. A percentage band (as in the Figma export) slid markers under the chips on
  *  short phone screens, where they could not be tapped. */
 export const MAP_TOP_REM = 10.75
-const Y = (y: number) => `calc(${MAP_TOP_REM}rem + (100% - ${MAP_TOP_REM}rem) * ${y / 100})`
-const H = (h: number) => `calc((100% - ${MAP_TOP_REM}rem) * ${h / 100})`
+/** Kept free at the bottom so marker labels never slide under the overlapping bottom sheet. */
+export const MAP_BOTTOM_REM = 4.5
+const Y = (y: number) => `calc(${MAP_TOP_REM}rem + (100% - ${MAP_TOP_REM + MAP_BOTTOM_REM}rem) * ${y / 100})`
+const H = (h: number) => `calc((100% - ${MAP_TOP_REM + MAP_BOTTOM_REM}rem) * ${h / 100})`
 
 const ZONES = [
   { key: 'Airside', label: 'Airside zone', top: 8, h: 42, cls: 'border-accent/50 bg-white/[0.07]' },

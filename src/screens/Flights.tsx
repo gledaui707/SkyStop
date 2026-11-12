@@ -36,7 +36,7 @@ function useChoose() {
   return (f: Flight) => {
     const ap = getAirport(f.via)
     setDraft({ name: `${ap.city} layover`, airport: f.via, arrival: toLocalInput(arriveConn(f)), departure: toLocalInput(departConn(f)), bufferMin: DEFAULT_BUFFER, activityIds: [], fromFlight: f.id, origin: f.origin, destination: f.destination })
-    go({ name: 'airport', code: f.via, view: 'map' })
+    go({ name: 'airport', code: f.via, view: 'list' })
   }
 }
 

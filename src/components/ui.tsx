@@ -123,9 +123,10 @@ export const DemoNote = ({ children }: { children: ReactNode }) => (
 )
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="grid gap-1.5 text-sub font-medium text-muted-text">{label}{children}</label>
+  return <label className="grid min-w-0 gap-1.5 text-sub font-medium text-muted-text">{label}{children}</label>
 }
-export const inputCls = 'min-h-[3.25rem] w-full rounded-[0.875rem] border border-line bg-surface px-4 text-body text-ink'
+// min-w-0: date/time inputs have a large intrinsic width and otherwise push narrow (320 px) screens sideways.
+export const inputCls = 'min-h-[3.25rem] w-full min-w-0 max-w-full rounded-[0.875rem] border border-line bg-surface px-4 text-body text-ink'
 
 export function ActivityRow({ a, action, onOpen }: { a: Activity; action?: ReactNode; onOpen?: () => void }) {
   return (

@@ -2,7 +2,7 @@ import { Plane } from 'lucide-react'
 import type { Plan } from '../data/types'
 import { ACTIVITIES, getAirport } from '../data/mock'
 import { airportInfo } from '../data/airportDirectory'
-import { budget, fmtDay, fmtDur, fmtTime, layoverMinutes } from '../data/time'
+import { budget, fmtDay, fmtDur, fmtTime, layoverMinutesAt } from '../data/time'
 import { sized } from '../data/images'
 
 interface Props { plan: Plan; onView: () => void; onAdd: () => void }
@@ -13,7 +13,7 @@ export function TripTicket({ plan, onView, onAdd }: Props) {
   const o = airportInfo(plan.origin), d = airportInfo(plan.destination)
   const arr = new Date(plan.arrival), dep = new Date(plan.departure)
   const items = plan.activityIds.map((id) => ACTIVITIES.find((a) => a.id === id)!).filter(Boolean)
-  const b = budget(layoverMinutes(plan.arrival, plan.departure), plan.bufferMin, items)
+  const b = budget(layoverMinutesAt(plan.arrival, plan.departure, ap.timezone), plan.bufferMin, items)
   return (
     <article aria-label="Upcoming trip" className="relative overflow-hidden rounded-[1.5rem] bg-deep text-white shadow-[0_16px_36px_rgb(16_47_57/0.28)]">
       <img src={sized(ap.image, 700, 500)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="absolute inset-0 size-full object-cover opacity-35" />
@@ -45,7 +45,7 @@ export function TripTicket({ plan, onView, onAdd }: Props) {
         {items.length > 0 && <p className="mt-3 text-sub text-white/80">{items.length} {items.length === 1 ? 'activity' : 'activities'} saved</p>}
         <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
           <button onClick={onView} className="min-h-[3.25rem] rounded-full bg-accent px-5 text-body font-semibold text-white">View layover</button>
-          <button onClick={onAdd} className="glass-dark min-h-[3.25rem] rounded-[0.875rem] px-5 text-body font-semibold">Add flight</button>
+          <button onClick={onAdd} className="glass-dark min-h-[3.25rem] rounded-[0.875rem] px-5 text-body font-semibold">New layover</button>
         </div>
       </div>
     </article>
