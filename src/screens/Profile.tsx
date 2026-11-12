@@ -37,6 +37,7 @@ export function Profile() {
   const [nationality, setNationality] = useState(profile?.nationality ?? '')
   const [residence, setResidence] = useState(profile?.residence ?? '')
   const [savedNote, setSavedNote] = useState<string | null>(null)
+  const [docsHelp, setDocsHelp] = useState(false)
   const sb = getSupabase()
   const guest = account.status !== 'registered'
 
@@ -65,7 +66,7 @@ export function Profile() {
           <span className="btn-coral grid size-14 shrink-0 place-items-center rounded-full"><UserRound size={26} /></span>
           <div className="min-w-0">
             <p className="truncate text-h2 font-bold">{account.status === 'registered' ? account.email : 'Guest'}</p>
-            <p className="text-sub text-muted-text">{account.status === 'registered' ? 'Signed in' : account.status === 'guest-pending' ? 'Guest · confirmation pending' : 'Using SkyStop as a guest'}</p>
+            {account.status !== 'guest' && account.status !== 'none' && <p className="text-sub text-muted-text">{account.status === 'registered' ? 'Signed in' : 'Guest · confirmation pending'}</p>}
           </div>
         </div>
 
@@ -77,8 +78,6 @@ export function Profile() {
             </>
           ) : (
             <>
-              <p className="text-body text-ink/85">{account.status === 'none' ? 'No account needed. Your first saved flight starts a guest session in this browser.'
-                : 'Your flights and plans are saved in this browser’s guest session.'} An optional account keeps them if you change browser or device.</p>
               {account.status === 'guest-pending' && <Notice tone="info">Check {account.pendingEmail} for a confirmation link. Your guest flights move with you once it is confirmed.</Notice>}
               {sent ? (
                 <Notice tone="info"><p className="font-semibold">Check your email</p><p>We sent a link to {sent}. Open it on this device to {mode === 'create' ? 'confirm your account' : 'sign in'}.</p></Notice>
@@ -103,7 +102,11 @@ export function Profile() {
         </Section>
 
         <Section title="Travel documents">
-          <p className="text-sub text-muted-text">Optional. Used only to tailor entry guidance for activities outside the transit area. It never decides whether you may enter a country. SkyStop does not ask for passport numbers or document photos.</p>
+          <div>
+            <button type="button" aria-expanded={docsHelp} aria-controls="docs-help" onClick={() => setDocsHelp(!docsHelp)}
+              className="min-h-9 text-sub font-semibold text-accent-dark underline underline-offset-2">What is this?</button>
+            <p id="docs-help" hidden={!docsHelp} className="mt-1 text-sub text-muted-text">Optional. Used only to tailor entry guidance for activities outside the transit area. It never decides whether you may enter a country. SkyStop does not ask for passport numbers or document photos.</p>
+          </div>
           <datalist id="countries">{countries.map((c) => <option key={c} value={c} />)}</datalist>
           <label className="grid gap-1.5 text-sub font-medium text-muted-text">Passport nationality
             <input list="countries" value={nationality} onChange={(e) => { setNationality(e.target.value); setSavedNote(null) }} className={inputCls} placeholder="e.g. Indonesia" autoComplete="off" /></label>

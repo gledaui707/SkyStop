@@ -437,7 +437,7 @@ try {
     // Profile: optional nationality, owner-only
     await G.getByRole('button', { name: 'Home' }).click();
     await G.getByRole('button', { name: 'Profile' }).click();
-    check('profile: guest status with optional account', await visible(G, 'Using SkyStop as a guest') && await G.getByRole('button', { name: 'Create account' }).isVisible() && await G.getByRole('button', { name: 'Sign in' }).isVisible());
+    check('profile: guest status with optional account', await visible(G, 'Guest') && await G.getByRole('button', { name: 'Create account' }).isVisible() && await G.getByRole('button', { name: 'Sign in' }).isVisible());
     await G.getByLabel('Passport nationality').fill('Indonesia');
     await G.getByRole('button', { name: 'Save', exact: true }).click();
     await G.getByText('Saved to your profile.').waitFor();
