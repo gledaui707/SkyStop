@@ -338,7 +338,7 @@ try {
   const dur = await rm.page.evaluate(() => getComputedStyle(document.querySelector('[aria-roledescription="carousel"] .flex')).transitionDuration);
   check('onboarding: reduced motion removes the slide transition', parseFloat(dur) < 0.01, dur);
   await rm.page.getByRole('button', { name: 'Skip' }).click(); await rm.page.getByRole('button', { name: 'Create account' }).waitFor();
-  check('access: reduced motion shows a still composition', await rm.page.evaluate(() => [...document.querySelectorAll('.access__blob, .access__strip')].every((e) => getComputedStyle(e).animationName === 'none')));
+  check('access: reduced motion shows a still composition', await rm.page.evaluate(() => [...document.querySelectorAll('.access__orbit, .access__blob, .access__strip')].every((e) => getComputedStyle(e).animationName === 'none')));
   await rm.ctx.close();
 
   // ---- 4c. Changi constraint-aware itinerary (scenarios A–F)

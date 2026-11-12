@@ -22,6 +22,8 @@ const STRIPS: Strip[] = [
   { l: 85, w: 7, m: 'clear' },
   { l: 92.4, w: 7.6, m: 'haze' },
 ]
+/** Lobes of light, back to front. */
+const LOBES = ['halo', 'upper', 'body', 'lower', 'core'] as const
 /** Hairline highlights where light catches a glass edge. */
 const EDGES = [10.2, 17.6, 39.8, 57.1, 76.4, 92.2]
 
@@ -53,11 +55,7 @@ export function AccountAccess() {
       <div className="access__stage" aria-hidden="true">
         <div className="access__composition">
           <div className="access__light">
-            <span className="access__blob access__blob--halo" />
-            <span className="access__blob access__blob--upper" />
-            <span className="access__blob access__blob--body" />
-            <span className="access__blob access__blob--lower" />
-            <span className="access__blob access__blob--core" />
+            {LOBES.map((n) => <span key={n} className={`access__orbit access__orbit--${n}`}><span className={`access__blob access__blob--${n}`} /></span>)}
           </div>
           <div className="access__veil" />
           <div className="access__glass">

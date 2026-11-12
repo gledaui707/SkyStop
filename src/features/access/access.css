@@ -1,9 +1,8 @@
 /* ───────────── Account Access ─────────────
    Warm cream canvas → a large orange glow that drifts and breathes → ribbed vertical glass (real backdrop blur)
    → the SS monogram, wordmark and three account choices.
-   Motion uses only transform-family properties (translate / scale / rotate) and opacity on soft radial gradients,
-   so nothing is re-blurred by a CSS filter on the glow itself; each blob layers three animations with unrelated
-   durations, so the combined movement does not visibly repeat. */
+   Motion uses only transform and opacity on soft radial gradients, so nothing is re-blurred by a CSS filter on the
+   glow itself. */
 
 .access {
   --access-cream: #fbf4ec;
@@ -54,84 +53,80 @@
 @media (min-width: 600px) and (min-aspect-ratio: 4/5) {
   .access__light { left: 50%; right: auto; width: min(100%, 66vh); transform: translateX(-50%); }
 }
-.access__blob {
+/* Each lobe of light is two layers: the orbit travels, the blob inside changes shape and turns. Plain `transform`
+   on separate layers (no individual translate/scale/rotate properties) so every Safari version animates it.
+   Durations are unrelated, so the combined movement does not visibly repeat. */
+.access__orbit {
   position: absolute;
   display: block;
-  transform: translate(-50%, -50%);
-  will-change: translate, scale, rotate;
+  will-change: transform;
   animation-timing-function: var(--access-motion);
   animation-iteration-count: infinite;
   animation-direction: alternate;
 }
+.access__blob {
+  position: absolute;
+  inset: 0;
+  display: block;
+  will-change: transform;
+  animation-timing-function: var(--access-motion);
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+/* Position = centre (x, y) minus half the size. */
 /* Peach haze that melts the glow into the cream. */
-.access__blob--halo {
-  left: 50%; top: 42%; width: 185%; height: 96%;
-  background: radial-gradient(closest-side, rgb(255 190 150 / .62) 0%, rgb(255 208 180 / .38) 48%, rgb(255 226 206 / 0) 100%);
-  animation-name: access-breathe;
-  animation-duration: 17s;
-}
+.access__orbit--halo { left: calc(50% - 92.5%); top: calc(42% - 48%); width: 185%; height: 96%; animation-name: access-travel-halo; animation-duration: 13s; }
+.access__blob--halo { background: radial-gradient(closest-side, rgb(255 190 150 / .62) 0%, rgb(255 208 180 / .38) 48%, rgb(255 226 206 / 0) 100%); animation-name: access-breathe; animation-duration: 8s; }
 /* Upper lobe: lighter, peachy orange. */
-.access__blob--upper {
-  left: 41%; top: 26%; width: 100%; height: 44%;
-  background: radial-gradient(closest-side, rgb(255 146 86 / .82) 0%, rgb(255 160 108 / .5) 48%, rgb(255 180 140 / 0) 100%);
-  animation-name: access-drift-a, access-morph-b, access-turn;
-  animation-duration: 27s, 21s, 43s;
-}
+.access__orbit--upper { left: calc(41% - 50%); top: calc(26% - 22%); width: 100%; height: 44%; animation-name: access-travel-a; animation-duration: 15s; }
+.access__blob--upper { background: radial-gradient(closest-side, rgb(255 146 86 / .82) 0%, rgb(255 160 108 / .5) 48%, rgb(255 180 140 / 0) 100%); animation-name: access-morph-b; animation-duration: 9s; }
 /* Main body: warm orange. */
-.access__blob--body {
-  left: 50%; top: 43%; width: 132%; height: 60%;
-  background: radial-gradient(closest-side, rgb(255 98 42 / .96) 0%, rgb(255 110 56 / .84) 30%, rgb(255 138 88 / .46) 62%, rgb(255 170 130 / 0) 100%);
-  animation-name: access-drift-b, access-morph-a, access-turn;
-  animation-duration: 33s, 19s, 47s;
-  animation-direction: alternate, alternate, alternate-reverse;
-}
+.access__orbit--body { left: calc(50% - 66%); top: calc(43% - 30%); width: 132%; height: 60%; animation-name: access-travel-b; animation-duration: 16s; }
+.access__blob--body { background: radial-gradient(closest-side, rgb(255 98 42 / .96) 0%, rgb(255 110 56 / .84) 30%, rgb(255 138 88 / .46) 62%, rgb(255 170 130 / 0) 100%); animation-name: access-morph-a; animation-duration: 10s; }
 /* Lower lobe: deeper, toward SkyStop coral. */
-.access__blob--lower {
-  left: 58%; top: 58%; width: 104%; height: 40%;
-  background: radial-gradient(closest-side, rgb(242 80 44 / .86) 0%, rgb(250 106 62 / .5) 50%, rgb(255 150 110 / 0) 100%);
-  animation-name: access-drift-c, access-morph-b;
-  animation-duration: 29s, 25s;
-}
-/* Hot core behind the logo. */
-.access__blob--core {
-  left: 49%; top: 41%; width: 92%; height: 34%;
-  background: radial-gradient(closest-side, rgb(255 74 22 / .92) 0%, rgb(255 88 34 / .62) 45%, rgb(255 110 60 / 0) 100%);
-  animation-name: access-drift-a, access-morph-a;
-  animation-duration: 23s, 17s;
-  animation-direction: alternate-reverse, alternate;
-}
+.access__orbit--lower { left: calc(58% - 52%); top: calc(58% - 20%); width: 104%; height: 40%; animation-name: access-travel-c; animation-duration: 11s; }
+.access__blob--lower { background: radial-gradient(closest-side, rgb(242 80 44 / .86) 0%, rgb(250 106 62 / .5) 50%, rgb(255 150 110 / 0) 100%); animation-name: access-morph-b; animation-duration: 8.5s; animation-direction: alternate-reverse; }
+/* Hot core behind the logo: moves least, so the wordmark always has orange behind it. */
+.access__orbit--core { left: calc(49% - 46%); top: calc(41% - 17%); width: 92%; height: 34%; animation-name: access-travel-core; animation-duration: 10s; }
+.access__blob--core { background: radial-gradient(closest-side, rgb(255 74 22 / .92) 0%, rgb(255 88 34 / .62) 45%, rgb(255 110 60 / 0) 100%); animation-name: access-morph-a; animation-duration: 7.5s; animation-direction: alternate-reverse; }
 
 @keyframes access-light-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes access-breathe { from { scale: 1; } to { scale: 1.07 1.04; } }
-@keyframes access-drift-a {
-  0% { translate: 0 0; }
-  35% { translate: 7% -5%; }
-  70% { translate: -5% 4%; }
-  100% { translate: 3% 8%; }
+@keyframes access-travel-halo { from { transform: translate3d(-4%, -3%, 0); } to { transform: translate3d(4%, 4%, 0); } }
+@keyframes access-travel-a {
+  0% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(16%, -14%, 0); }
+  50% { transform: translate3d(-12%, 8%, 0); }
+  75% { transform: translate3d(10%, 16%, 0); }
+  100% { transform: translate3d(-14%, -6%, 0); }
 }
-@keyframes access-drift-b {
-  0% { translate: -3% 2%; }
-  40% { translate: 4% -6%; }
-  75% { translate: -2% 5%; }
-  100% { translate: 5% 1%; }
+@keyframes access-travel-b {
+  0% { transform: translate3d(-10%, 6%, 0); }
+  33% { transform: translate3d(12%, -12%, 0); }
+  66% { transform: translate3d(-9%, 12%, 0); }
+  100% { transform: translate3d(8%, -2%, 0); }
 }
-@keyframes access-drift-c {
-  0% { translate: 4% 0; }
-  45% { translate: -8% -6%; }
-  100% { translate: 2% 6%; }
+@keyframes access-travel-c {
+  0% { transform: translate3d(14%, 2%, 0); }
+  50% { transform: translate3d(-16%, -14%, 0); }
+  100% { transform: translate3d(4%, 14%, 0); }
+}
+@keyframes access-travel-core {
+  0% { transform: translate3d(-6%, -4%, 0); }
+  50% { transform: translate3d(7%, 6%, 0); }
+  100% { transform: translate3d(-3%, 8%, 0); }
 }
 @keyframes access-morph-a {
-  0% { scale: 1 1; }
-  33% { scale: 1.08 .93; }
-  66% { scale: .94 1.07; }
-  100% { scale: 1.03 1; }
+  0% { transform: scale(1, 1) rotate(-10deg); }
+  33% { transform: scale(1.18, .86) rotate(4deg); }
+  66% { transform: scale(.86, 1.16) rotate(10deg); }
+  100% { transform: scale(1.08, 1) rotate(-4deg); }
 }
 @keyframes access-morph-b {
-  0% { scale: .96 1.04; }
-  50% { scale: 1.1 .95; }
-  100% { scale: 1 1.08; }
+  0% { transform: scale(.88, 1.12) rotate(8deg); }
+  50% { transform: scale(1.18, .88) rotate(-8deg); }
+  100% { transform: scale(1, 1.14) rotate(3deg); }
 }
-@keyframes access-turn { from { rotate: -7deg; } to { rotate: 6deg; } }
+@keyframes access-breathe { from { transform: scale(1, 1); } to { transform: scale(1.14, 1.08); } }
 
 /* Cream returns toward the top and bottom, so the controls sit on a light ground. Below the glass, so the ribs
    stay visible over it. */
@@ -171,10 +166,10 @@
   -webkit-backdrop-filter: blur(32px) saturate(1.1) brightness(1.06);
   backdrop-filter: blur(32px) saturate(1.1) brightness(1.06);
 }
-.access__strip--drift1 { animation: access-pane-1 37s var(--access-motion) infinite alternate; }
-.access__strip--drift2 { animation: access-pane-2 44s var(--access-motion) infinite alternate; }
-@keyframes access-pane-1 { from { translate: -4px 0; } to { translate: 5px 0; } }
-@keyframes access-pane-2 { from { translate: 6px 0; } to { translate: -5px 0; } }
+.access__strip--drift1 { will-change: transform; animation: access-pane-1 13s var(--access-motion) infinite alternate; }
+.access__strip--drift2 { will-change: transform; animation: access-pane-2 16s var(--access-motion) infinite alternate; }
+@keyframes access-pane-1 { from { transform: translate3d(-10px, 0, 0); } to { transform: translate3d(12px, 0, 0); } }
+@keyframes access-pane-2 { from { transform: translate3d(12px, 0, 0); } to { transform: translate3d(-10px, 0, 0); } }
 
 .access__edge {
   position: absolute;
