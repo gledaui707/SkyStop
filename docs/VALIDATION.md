@@ -97,3 +97,20 @@ Effect: the app currently shows "We could not load the airports" against the rea
 Recovery (owner, dashboard): Project Settings → General → **Restart project** (or pause/resume). Then reads should answer again.
 Prevention: `docs/proposed-fix-conflict-errcode.sql` (function-only change, NOT applied) stops conflicts from using 40001. Without it, any user who triggers ~10 conflicts (e.g. saving the same plan from two tabs) can stall the API again. The app reduces the risk: the Save button is disabled while saving, and a retried first save continues from the server's revision instead of re-creating the plan.
 The hosted workflow is manual-only and has not been run again since the owner asked to stop.
+
+## 2026-11-12 — Fresh Supabase project (replaces the old one)
+The old project (`rdrkskrzdyqezzopnena`) had Auth and PostgREST Unhealthy (HTTP 521) and the management API reports it "removed"; it was not touched or deleted by this work. Fresh project: `sgwbtgwccskqamzttczz` (eu-west-1, Postgres 17), created by the owner; no users or records transferred.
+Set up from the repo files only, in order: `001_schema.sql`, `002_security_and_save.sql` (conflicts now raise `PT409`, not `40001`), `seed.sql`. Anonymous sign-ins enabled through the management API.
+
+| Check | Result |
+|---|---|
+| Six tables present, RLS enabled on all six | PASS |
+| Policies: `catalogue_read` (anon, authenticated) on 4 catalogue tables; `owner_read` (authenticated) on layovers, plan_items | PASS |
+| `save_plan`: owner postgres, security definer, `search_path=""`, uses PT409, no 40001, execute for authenticated only | PASS |
+| Seed counts 2 / 8 / 2 / 4; layovers and plan_items empty | PASS |
+| HTTP catalogue reads with the publishable key (airports, activities, itinerary_templates, template_items) | 200, counts 2/8/2/4 |
+| No-session read of `layovers` | denied (42501) |
+| Local database regression with PT409 | 15/15 PASS |
+| Unit tests / production build | 55 passed, 1 skipped / PASS; built bundle contains only the new project URL |
+| Real-database happy path (`src/api/hosted.journey.test.ts`, run once): guest sign-in → catalogue → template → save → reload → homepage upcoming-trip data → edit (revision 2) → reload → second guest sees no plans and cannot open it | PASS (8.4 s) |
+Not run, by instruction: conflict/ownership stress tests. The PT409 conflict path is verified only in the local database harness and by inspecting the deployed function definition; it has not been exercised over the hosted API.

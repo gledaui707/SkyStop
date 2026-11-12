@@ -1,5 +1,5 @@
 // HAND-WRITTEN from supabase/migrations (not CLI-generated; the Supabase CLI needs a login this session lacks).
-// Replace with `npx supabase gen types typescript --project-id rdrkskrzdyqezzopnena` output when convenient.
+// Replace with `npx supabase gen types typescript --project-id sgwbtgwccskqamzttczz` output when convenient.
 export type Category = 'food' | 'rest' | 'shopping' | 'culture' | 'work';
 export type AccessZone = 'airside' | 'landside' | 'unknown';
 

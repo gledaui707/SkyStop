@@ -18,6 +18,8 @@ create policy owner_read on public.plan_items for select to authenticated using 
  exists (select 1 from public.layovers l where l.id = layover_id and l.owner_id = (select auth.uid()))
 );
 -- Writes only through this narrowly scoped transaction. No public write policy.
+-- Conflicts raise PT409 (PostgREST -> HTTP 409). NOT 40001: that is serialization_failure, which the hosted API treats as
+-- retryable, so a deterministic conflict would be retried forever and stall the API (observed 2026-11-12).
 create function public.save_plan(
  p_id uuid, p_expected_revision integer, p_airport_id text,
  p_arrival_at timestamptz, p_departure_at timestamptz,
@@ -48,12 +50,12 @@ begin
    insert into public.layovers(id, owner_id, airport_id, arrival_at, departure_at, buffer_minutes)
    values(p_id, v_owner, p_airport_id, p_arrival_at, p_departure_at, p_buffer_minutes)
    on conflict(id) do nothing returning * into v_plan;
-   if not found then raise exception 'PLAN_CONFLICT' using errcode = '40001'; end if;
+   if not found then raise exception 'PLAN_CONFLICT' using errcode = 'PT409'; end if;
  else
    select * into v_plan from public.layovers where id = p_id and owner_id = v_owner for update;
    if not found then raise exception 'PLAN_UNAVAILABLE' using errcode = '42501'; end if;
    if v_plan.revision <> p_expected_revision then
-     raise exception 'PLAN_CONFLICT' using errcode = '40001';
+     raise exception 'PLAN_CONFLICT' using errcode = 'PT409';
    end if;
    -- Airport is immutable after creation; starting another airport creates a new plan.
    if v_plan.airport_id <> p_airport_id then raise exception 'AIRPORT_CHANGED' using errcode = '22023'; end if;

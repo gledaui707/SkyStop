@@ -2,8 +2,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 // Public browser configuration (safe to ship): project URL + publishable key. Never a service-role key.
 // Env vars override these defaults, so Vercel needs no configuration for the demo project.
-const DEFAULT_URL = 'https://rdrkskrzdyqezzopnena.supabase.co';
-const DEFAULT_KEY = 'sb_publishable_fSu0PKPg6Y4T4JICz-Cczg_CEn5jP30';
+const DEFAULT_URL = 'https://sgwbtgwccskqamzttczz.supabase.co';
+const DEFAULT_KEY = 'sb_publishable_9ChZ7Mk52ignva4mWoL6Yw_Bj4RL14D';
 const REQUEST_TIMEOUT_MS = 15000;
 
 let client: SupabaseClient | undefined;
