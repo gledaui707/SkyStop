@@ -481,7 +481,8 @@ try {
     check('profile: travel-documents help opens from the heading row', await visible(G, 'never decides whether you may enter a country'));
     await G.getByLabel('Passport nationality').fill('Indonesia');
     await G.getByRole('button', { name: 'Save', exact: true }).click();
-    await G.getByText('Saved to your profile.').waitFor();
+    await G.getByRole('complementary', { name: 'Passport details' }).waitFor();
+    check('profile: saved travel details show as a passport card with Edit and Remove', (await G.getByRole('complementary', { name: 'Passport details' }).innerText()).includes('Indonesia') && await G.getByRole('button', { name: 'Edit' }).isVisible() && await G.getByRole('button', { name: 'Remove' }).isVisible());
     const uid = [...fake.plans.values()][fake.plans.size - 1].row.owner_id;
     check('profile: nationality stored privately for this user only (no passport number fields)', fake.profiles.get(uid)?.nationality === 'Indonesia' && (await G.getByLabel(/passport number/i).count()) === 0);
     // Upgrade the guest to an account (same user id → same flights)
@@ -494,7 +495,7 @@ try {
     await G.reload(); await G.getByRole('heading', { name: /next stop/ }).waitFor();
     await G.getByRole('button', { name: 'Profile' }).click();
     await G.getByText('traveller@example.com').first().waitFor();
-    check('account: after confirmation the profile shows the account; flights and nationality are kept', await visible(G, 'Signed in') && (await G.getByLabel('Passport nationality').inputValue()) === 'Indonesia');
+    check('account: after confirmation the profile shows the account; flights and nationality are kept', await visible(G, 'Signed in') && (await G.getByRole('complementary', { name: 'Passport details' }).innerText()).includes('Indonesia'));
     check('account: Account shows name field and the email', await G.getByLabel('Name').isVisible() && (await G.getByText('traveller@example.com').count()) >= 2);
     await G.getByLabel('Name').fill('Glenda Traveller');
     await G.getByRole('button', { name: 'Save', exact: true }).first().click();

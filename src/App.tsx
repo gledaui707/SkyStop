@@ -91,14 +91,16 @@ function toneAtTop(): Tone {
 }
 const THEME: Record<Tone, string> = { light: '#faf6f2', dark: '#1a1412' }
 
-/** Revolut-style progressive blur under the status bar and header: content scrolling up blurs and fades instead
+/** Revolut-style progressive blur under the status bar and header, shown only once the page is scrolled: content
+ *  scrolling up blurs and fades instead
  *  of meeting a hard band. Also reports whether the top is dark, so the status bar text can switch to white. */
 function TopBlur() {
   const { route } = useApp()
   const [tone, setTone] = useState<Tone>('light')
+  const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     let raf = 0
-    const check = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => setTone(toneAtTop())) }
+    const check = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { setTone(toneAtTop()); setScrolled(window.scrollY > 4) }) }
     check(); const t = setTimeout(check, 450) // after the screen's entrance and images
     window.addEventListener('scroll', check, { passive: true }); window.addEventListener('resize', check)
     return () => { cancelAnimationFrame(raf); clearTimeout(t); window.removeEventListener('scroll', check); window.removeEventListener('resize', check) }
@@ -111,7 +113,7 @@ function TopBlur() {
   }, [tone])
   const layers = [[16, 0, 30], [8, 20, 50], [4, 40, 70], [2, 60, 88], [1, 75, 100]] as const
   return (
-    <div data-top-blur aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-10 mx-auto h-[calc(var(--safe-top)+4.75rem)] max-w-[480px]">
+    <div data-top-blur aria-hidden="true" className={cx('pointer-events-none fixed inset-x-0 top-0 z-10 mx-auto h-[calc(var(--safe-top)+4.75rem)] max-w-[480px] transition-opacity duration-300', scrolled ? 'opacity-100' : 'opacity-0')}>
       {layers.map(([px, solid, end]) => (
         <div key={px} className="absolute inset-0" style={{ backdropFilter: `blur(${px}px)`, WebkitBackdropFilter: `blur(${px}px)`,
           maskImage: `linear-gradient(to bottom, black ${solid}%, transparent ${end}%)`, WebkitMaskImage: `linear-gradient(to bottom, black ${solid}%, transparent ${end}%)` }} />))}

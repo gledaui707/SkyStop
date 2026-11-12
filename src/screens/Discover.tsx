@@ -194,8 +194,7 @@ export function FindFlight() {
     <div className="pb-[calc(var(--nav-h)+2rem)]">
       <Header title="Compare flights" subtitle="Before you book" />
       <div className="px-5 pt-2">
-        <h2 className="text-h1 font-bold">Find a layover<br />worth having</h2>
-        <p className="mt-2 text-sub text-muted-text">Compare one-stop routes by how much usable time each connection leaves you.</p>
+        <h2 className="text-h1 font-bold">Search for the best layover flights</h2>
       </div>
       <form id="find" className="mt-5 px-5" onSubmit={(e) => { e.preventDefault(); if (origin && dest && !same) go({ name: 'results', origin, destination: dest, date }) }}>
         <div className="panel-accent relative rounded-[1.75rem] p-2">
@@ -203,7 +202,7 @@ export function FindFlight() {
             <Field label="Flying from"><select className={sel} value={origin} onChange={(e) => setOrigin(e.target.value)}>{opts}</select></Field>
           </div>
           <div className="relative h-2">
-            <button type="button" onClick={swap} aria-label="Swap cities" className="glass press absolute right-5 top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full">
+            <button type="button" onClick={swap} aria-label="Swap cities" className="press absolute right-5 top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-ink text-white shadow-[0_6px_16px_rgb(35_26_23/0.25)]">
               <ArrowUpDown size={18} /></button>
           </div>
           <div className="rounded-[1.375rem] bg-white px-4 py-2.5 ring-1 ring-line">

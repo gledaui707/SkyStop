@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, LogOut, Mail, RotateCcw, ShieldCheck, Trash2, UserRound } from 'lucide-react'
+import { Camera, Globe, LogOut, PenLine, Mail, RotateCcw, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { useApp } from '../store'
 import { getSupabase } from '../api/client'
 import { avatarUrl, createAccount, removeAvatar, signIn, signOut, updateName, uploadAvatar } from '../api/account'
@@ -26,11 +26,11 @@ function Avatar({ src, size }: { src: string | null; size: string }) {
     : <span className={cx(size, 'btn-coral grid shrink-0 place-items-center rounded-full')}><UserRound size={26} /></span>
 }
 
-const Section = ({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) => (
+const Section = ({ title, action, children, bare }: { title: string; action?: React.ReactNode; children: React.ReactNode; bare?: boolean }) => (
   <section aria-label={title} className="grid gap-3">
     <div className="flex min-h-9 items-center justify-between gap-3 px-1">
       <h2 className="text-sub font-semibold text-muted-text">{title}</h2>{action}</div>
-    <div className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-[1.5rem] p-4">{children}</div>
+    <div className={bare ? 'grid grid-cols-[minmax(0,1fr)] gap-3' : 'panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-[1.5rem] p-4'}>{children}</div>
   </section>
 )
 
@@ -44,8 +44,8 @@ export function Profile() {
   const [error, setError] = useState<string | null>(null)
   const [nationality, setNationality] = useState(profile?.nationality ?? '')
   const [residence, setResidence] = useState(profile?.residence ?? '')
-  const [savedNote, setSavedNote] = useState<string | null>(null)
   const [confirmLogout, setConfirmLogout] = useState(false)
+  const [editingDocs, setEditingDocs] = useState(false)
   const [name, setName] = useState(account.name ?? '')
   const [photo, setPhoto] = useState<string | null>(null)
   const [photoBusy, setPhotoBusy] = useState(false)
@@ -53,7 +53,6 @@ export function Profile() {
   useEffect(() => { setName(account.name ?? '') }, [account.name])
   // A different person (sign-out, sign-in) means different travel details: never keep the previous ones on screen.
   useEffect(() => { setNationality(profile?.nationality ?? ''); setResidence(profile?.residence ?? '') }, [profile, account.userId])
-  useEffect(() => { setSavedNote(null) }, [account.userId])
   useEffect(() => {
     let live = true
     if (!account.avatarPath) { setPhoto(null); return }
@@ -61,7 +60,6 @@ export function Profile() {
     return () => { live = false }
   }, [account.avatarPath])
   const sb = getSupabase()
-  const guest = account.status !== 'registered'
 
   const run = async (fn: () => Promise<void>) => {
     if (busy) return
@@ -74,7 +72,7 @@ export function Profile() {
   })
   const saveDocs = () => run(async () => {
     const p = await saveProfile(sb, { nationality: nationality.trim() || null, residence: residence.trim() || null })
-    setProfile(p); setSavedNote('Saved to your profile.'); await refreshAccount()
+    setProfile(p); setEditingDocs(false); await refreshAccount()
   })
   const logOut = () => run(async () => { await signOut(sb); setConfirmLogout(false); setMode(null); setSent(null); await refreshAccount() })
   const saveName = () => run(async () => { await ensureGuestSession(sb); await updateName(sb, name); await refreshAccount() })
@@ -87,7 +85,7 @@ export function Profile() {
   }
   const dropPhoto = () => run(async () => { if (account.userId) await removeAvatar(sb, account.userId); await refreshAccount() })
   const clearDocs = () => run(async () => {
-    await deleteProfile(sb); setProfile(null); setNationality(''); setResidence(''); setSavedNote('Your travel details were removed.')
+    await deleteProfile(sb); setProfile(null); setNationality(''); setResidence(''); setEditingDocs(false)
   })
 
   return (
@@ -152,19 +150,42 @@ export function Profile() {
           {account.status === 'registered' && error && <Notice tone="warn">{error}</Notice>}
         </Section>
 
-        <Section title="Travel documents" action={
+        <Section title="Travel documents" bare={!!profile && !editingDocs} action={
           <InfoTip id="docs-help" title="Travel documents">Optional. Used only to tailor entry guidance for activities outside the transit area. It never decides whether you may enter a country. SkyStop does not ask for passport numbers or document photos.</InfoTip>}>
-          <datalist id="countries">{countries.map((c) => <option key={c} value={c} />)}</datalist>
-          <label className="grid gap-1.5 text-sub font-medium text-muted-text">Passport nationality
-            <input list="countries" value={nationality} onChange={(e) => { setNationality(e.target.value); setSavedNote(null) }} className={inputCls} placeholder="e.g. Indonesia" autoComplete="off" /></label>
-          <label className="grid gap-1.5 text-sub font-medium text-muted-text">Country of residence
-            <input list="countries" value={residence} onChange={(e) => { setResidence(e.target.value); setSavedNote(null) }} className={inputCls} placeholder="Optional" autoComplete="off" /></label>
-          <p className="flex gap-2 text-cap text-muted-text"><ShieldCheck size={15} className="mt-px shrink-0" />Only you can read these details{guest ? ' (in this guest session)' : ''}.</p>
-          {savedNote && <p role="status" className="text-sub font-medium text-success">{savedNote}</p>}
-          <div className="grid grid-cols-2 gap-2">
-            <Button disabled={busy || (nationality === (profile?.nationality ?? '') && residence === (profile?.residence ?? ''))} onClick={saveDocs}>Save</Button>
-            <Button variant="secondary" icon={Trash2} disabled={busy || !profile} onClick={clearDocs}>Remove</Button>
-          </div>
+          {profile && !editingDocs ? (
+            <>
+              {/* saved: a small passport cover (same composition as the Overnight connection card) */}
+              <aside aria-label="Passport details" className="relative flex items-center gap-4 overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#6e1f30] to-[#3b0f1b] p-4 text-white">
+                <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full border border-[#f1d49a]/15" />
+                <div aria-hidden="true" className="relative grid size-16 shrink-0 place-items-center rounded-full bg-[#8a3346] text-[#f1d49a] ring-1 ring-[#f1d49a]/30">
+                  <Globe size={30} strokeWidth={1.4} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-cap font-semibold tracking-wide text-[#f1d49a]">Passport</p>
+                  <p className="truncate text-card font-semibold">{profile.nationality || 'Nationality not set'}</p>
+                  {profile.residence && <p className="mt-0.5 truncate text-sub text-white/80">Lives in {profile.residence}</p>}
+                </div>
+              </aside>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="secondary" icon={PenLine} onClick={() => setEditingDocs(true)}>Edit</Button>
+                <Button variant="secondary" icon={Trash2} disabled={busy} onClick={clearDocs}>Remove</Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <datalist id="countries">{countries.map((c) => <option key={c} value={c} />)}</datalist>
+              <label className="grid gap-1.5 text-sub font-medium text-muted-text">Passport nationality
+                <input list="countries" value={nationality} onChange={(e) => setNationality(e.target.value)} className={inputCls} placeholder="e.g. Indonesia" autoComplete="off" /></label>
+              <label className="grid gap-1.5 text-sub font-medium text-muted-text">Country of residence
+                <input list="countries" value={residence} onChange={(e) => setResidence(e.target.value)} className={inputCls} placeholder="Optional" autoComplete="off" /></label>
+              <p className="flex gap-2 text-cap text-muted-text"><ShieldCheck size={15} className="mt-px shrink-0" />Only you can see these details.</p>
+              {(editingDocs || nationality.trim() || residence.trim()) && (
+                <div className={editingDocs ? 'grid grid-cols-2 gap-2' : 'grid'}>
+                  <Button disabled={busy || !(nationality.trim() || residence.trim()) || (nationality === (profile?.nationality ?? '') && residence === (profile?.residence ?? ''))} onClick={saveDocs}>Save</Button>
+                  {editingDocs && <Button variant="secondary" onClick={() => { setEditingDocs(false); setNationality(profile?.nationality ?? ''); setResidence(profile?.residence ?? '') }}>Cancel</Button>}
+                </div>)}
+            </>
+          )}
         </Section>
 
         <Section title="Settings">
