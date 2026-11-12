@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Clock, Plane, ShoppingBag, Sparkles, Utensils } 
 import { useApp } from '../store'
 import { IMAGES, sized, type Img } from '../data/images'
 import { cx } from '../components/ui'
+import { SSMark } from '../components/SSMark'
 
 /** First-visit onboarding: three photographic screens. Skippable, swipeable, keyboard-operable.
  *  The floating previews are clearly marked examples; no personal or live flight data is shown. */
@@ -113,8 +114,8 @@ export function Welcome() {
 
       <div className="pointer-events-none relative flex flex-1 flex-col px-6 pb-[calc(var(--safe-bottom)+1.25rem)] pt-[calc(var(--safe-top)+0.5rem)]">
         <div className="pointer-events-auto flex items-center justify-between">
-          <span className="glass-dark flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-4 text-sub font-semibold">
-            <span className="btn-coral grid size-8 place-items-center rounded-full"><Plane size={16} className="-rotate-45" /></span>SkyStop
+          <span className="glass-dark flex min-h-11 items-center gap-2 rounded-full py-1.5 pl-3.5 pr-4 text-sub font-semibold">
+            <SSMark className="h-[1.125rem] w-auto" />SkyStop
           </span>
           {!last && <button onClick={done} className="glass-dark press min-h-11 rounded-full px-5 text-sub font-semibold">Skip</button>}
         </div>
