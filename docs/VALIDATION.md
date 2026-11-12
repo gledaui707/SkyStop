@@ -35,3 +35,19 @@ Append: date | commit | environment | command/scenario | expected | actual | res
 **Step 2 (done, verified):** `npm test -- --run` → 35 tests passed; `npm run typecheck` clean. Covers U1–U9, overnight, DST gap/overlap rejection (Europe/Lisbon 2027-03-28 and 2027-10-31), process-TZ independence (Lisbon/New York/Auckland), exactly-48h boundary, zero-usable time, exact-fit budget, 20-item cap, duplicate/cross-airport ignore. Code: `src/domain/`. Temporal polyfill `temporal-polyfill`. Root `package.json` is a placeholder to merge into the Figma Make export's package.
 
 **Step 1 (NOT verified):** network to the Supabase host was allowed; the publishable key saved via the credential form is rejected by the API ("Invalid API key"), so no schema, anonymous Auth, RLS or two-session checks have run. Pending: a valid publishable (anon) key. Nothing was applied to the remote database.
+
+## 2026-11-12 — Step 1 hosted Supabase checks (read-only; nothing applied or modified)
+Target: project ref `rdrkskrzdyqezzopnena`, publishable key only, via PostgREST/Auth HTTP calls with no user session. Not a substitute for the two-session test.
+
+| Check | Expected | Actual | Result |
+|---|---|---|---|
+| Catalogue counts (airports/activities/templates/template_items) | 2/8/2/4 | 2/8/2/4 (Content-Range) | PASS |
+| Seed matches repo seed | LIS 40/60/30/180 min, SIN 50/45/75/120; templates [40,60] and 2 ordered items | matches; all `is_demo` | PASS |
+| No-session read of `layovers`, `plan_items` | denied | 42501 permission denied | PASS |
+| No-session INSERT into `airports`, `layovers` | denied | 42501 / HTTP 401 | PASS |
+| No-session `save_plan` RPC | denied | 42501 permission denied for function (function exists) | PASS |
+| Anonymous sign-in (`/auth/v1/signup`) | session issued | 422 `anonymous_provider_disabled`; settings show `anonymous_users:false` | **FAIL — blocker** |
+| Authenticated own save/read/edit, cross-user isolation, malformed-save rollback | pass | not run: needs anonymous sign-in | **UNVERIFIED** |
+| CAPTCHA | optional | none configured in auth settings | noted |
+
+Action required (owner): Supabase dashboard → Authentication → Sign In / Providers → enable "Allow anonymous sign-ins". Consider CAPTCHA/rate limits afterwards. Then run the two-identity test. `.env` values for the app are the project URL and publishable key only. Database types not yet generated.
