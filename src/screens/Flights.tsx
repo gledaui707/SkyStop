@@ -56,17 +56,17 @@ export function Results({ origin, destination, date }: { origin: string; destina
   const toggle = (id: string) => setCmp((c) => c.includes(id) ? c.filter((x) => x !== id) : c.length < 3 ? [...c, id] : c)
   return (
     <div className="pb-44">
-      <div className="relative overflow-hidden bg-deep px-4 pb-5 pt-[var(--safe-top)] text-white">
+      <div className="ph relative overflow-hidden rounded-b-[2rem] px-4 pb-6 pt-[var(--safe-top)] text-white">
         <img onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} src={sized(IMAGES.results, 900, 360)} alt="" className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-deep/30 to-deep/20" /><div className="photo-fade absolute inset-x-0 bottom-0 h-[75%]" />
         <div className="relative">
-          <button onClick={back} className="glass-dark mt-2 flex min-h-11 items-center rounded-full pl-2 pr-4"><ChevronLeft size={24} strokeWidth={2.4} /><span className="text-sub font-medium">Change route</span></button>
+          <button onClick={back} className="glass-dark press mt-2 flex min-h-11 items-center rounded-full pl-2 pr-4"><ChevronLeft size={24} strokeWidth={2.4} /><span className="text-sub font-medium">Change route</span></button>
           <div className="mt-4">
-          <p className="text-sub font-semibold text-accent">Choose your connection</p>
-          <div className="mt-1 flex items-center justify-between">
-            <div><p className="text-h1 font-bold leading-none">{origin}</p><p className="mt-1 text-sub text-white/80">{city(origin).split(',')[0]}</p></div>
+          <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold uppercase tracking-[0.08em]">Choose your connection</p>
+          <div className="mt-3 flex items-center justify-between">
+            <div><p className="text-title font-bold leading-none">{origin}</p><p className="mt-1 text-sub text-white/80">{city(origin).split(',')[0]}</p></div>
             <Plane size={24} className="text-white/70" />
-            <div className="text-right"><p className="text-h1 font-bold leading-none">{destination}</p><p className="mt-1 text-sub text-white/80">{city(destination).split(',')[0]}</p></div>
+            <div className="text-right"><p className="text-title font-bold leading-none">{destination}</p><p className="mt-1 text-sub text-white/80">{city(destination).split(',')[0]}</p></div>
           </div>
           </div>
         </div>
@@ -90,7 +90,7 @@ export function Results({ origin, destination, date }: { origin: string; destina
             {flights.map((f) => {
               const usable = Math.max(0, f.layoverMin - DEFAULT_BUFFER)
               return (
-                <li key={f.id} className="rounded-card border border-line bg-surface p-4">
+                <li key={f.id} className="panel rounded-[1.75rem] p-4">
                   <div className="flex items-center justify-between gap-2">
                     <Airline code={f.airline} size={32} bold />
                     {f.priceUsd === cheapest && <span className="rounded-md bg-success/10 px-2 py-0.5 text-cap font-semibold text-success">Cheapest</span>}
@@ -105,10 +105,10 @@ export function Results({ origin, destination, date }: { origin: string; destina
                     <div className="text-right"><p className="text-h1 font-semibold leading-none tabular-nums">{fmtTime(arriveDest(f))}<sup className="text-cap text-muted-text">{dayOffset(f)}</sup></p><p className="mt-1 text-sub text-muted-text">{f.destination}</p></div>
                   </div>
                   <div className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full" role="img" aria-label={`Flight ${fmtDur(f.legOneMin)}, layover ${fmtDur(f.layoverMin)}, flight ${fmtDur(f.legTwoMin)}`}>
-                    <span className="rounded-l-full bg-muted/40" style={{ flex: f.legOneMin }} /><span className="bg-accent" style={{ flex: f.layoverMin }} /><span className="rounded-r-full bg-muted/40" style={{ flex: f.legTwoMin }} />
+                    <span className="rounded-l-full bg-white/25" style={{ flex: f.legOneMin }} /><span className="bg-gradient-to-r from-[#f6a04d] to-accent" style={{ flex: f.layoverMin }} /><span className="rounded-r-full bg-white/25" style={{ flex: f.legTwoMin }} />
                   </div>
-                  <div className="mt-3 flex items-center gap-3 rounded-xl bg-canvas p-2.5">
-                    <Photo img={IMAGES.airports[f.via]} w={44} h={44} className="size-11 shrink-0 rounded-lg" />
+                  <div className="mt-3 flex items-center gap-3 rounded-2xl bg-white/[0.06] p-2.5 ring-1 ring-line">
+                    <span className="ph relative size-11 shrink-0 overflow-hidden rounded-xl"><Photo img={IMAGES.airports[f.via]} w={44} h={44} className="absolute inset-0 size-full" /></span>
                     <p className="text-sub leading-snug">Layover <b>{fmtDur(f.layoverMin)}</b> in {f.via}<br />
                       <span className="text-muted-text">{fmtDur(usable)} usable · {fits(f)} itinerary fits</span></p>
                   </div>
@@ -116,7 +116,7 @@ export function Results({ origin, destination, date }: { origin: string; destina
                     <p className="text-h1 font-bold tabular-nums">{money(f.priceUsd)}<span className="block text-cap font-normal text-muted-text">sample price</span></p>
                     <Button variant="secondary" className="min-h-11 px-4 text-sub" onClick={() => go({ name: 'flight', flightId: f.id, origin, destination, date })}>View connection</Button>
                   </div>
-                  <label className="mt-2 flex min-h-11 items-center gap-3 border-t border-line pt-2 text-body">
+                  <label className="mt-3 flex min-h-11 items-center gap-3 border-t border-line pt-2 text-body">
                     <input type="checkbox" checked={cmp.includes(f.id)} onChange={() => toggle(f.id)} className="size-5 accent-accent" />Compare</label>
                 </li>
               )
@@ -141,7 +141,7 @@ export function FlightDetails({ flightId, origin, destination, date }: { flightI
   const night = isOvernight(arriveConn(f), departConn(f))
   const Node = ({ time, day, code, label, strong }: { time: Date; day?: boolean; code: string; label: string; strong?: boolean }) => (
     <div className="relative pb-5 pl-9">
-      <span className={cx('absolute left-0 top-1 size-5 rounded-full border-[3px] border-accent', strong ? 'bg-accent' : 'bg-surface')} />
+      <span className={cx('absolute left-0 top-1 size-5 rounded-full border-[3px] border-accent', strong ? 'bg-accent' : 'bg-canvas')} />
       <p className="text-card font-semibold tabular-nums">{fmtTime(time)} {day && <span className="text-sub font-normal text-muted-text">{fmtDay(time)}</span>}</p>
       <p className="text-sub"><b>{code}</b> <span className="text-muted-text">· {label}</span></p>
     </div>
@@ -154,14 +154,14 @@ export function FlightDetails({ flightId, origin, destination, date }: { flightI
       <Header title={`${origin} to ${destination}`} subtitle={`${AIRLINES[f.airline].name} · illustrative`} />
       <div className="px-5 pt-2">
         <div className="mb-3"><Airline code={f.airline} size={40} bold /></div>
-        <section className="relative rounded-card border border-line bg-surface p-4">
+        <section className="panel relative rounded-[1.75rem] p-4">
           <span className="absolute bottom-10 left-[1.625rem] top-8 w-0.5 bg-line" />
           <Node time={f.departAt} day code={origin} label={city(origin)} strong />
           <Leg dur={f.legOneMin} />
           <Node time={arriveConn(f)} code={f.via} label="Arrive at connecting airport" />
           <button onClick={() => choose(f)}
-            className="mb-5 ml-9 flex w-[calc(100%-2.25rem)] items-center gap-3 rounded-xl border border-accent bg-accent-tint p-3 text-left">
-            <Photo img={ap.image} w={48} h={48} className="size-12 shrink-0 rounded-lg" />
+            className="panel-accent press mb-5 ml-9 flex w-[calc(100%-2.25rem)] items-center gap-3 rounded-2xl p-3 text-left">
+            <span className="ph relative size-12 shrink-0 overflow-hidden rounded-xl"><Photo img={ap.image} w={48} h={48} className="absolute inset-0 size-full" /></span>
             <span className="min-w-0 flex-1"><b className="block text-body font-semibold leading-tight">{fmtDur(f.layoverMin)} layover</b>
               <span className="text-sub text-muted-text">{fmtDur(usable)} usable · {fits(f)} itinerary fits</span></span>
             <ChevronRight size={20} className="shrink-0 text-accent-dark" /></button>
@@ -174,7 +174,7 @@ export function FlightDetails({ flightId, origin, destination, date }: { flightI
         {night && <div className="mt-3"><Notice>This is an overnight connection. Check airport service hours.</Notice></div>}
         <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
           {[['Total', fmtDur(total(f))], ['Layover', fmtDur(f.layoverMin)], ['Sample price', money(f.priceUsd)]].map(([k, v]) => (
-            <div key={k} className="rounded-card border border-line bg-surface py-3"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
+            <div key={k} className="panel rounded-2xl py-3"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
         </dl>
       </div>
       <ActionBar>
@@ -200,11 +200,11 @@ export function Compare({ ids, origin, destination, date }: { ids: string[]; ori
     <div className="pb-6">
       <Header title="Compare" subtitle={`${origin} to ${destination}`} />
       <div className="px-5 pt-4">
-        <div className="overflow-x-auto rounded-card border border-line bg-surface">
+        <div className="panel overflow-x-auto rounded-[1.5rem]">
           <table className="w-full min-w-[26rem] border-collapse text-left">
             <thead><tr><th className="w-28 p-3" />{list.map((f) => (
               <th key={f.id} className="p-3 align-bottom">
-                <Photo img={IMAGES.airports[f.via]} w={48} h={48} className="mb-1.5 size-12 rounded-lg" />
+                <span className="ph relative mb-1.5 block size-12 overflow-hidden rounded-xl"><Photo img={IMAGES.airports[f.via]} w={48} h={48} className="absolute inset-0 size-full" /></span>
                 <span className="block text-body font-semibold">via {f.via}</span>
                 <span className="text-cap font-normal text-muted-text">{fmtTime(f.departAt)} departure</span></th>))}</tr></thead>
             <tbody>

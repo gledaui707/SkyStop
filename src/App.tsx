@@ -1,4 +1,4 @@
-import { MapPin, House, Bookmark } from 'lucide-react'
+import { MapPin, House, Bookmark, Plane } from 'lucide-react'
 import { AppProvider, useApp, tabOf, type Tab } from './store'
 import { Home, FindFlight, Airports } from './screens/Discover'
 import { Trip } from './screens/Trip'
@@ -37,31 +37,40 @@ function Shell() {
   const { route, switchTab, catalogue, reload } = useApp()
   const active = tabOf(route)
   if (catalogue.status !== 'ready') return (
-    <div className="mx-auto grid min-h-dvh max-w-[480px] place-items-center bg-canvas px-6 text-center">
+    <div className="mx-auto grid min-h-dvh max-w-[480px] place-items-center px-6 text-center">
       {catalogue.status === 'loading' ? (
-        <p role="status" className="text-body text-muted-text">Loading SkyStop…</p>
+        <div role="status" className="anim-fade grid justify-items-center gap-4">
+          <span aria-hidden="true" className="btn-coral grid size-16 place-items-center rounded-[1.25rem]"><Plane size={30} className="-rotate-45" /></span>
+          <p className="text-body text-muted-text">Loading SkyStop…</p>
+        </div>
       ) : (
-        <div role="alert">
+        <div role="alert" className="panel anim-rise rounded-[1.75rem] p-6">
           <p className="text-h2 font-bold">We could not load the airports</p>
           <p className="mt-2 text-body text-muted-text">Check your connection and try again.</p>
           <p className="mt-1 text-cap text-muted-text">{catalogue.error}</p>
-          <button onClick={reload} className="mt-5 min-h-[3.25rem] rounded-full bg-accent px-8 text-body font-bold text-white">Try again</button>
+          <button onClick={reload} className="btn-coral press mt-5 min-h-[3.25rem] rounded-full px-8 text-body font-bold">Try again</button>
         </div>
       )}
     </div>
   )
-  if (route.name === 'welcome') return <div className="mx-auto max-w-[480px]"><main><Screen /></main></div>
+  // Re-keying on the route plays a short entrance transition on every navigation (disabled under reduced motion).
+  const key = Object.entries(route).map(([k, v]) => `${k}:${typeof v === 'object' || typeof v === 'function' ? '' : String(v)}`).join('|')
+  if (route.name === 'welcome') return <div className="mx-auto max-w-[480px]"><main key={key} className="anim-fade"><Screen /></main></div>
   return (
-    <div className="mx-auto min-h-dvh max-w-[480px] bg-canvas pb-[var(--nav-h)] ">
-      <main><Screen /></main>
-      <nav aria-label="Primary" className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] px-4 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
-        <div className="glass pointer-events-auto grid h-16 grid-cols-3 rounded-full p-1">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => switchTab(id)} aria-current={active === id ? 'page' : undefined}
-            className={cx('flex flex-col items-center justify-center gap-0.5 rounded-full text-tab font-medium', active === id ? 'bg-accent-tint text-accent-dark' : 'text-muted-text')}>
-            <Icon size={24} strokeWidth={active === id ? 2.4 : 1.8} />{label}
-          </button>
-        ))}
+    <div className="mx-auto min-h-dvh max-w-[480px] pb-[var(--nav-h)]">
+      <main key={key} className="anim-screen"><Screen /></main>
+      <nav aria-label="Primary" className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] px-5 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+        <div className="glass pointer-events-auto mx-auto grid h-[4.25rem] max-w-[22rem] grid-cols-3 gap-1 rounded-full p-1.5">
+        {TABS.map(({ id, label, icon: Icon }) => {
+          const on = active === id
+          return (
+            <button key={id} onClick={() => switchTab(id)} aria-current={on ? 'page' : undefined}
+              className={cx('press flex flex-col items-center justify-center gap-0.5 rounded-full text-tab font-semibold transition-colors duration-300',
+                on ? 'btn-coral' : 'text-muted-text hover:text-ink')}>
+              <Icon size={22} strokeWidth={on ? 2.4 : 1.9} />{label}
+            </button>
+          )
+        })}
         </div>
       </nav>
     </div>

@@ -32,8 +32,8 @@ export function AirportPicker({ label, value, onChange, placeholder, exclude = [
   return (
     <div onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false) }}>
       <label htmlFor={id} className="mb-1.5 block text-sub font-medium text-muted-text">{label}</label>
-      <div className={cx('flex min-h-[3.25rem] items-center gap-2 rounded-[0.875rem] border bg-surface px-4 focus-within:border-accent', sel ? 'border-accent' : 'border-line')}>
-        {sel ? <Check size={20} className="shrink-0 text-accent-dark" /> : <Search size={20} className="shrink-0 text-muted" />}
+      <div className={cx('flex min-h-[3.25rem] items-center gap-2 rounded-2xl border bg-black/20 px-4 transition-colors focus-within:border-accent-dark/70 focus-within:bg-black/30', sel ? 'border-accent/60' : 'border-line')}>
+        {sel ? <span className="btn-coral grid size-6 shrink-0 place-items-center rounded-full"><Check size={14} strokeWidth={3} /></span> : <Search size={20} className="shrink-0 text-muted" />}
         <input id={id} role="combobox" aria-expanded={open} aria-controls={`${id}-list`} autoComplete="off" autoFocus={autoFocus}
           value={open || !sel ? query : `${sel.city} (${sel.code})`}
           placeholder={placeholder}
@@ -43,13 +43,13 @@ export function AirportPicker({ label, value, onChange, placeholder, exclude = [
           className="min-h-[3.25rem] min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-muted" />
       </div>
       {open && (
-        <ul id={`${id}-list`} role="listbox" aria-label={`${label} suggestions`} className="mt-2 overflow-hidden rounded-[0.875rem] border border-line bg-surface">
+        <ul id={`${id}-list`} role="listbox" aria-label={`${label} suggestions`} className="glass anim-fade mt-2 overflow-hidden rounded-2xl">
           {matches.length === 0 && <li className="px-4 py-3 text-body text-muted-text">No match. Type a 3-letter airport code to enter it manually.</li>}
           {matches.map((a) => (
             <li key={a.code} role="option" aria-selected={value === a.code} aria-disabled={blocked(a)}>
               <button type="button" disabled={blocked(a)} onClick={() => pick(a)} onMouseDown={(e) => e.preventDefault()}
                 className="flex min-h-14 w-full items-center gap-3 border-b border-line px-4 py-2 text-left last:border-b-0 disabled:opacity-45">
-                <span className="grid h-8 w-12 shrink-0 place-items-center rounded-md bg-ink-tint text-sub font-bold">{a.code}</span>
+                <span className="grid h-8 w-12 shrink-0 place-items-center rounded-lg bg-white/10 text-sub font-bold tracking-wide">{a.code}</span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-body font-medium">{a.city}</span>
                   <span className="block truncate text-cap text-muted-text">{blocked(a) ? 'Already used in this trip' : a.supported ? `${a.name} · layover guide` : a.name}</span></span>
               </button>

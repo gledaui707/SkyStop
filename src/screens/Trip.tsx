@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { ChevronDown, Sparkles, X } from 'lucide-react'
+import { ChevronDown, Clock, ListChecks, Sparkles, X } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, AIRPORTS, TEMPLATES, getAirport, isSupported } from '../data/mock'
 import { airportInfo } from '../data/airportDirectory'
 import { budget, fmtDur, isOvernight, layoverMinutesAt, timeSpan } from '../data/time'
 import { validateLayover } from '../domain'
 import { AirportPicker } from '../components/AirportPicker'
-import { ActionBar, Button, Header, Field, cx, inputCls } from '../components/ui'
+import { ActionBar, Button, Header, Field, Photo, cx, inputCls } from '../components/ui'
 
 const BUFFERS = [90, 120, 180]
 const split = (v: string) => { const [d = '', t = ''] = v.split('T'); return { date: d, time: t.slice(0, 5) } }
@@ -65,15 +65,32 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
   }
   const cta = !supported && conn ? 'See my time budget' : tplApplies || carried.length ? 'Build my itinerary' : 'Explore activities'
 
+  const sup = conn && supported ? getAirport(conn) : null
+  const pct = (n: number) => `${b.total ? (n / b.total) * 100 : 0}%`
   return (
     <div className="pb-[calc(var(--nav-h)+7rem)]">
       <Header title="Plan a layover" subtitle={tplApplies ? `Itinerary: ${tpl!.name}` : conn ? airportInfo(conn)!.name : 'Your connection'} />
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 px-5 pt-3">
-        <p className="text-sub text-muted-text">Enter the connection from your booking. Times are local to the connecting airport.</p>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 px-5 pt-1">
+        {sup ? (
+          <div className="ph relative h-36 overflow-hidden rounded-[1.75rem]">
+            <Photo img={sup.image} w={440} h={144} className="absolute inset-0 size-full" />
+            <span className="photo-fade absolute inset-x-0 bottom-0 h-full" />
+            <div className="absolute inset-x-4 bottom-3 text-white">
+              <p className="text-cap font-semibold uppercase tracking-[0.08em] text-white/75">Connecting in</p>
+              <p className="text-h2 font-bold leading-tight">{sup.city} <span className="font-semibold text-white/70">{sup.code}</span></p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h2 className="text-h1 font-bold">Your time between flights</h2>
+            <p className="mt-1 text-sub text-muted-text">Enter the connection from your booking. Times are local to the connecting airport.</p>
+          </div>
+        )}
+        {sup && <p className="-mt-2 text-sub text-muted-text">Enter the connection from your booking. Times are local to the connecting airport.</p>}
 
         {tpl && (
-          <section aria-label="Selected itinerary" className="flex items-start gap-3 rounded-card border border-accent/40 bg-accent-tint p-3.5">
-            <Sparkles size={20} className="mt-0.5 shrink-0 text-accent-dark" />
+          <section aria-label="Selected itinerary" className="panel-accent flex items-start gap-3 rounded-card p-3.5">
+            <span className="btn-coral grid size-9 shrink-0 place-items-center rounded-full"><Sparkles size={18} /></span>
             <div className="min-w-0 flex-1">
               <p className="text-body font-semibold">{tpl.name}</p>
               <p className="text-sub text-muted-text">
@@ -86,7 +103,8 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           </section>
         )}
         {carried.length > 0 && (
-          <section aria-label="Selected activities" className="flex items-start gap-3 rounded-card border border-line bg-surface p-3.5">
+          <section aria-label="Selected activities" className="panel flex items-start gap-3 rounded-card p-3.5">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><ListChecks size={18} /></span>
             <div className="min-w-0 flex-1">
               <p className="text-body font-semibold">{carried.length} {carried.length === 1 ? 'activity' : 'activities'} selected</p>
               <p className="text-sub text-muted-text">{carriedNames.join(', ')}. They will be added to your plan.</p>
@@ -95,41 +113,59 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           </section>
         )}
 
-        <div>
+        {/* The connection as one surface: airport, then an arrive → depart rail. */}
+        <section aria-label="Connection" className="panel rounded-[1.75rem] p-4">
           <AirportPicker label="Connecting airport" value={conn} onChange={setConn} exclude={[origin, destination].filter(Boolean)} placeholder="Where do you change planes?" />
           {!conn ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-sub text-muted-text">Layover guides:</span>
               {AIRPORTS.filter((a) => a.code !== origin && a.code !== destination).map((a) => (
-                <button key={a.code} type="button" onClick={() => setConn(a.code)} className="min-h-11 rounded-full border border-line bg-surface px-4 text-sub font-medium">{a.city} {a.code}</button>))}
+                <button key={a.code} type="button" onClick={() => setConn(a.code)} className="press min-h-11 rounded-full border border-line bg-white/[0.06] px-4 text-sub font-medium">{a.city} {a.code}</button>))}
             </div>
           ) : !supported && <p className="mt-2 text-sub text-muted-text">No activity guide for this airport yet. You can still see your time budget.</p>}
-        </div>
-        <Field label="Arrival at the connecting airport (local time)">
-          <input type="datetime-local" className={inputCls} value={arr} onChange={(e) => setArr(e.target.value)} /></Field>
-        <Field label="Onward departure (local time)">
-          <input type="datetime-local" className={inputCls} value={dep} onChange={(e) => setDep(e.target.value)} /></Field>
-        {timeError && <p role="alert" className="text-body font-medium text-error">{timeError}</p>}
+
+          <div className="mt-5 grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-3">
+            <div aria-hidden="true" className="row-span-2 flex flex-col items-center pt-9 pb-7">
+              <span className="size-3.5 shrink-0 rounded-full border-[3px] border-accent-dark bg-canvas" />
+              <span className="my-1 w-0.5 flex-1 rounded-full bg-gradient-to-b from-accent-dark/80 via-accent/40 to-[#f6a04d]/80" />
+              <span className="size-3.5 shrink-0 rounded-full bg-[#f6a04d]" />
+            </div>
+            <Field label="Arrival at the connecting airport (local time)">
+              <input type="datetime-local" className={inputCls} value={arr} onChange={(e) => setArr(e.target.value)} /></Field>
+            <div className="mt-4">
+              <Field label="Onward departure (local time)">
+                <input type="datetime-local" className={inputCls} value={dep} onChange={(e) => setDep(e.target.value)} /></Field>
+            </div>
+          </div>
+          {timeError && <p role="alert" className="mt-3 text-body font-medium text-error">{timeError}</p>}
+        </section>
 
         <fieldset>
-          <legend className="mb-1 text-sub font-medium text-muted-text">Planning buffer</legend>
-          <p id="buffer-help" className="mb-2 text-sub text-muted-text">Time kept free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding. Activities only use what is left.</p>
-          <div className="grid grid-cols-3 gap-2" aria-describedby="buffer-help">
+          <legend className="mb-1 text-body font-semibold">Planning buffer</legend>
+          <p id="buffer-help" className="mb-3 text-sub text-muted-text">Time kept free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding. Activities only use what is left.</p>
+          <div className="grid grid-cols-3 gap-1 rounded-full bg-white/[0.07] p-1 ring-1 ring-line" aria-describedby="buffer-help">
             {BUFFERS.map((m) => (
               <button type="button" key={m} aria-pressed={buf === m} onClick={() => setBuf(m)}
-                className={cx('min-h-12 rounded-[0.875rem] border text-body font-semibold', buf === m ? 'border-accent bg-accent-tint text-accent-dark' : 'border-line bg-surface')}>{fmtDur(m)}</button>))}
+                className={cx('press min-h-12 rounded-full text-body font-semibold transition-colors', buf === m ? 'bg-white text-[#2a1b18] shadow-[0_6px_18px_rgb(0_0_0/0.3)]' : 'text-muted-text')}>{fmtDur(m)}</button>))}
           </div>
         </fieldset>
 
         {timesOk && (
-          <section aria-label="Layover time breakdown" className="rounded-card border border-line bg-surface p-4">
-            <div className="flex h-3 overflow-hidden rounded-full bg-ink-tint" aria-hidden="true">
-              <div className="bg-muted/50" style={{ width: `${(b.buffer / b.total) * 100}%` }} />
-              <div className="bg-accent" style={{ width: `${(b.usable / b.total) * 100}%` }} />
+          <section aria-label="Layover time breakdown" className="panel-accent anim-rise rounded-[1.75rem] p-5">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-sub text-muted-text">Usable time</p>
+                <p className="text-[2.5rem] font-bold leading-none tracking-[-0.03em] tabular-nums">{fmtDur(b.usable)}</p>
+              </div>
+              <Clock size={28} className="mb-1 text-accent-dark" aria-hidden="true" />
             </div>
-            <dl className="mt-3 grid gap-2 text-body">
+            <div className="mt-4 flex h-3 gap-0.5 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+              <div className="bg-white/30" style={{ width: pct(b.buffer) }} />
+              <div className="rounded-r-full bg-gradient-to-r from-[#f6a04d] to-accent" style={{ width: pct(b.usable) }} />
+            </div>
+            <dl className="mt-4 grid gap-2 text-body">
               <div className="flex justify-between"><dt className="text-muted-text">Total layover</dt><dd className="font-semibold">{fmtDur(b.total)}</dd></div>
-              <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted-text"><span className="size-2.5 rounded-full bg-muted/60" />Planning buffer</dt><dd className="font-semibold">− {fmtDur(b.buffer)}</dd></div>
+              <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted-text"><span className="size-2.5 rounded-full bg-white/40" />Planning buffer</dt><dd className="font-semibold">− {fmtDur(b.buffer)}</dd></div>
               <div className="flex justify-between border-t border-line pt-2"><dt className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-accent" />Usable time</dt><dd className="text-card font-bold text-accent-dark">{fmtDur(b.usable)}</dd></div>
             </dl>
             {b.usable === 0 && <p role="alert" className="mt-3 text-sub font-medium text-error">No usable time after the buffer. A shorter buffer may help.</p>}
@@ -137,9 +173,9 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           </section>
         )}
 
-        <details className="group rounded-card border border-line bg-surface" open={!!(origin || destination)}>
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-4 text-body font-medium">
-            <span>Journey details <span className="font-normal text-muted-text">(optional)</span>{route.includes('→') && <span className="block text-sub font-normal text-muted-text">{route}</span>}</span>
+        <details className="panel group rounded-[1.5rem]" open={!!(origin || destination)}>
+          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-2 px-4 text-body font-medium [&::-webkit-details-marker]:hidden">
+            <span>Journey details <span className="font-normal text-muted-text">(optional)</span>{route.includes('→') && <span className="block text-sub font-normal text-accent-dark">{route}</span>}</span>
             <ChevronDown size={20} className="shrink-0 text-muted-text transition-transform group-open:rotate-180" />
           </summary>
           <div className="grid gap-4 px-4 pb-4">
