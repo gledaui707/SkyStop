@@ -438,6 +438,11 @@ try {
     await G.getByRole('button', { name: 'Home' }).click();
     await G.getByRole('button', { name: 'Profile' }).click();
     check('profile: guest status with optional account', await visible(G, 'Guest') && await G.getByRole('button', { name: 'Create account' }).isVisible() && await G.getByRole('button', { name: 'Sign in' }).isVisible());
+    await G.getByRole('button', { name: 'Log out' }).click();
+    check('profile: logging out as a guest with flights asks first', await G.getByRole('alertdialog', { name: 'Log out of the guest session?' }).isVisible());
+    await G.getByRole('button', { name: 'Cancel' }).click();
+    await G.getByRole('button', { name: 'What is this?' }).click();
+    check('profile: travel-documents help opens from the heading row', await visible(G, 'never decides whether you may enter a country'));
     await G.getByLabel('Passport nationality').fill('Indonesia');
     await G.getByRole('button', { name: 'Save', exact: true }).click();
     await G.getByText('Saved to your profile.').waitFor();
@@ -462,7 +467,7 @@ try {
     await O.getByRole('region', { name: 'My flights' }).waitFor();
     check('account: on another device the same flights appear with their routes (from the database)', await O.getByRole('region', { name: 'Journey CGK to CDG via SIN' }).isVisible() && (await O.getByRole('button', { name: /^Show flight / }).count()) === 1);
     await other.close();
-    await G.getByRole('button', { name: 'Sign out' }).click();
+    await G.getByRole('button', { name: 'Log out' }).click();
     await G.getByRole('button', { name: 'Create account' }).waitFor();
     await G.getByRole('button', { name: 'Home' }).click();
     check('account: after signing out this browser shows no flights', await visible(G, 'No flights yet'));

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Info, LogOut, Mail, RotateCcw, ShieldCheck, Trash2, UserRound } from 'lucide-react'
+import { LogOut, Mail, RotateCcw, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { useApp } from '../store'
 import { getSupabase } from '../api/client'
 import { createAccount, signIn, signOut } from '../api/account'
@@ -19,9 +19,10 @@ function countryNames(): string[] {
   } catch { return [] }
 }
 
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+const Section = ({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) => (
   <section aria-label={title} className="grid gap-3">
-    <h2 className="px-1 text-cap font-semibold uppercase tracking-[0.12em] text-muted-text">{title}</h2>
+    <div className="flex min-h-9 items-center justify-between gap-3 px-1">
+      <h2 className="text-cap font-semibold uppercase tracking-[0.12em] text-muted-text">{title}</h2>{action}</div>
     <div className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-[1.5rem] p-4">{children}</div>
   </section>
 )
@@ -38,6 +39,7 @@ export function Profile() {
   const [residence, setResidence] = useState(profile?.residence ?? '')
   const [savedNote, setSavedNote] = useState<string | null>(null)
   const [docsHelp, setDocsHelp] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
   const sb = getSupabase()
   const guest = account.status !== 'registered'
 
@@ -54,6 +56,7 @@ export function Profile() {
     const p = await saveProfile(sb, { nationality: nationality.trim() || null, residence: residence.trim() || null })
     setProfile(p); setSavedNote('Saved to your profile.'); await refreshAccount()
   })
+  const logOut = () => run(async () => { await signOut(sb); setConfirmLogout(false); setMode(null); setSent(null); await refreshAccount() })
   const clearDocs = () => run(async () => {
     await deleteProfile(sb); setProfile(null); setNationality(''); setResidence(''); setSavedNote('Your travel details were removed.')
   })
@@ -74,7 +77,6 @@ export function Profile() {
           {account.status === 'registered' ? (
             <>
               <p className="text-body text-ink/85">Your flights and plans are saved to this account. Sign in with the same email on another browser or device to see them there.</p>
-              <Button variant="secondary" icon={LogOut} disabled={busy} onClick={() => run(async () => { await signOut(sb); await refreshAccount() })}>Sign out</Button>
             </>
           ) : (
             <>
@@ -101,12 +103,10 @@ export function Profile() {
           )}
         </Section>
 
-        <Section title="Travel documents">
-          <div>
-            <button type="button" aria-expanded={docsHelp} aria-controls="docs-help" onClick={() => setDocsHelp(!docsHelp)}
-              className="min-h-9 text-sub font-semibold text-accent-dark underline underline-offset-2">What is this?</button>
-            <p id="docs-help" hidden={!docsHelp} className="mt-1 text-sub text-muted-text">Optional. Used only to tailor entry guidance for activities outside the transit area. It never decides whether you may enter a country. SkyStop does not ask for passport numbers or document photos.</p>
-          </div>
+        <Section title="Travel documents" action={
+          <button type="button" aria-expanded={docsHelp} aria-controls="docs-help" onClick={() => setDocsHelp(!docsHelp)}
+            className="min-h-9 text-sub font-semibold text-accent-dark underline underline-offset-2">What is this?</button>}>
+          <p id="docs-help" hidden={!docsHelp} className="text-sub text-muted-text">Optional. Used only to tailor entry guidance for activities outside the transit area. It never decides whether you may enter a country. SkyStop does not ask for passport numbers or document photos.</p>
           <datalist id="countries">{countries.map((c) => <option key={c} value={c} />)}</datalist>
           <label className="grid gap-1.5 text-sub font-medium text-muted-text">Passport nationality
             <input list="countries" value={nationality} onChange={(e) => { setNationality(e.target.value); setSavedNote(null) }} className={inputCls} placeholder="e.g. Indonesia" autoComplete="off" /></label>
@@ -122,8 +122,17 @@ export function Profile() {
 
         <Section title="Settings">
           <button onClick={replayOnboarding} className="press flex min-h-12 items-center gap-3 text-left text-body font-medium"><RotateCcw size={19} className="text-accent-dark" />Replay introduction</button>
-          <div className={cx('flex gap-3 border-t border-line pt-3 text-sub text-muted-text')}><Info size={18} className="mt-0.5 shrink-0" />
-            <p>SkyStop opens sample booking references only; it does not connect to airlines. Flight comparisons use sample schedules. Venue details come from the airports’ websites; check opening hours and entry rules before you travel.</p></div>
+          {account.status !== 'none' && (
+            <button onClick={() => (account.status === 'registered' || plans.length === 0 ? void logOut() : setConfirmLogout(true))}
+              className="press flex min-h-12 items-center gap-3 border-t border-line pt-3 text-left text-body font-medium text-error"><LogOut size={19} />Log out</button>)}
+          {confirmLogout && (
+            <div role="alertdialog" aria-label="Log out of the guest session?" className="grid gap-2 rounded-2xl bg-error-tint p-3.5">
+              <p className="text-sub text-ink">You are a guest. After logging out, the {plans.length} {plans.length === 1 ? 'flight' : 'flights'} saved in this guest session can no longer be opened. Create an account first to keep them.</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="danger" disabled={busy} onClick={() => void logOut()}>Log out</Button>
+                <Button variant="secondary" onClick={() => setConfirmLogout(false)}>Cancel</Button>
+              </div>
+            </div>)}
         </Section>
       </div>
     </div>
