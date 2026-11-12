@@ -6,7 +6,7 @@ import { budget, fmtDur, isOvernight, layoverMinutesAt } from '../data/time'
 import type { Plan } from '../data/types'
 import { computeItinerary } from '../data/itinerary'
 import { BudgetHero } from '../components/BudgetHero'
-import { ActivityRow, Button, DemoNote, Header, LargeTitle, Notice, Photo, SectionTitle, cx } from '../components/ui'
+import { ActivityRow, Button, Header, LargeTitle, Notice, Photo, SectionTitle, cx } from '../components/ui'
 
 const itemsOf = (p: Plan) => p.activityIds.map((id) => ACTIVITIES.find((a) => a.id === id)!).filter(Boolean)
 const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -54,7 +54,6 @@ export function Plans() {
             })}
           </ul>
         )}
-        <div className="mt-5"><DemoNote>Plans are saved to a guest session in this browser. Clearing browser data removes access to them.</DemoNote></div>
       </div>
     </div>
   )
