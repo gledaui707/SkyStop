@@ -17,7 +17,7 @@ export function DeviceFrame() {
   const [scale, setScale] = useState(1)
   const app = useRef<HTMLIFrameElement>(null)
   useEffect(() => {
-    const fit = () => setScale(Math.min(1, (window.innerHeight - 96) / (SCREEN_H + BEZEL * 2), (window.innerWidth - 32) / (SCREEN_W + BEZEL * 2)))
+    const fit = () => setScale(Math.min(1, (window.innerHeight - 72) / (SCREEN_H + BEZEL * 2), (window.innerWidth - 32) / (SCREEN_W + BEZEL * 2)))
     fit()
     window.addEventListener('resize', fit)
     return () => window.removeEventListener('resize', fit)
@@ -35,17 +35,17 @@ export function DeviceFrame() {
   const outerHeight = SCREEN_H + BEZEL * 2
   return (
     <div className="flex h-dvh flex-col">
-      <div className="flex h-16 shrink-0 items-center px-4">
-        <div role="group" aria-label="Preview size" className="inline-flex gap-1 rounded-full border border-line bg-white p-1">
+      <div className="flex h-12 shrink-0 items-center justify-center px-4">
+        <div role="group" aria-label="Preview size" className="inline-flex gap-0.5 rounded-full border border-line bg-white p-0.5">
           {[{ label: 'Mobile', value: true }, { label: 'Fullscreen', value: false }].map(({ label, value }) => (
             <button key={label} type="button" aria-pressed={mobile === value} onClick={() => setMobile(value)}
-              className={`min-h-10 rounded-full px-4 text-sub font-semibold ${mobile === value ? 'bg-accent-tint text-accent-dark' : 'text-muted-text hover:bg-canvas'}`}>
+              className={`min-h-8 rounded-full px-3 text-cap font-semibold ${mobile === value ? 'bg-accent-tint text-accent-dark' : 'text-muted-text hover:bg-canvas'}`}>
               {label}
             </button>
           ))}
         </div>
       </div>
-      <div className={mobile ? 'grid min-h-0 flex-1 place-items-center pb-4' : 'flex min-h-0 flex-1'}>
+      <div className={mobile ? 'grid min-h-0 flex-1 items-start justify-items-center pb-4 pt-2' : 'flex min-h-0 flex-1'}>
         <div className="relative" style={mobile ? { width: outerWidth * scale, height: outerHeight * scale } : { width: '100%', height: '100%' }}>
           <div className="absolute left-0 top-0 origin-top-left" style={mobile
             ? { width: outerWidth, height: outerHeight, transform: `scale(${scale})` }
