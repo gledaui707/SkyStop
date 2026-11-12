@@ -6,7 +6,7 @@ As of architecture handoff, 2026-11-11. Update with evidence, not optimism.
 - [x] Write AGENTS.md / CLAUDE.md and ordered handoff.
 - [x] Prepare six-table schema, RLS, atomic save RPC and demo seed.
 - [ ] Apply migrations and seed to verified Supabase project.
-- [ ] Confirm hosted anonymous Auth, abuse controls and two-user isolation.
+- [~] Hosted anonymous Auth and two-user isolation verified (30/33, run 43136585630); conflict path fix pending apply; abuse controls/CAPTCHA not configured.
 - [ ] Integrate Figma Make export into one React app.
 - [x] Implement domain logic and automated unit tests. (35 passing, docs/VALIDATION.md 2026-11-12)
 - [ ] Implement catalogue → plan → save → refresh → edit.

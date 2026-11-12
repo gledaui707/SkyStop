@@ -58,3 +58,14 @@ Anonymous sign-in now works (two distinct users, role `authenticated`, `is_anony
 Test prepared: `tests/hosted/ownership.mjs` (~30 assertions: two identities, A create/read/edit, B read/edit/takeover denied, direct writes denied, revision conflict, duplicate create, 10 rollback cases, empty plan, catalogue immutability). Run locally (creates anonymous users and a few synthetic plans in the target project; no delete path exists):
 `SUPABASE_URL=https://rdrkskrzdyqezzopnena.supabase.co SUPABASE_PUBLISHABLE_KEY=<publishable key> node tests/hosted/ownership.mjs`
 Database types are not generated (needs Supabase CLI auth): `npx supabase gen types typescript --project-id rdrkskrzdyqezzopnena > src/types/database.types.ts`.
+
+## 2026-11-12 — Step 1 hosted two-session test (GitHub Actions run 43136585630, commit 47d9a5c)
+Run in GitHub's cloud (the sandbox proxy strips user JWTs, so it cannot be tested from here). Hosted project `rdrkskrzdyqezzopnena`, publishable key only. **30 of 33 checks passed; 3 failed.**
+
+PASS: two distinct anonymous identities (role `authenticated`); A creates a plan (rev 0 → revision 1), reads it back with ordered items and server-copied duration snapshots; B sees zero rows, cannot list, edit (403/42501) or modify A's plan; A's plan unchanged after B's attempts; direct UPDATE/INSERT/DELETE denied even for the owner; A edit with revision 1 → revision 2 with new buffer and three ordered items; ten malformed saves each rejected (22023 / 23514) and left the plan byte-identical (cross-airport, duplicate, nonexistent and null activity, 21 activities, reversed times, >48h, buffer 1441 and -1, airport change); empty plan valid; no-session save/read denied (401); catalogue cannot be mutated by a signed-in user.
+
+FAIL (all three are the same cause): `B cannot take over A UUID via create`, `stale revision → conflict`, `re-create same UUID → conflict`. Each is a `save_plan` call that raises SQLSTATE `40001`; the hosted API did not answer within 20 s (client timeout) instead of returning a conflict. Data was **not** corrupted (follow-up read showed A's plan unchanged). Hypothesis (not proven): the API layer treats 40001 (serialization_failure) as retryable and retries. Impact: the app cannot show a conflict message; ownership itself held.
+
+Proposed fix, **not yet applied to the hosted database**: `supabase/migrations/202611120001_conflict_errcode.sql` (additive `create or replace function`; no tables touched) raising `PT409` → HTTP 409 instead. Local harness with the new migration: 15/15 pass. After applying, rerun the GitHub workflow (the hosted test now expects HTTP 409/PT409); the conflict checks must pass before this is called fixed.
+
+Not done: database types (`src/types/database.types.ts`) — needs Supabase CLI login; no hosted Auth abuse controls/CAPTCHA verification.

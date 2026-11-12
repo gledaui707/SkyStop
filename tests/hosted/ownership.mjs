@@ -42,7 +42,7 @@ check('A edit with revision 1', r.status < 300, JSON.stringify(r.body).slice(0, 
 p = (await fetchPlan(A.token, id)).body[0];
 check('edit → revision 2, buffer 30, 3 ordered items', p.revision === 2 && p.buffer_minutes === 30 && p.plan_items.map(i => i.activity_id).join() === [lis[2].id, lis[0].id, lis[1].id].join());
 // conflict
-r = await save(A.token, { ...base, p_expected_revision: 1, p_activity_ids: [] }); check('stale revision → conflict 40001', r.status >= 400 && String(r.body.code) === '40001', `${r.status} ${r.body.code}`);
+r = await save(A.token, { ...base, p_expected_revision: 1, p_activity_ids: [] }); check('stale revision → conflict PT409 (HTTP 409)', r.status >= 400 && String(r.body.code) === 'PT409' && r.status === 409, `${r.status} ${r.body.code}`);
 check('conflict left data intact', (await fetchPlan(A.token, id)).body[0].plan_items.length === 3);
 // duplicate create
 r = await save(A.token, base); check('re-create same UUID → conflict, no duplicate', r.status >= 400, `${r.status} ${r.body.code}`);
