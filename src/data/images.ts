@@ -1,21 +1,26 @@
-// Central image registry. Replace any entry (url, credit) without touching UI components.
-// Activity photos are from Unsplash and are ILLUSTRATIVE (not the named venue). Airport photos are real photos of
-// each airport from Wikimedia Commons under Creative Commons licences; their credit is shown where they appear.
+import dxb from '../../images/DXB.jpeg'
+import lhr from '../../images/LHR.webp'
+import lis from '../../images/LIS.webp'
+import sin from '../../images/SIN.jpg'
+
+// Airport photos are bundled from the repository. Activity photos are illustrative Unsplash images.
 export interface Img {
   url: string
   alt: string
   credit: string // photographer
-  page: string // Unsplash profile or Commons file page
-  source?: 'Unsplash' | 'Wikimedia Commons'
+  page: string // Photo source page
+  source?: 'Unsplash' | 'SkyStop repository'
   license?: string
 }
 
-/** A Wikimedia Commons file, served as a 1280 px thumbnail (a standard Commons size). */
-const commons = (file: string, hash: string, alt: string, credit: string, license: string): Img => ({
-  url: `https://upload.wikimedia.org/wikipedia/commons/thumb/${hash[0]}/${hash}/${encodeURIComponent(file)}/1280px-${encodeURIComponent(file)}`,
-  alt, credit, license, source: 'Wikimedia Commons',
-  page: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file)}`,
+const airportPhoto = (url: string, file: string, alt: string): Img => ({
+  url,
+  alt,
+  credit: 'Repository image',
+  page: `https://github.com/gledaui707/SkyStop/blob/main/images/${file}`,
+  source: 'SkyStop repository',
 })
+
 /** Short credit line, e.g. "Photo: Matteo Morando · CC BY-SA 4.0". */
 export const creditLine = (img: Img) => `Photo: ${img.credit} · ${img.license ?? img.source ?? 'Unsplash'}`
 
@@ -28,17 +33,17 @@ const photo = (id: string, alt: string, credit: string, handle: string): Img => 
 
 /** Append sizing params for responsive cropping. */
 export const sized = (img: Img, w: number, h?: number) =>
-  img.source === 'Wikimedia Commons' ? img.url : `${img.url}?auto=format&fit=crop&q=70&w=${w}${h ? `&h=${h}` : ''}`
+  img.source === 'SkyStop repository' ? img.url : `${img.url}?auto=format&fit=crop&q=70&w=${w}${h ? `&h=${h}` : ''}`
 
 export const IMAGES = {
   onboarding: {} as Record<'connection' | 'discover' | 'plan', Img>, // filled below
   hero: photo('1593182440709-4b7b56482c55', 'Aircraft wing above the clouds', 'Johny Goerend', 'johnygoerend'),
   results: photo('1530469641172-8ac15d0a7d6a', 'View of an aircraft wing from a window seat', 'Blake Guidry', 'blakeguidry'),
   airports: {
-    SIN: commons('JewelSingaporeVortex1.jpg', 'e9', 'The Rain Vortex waterfall inside Jewel, Changi Airport', 'Matteo Morando', 'CC BY-SA 4.0'),
-    LIS: commons('Aeroporto_Humberto_Delgado_(Portela_Airport_Aeroporto_de_Lisboa),_Lisbon,_Portugal_(51323558287).jpg', '20', 'Lisbon Humberto Delgado Airport', 'Sharon Hahn Darlin', 'CC BY 2.0'),
-    LHR: commons('TerminalFiveAirportHeathrowAugust2012.JPG', '7a', 'Departures area in Heathrow Terminal 5', 'Citizen59', 'CC BY-SA 3.0'),
-    DXB: commons('Interior_of_Terminal_3_Dubai_Airport._United_Arab_Emirates.jpg', '48', 'Interior of Terminal 3, Dubai International Airport', 'Ввласенко', 'CC BY-SA 3.0'),
+    SIN: airportPhoto(sin, 'SIN.jpg', 'Singapore Changi Airport'),
+    LIS: airportPhoto(lis, 'LIS.webp', 'Lisbon Humberto Delgado Airport'),
+    LHR: airportPhoto(lhr, 'LHR.webp', 'London Heathrow Airport'),
+    DXB: airportPhoto(dxb, 'DXB.jpeg', 'Dubai International Airport'),
   } as Record<string, Img>,
   activities: {
     l1: photo('1716360806681-b4defdfba134', 'Plate of pastries (illustrative)', 'Magdalena Raczka', 'magda_raczka'),
@@ -56,7 +61,4 @@ export const allCredits = (): Img[] => [
   IMAGES.hero, IMAGES.results, ...Object.values(IMAGES.airports), ...Object.values(IMAGES.activities),
 ]
 
-// Onboarding photography: photos already in the project with known Unsplash credits (usage rights confirmed with the
-// export). Requested specific shots (Jewel Rain Vortex, Heathrow) could not be licence-checked from the build environment;
-// swap here once verified, e.g. https://unsplash.com/photos/GFp1bgwKAh4 (Rain Vortex) — check it is not an Unsplash+ image.
 IMAGES.onboarding = { connection: IMAGES.airports.SIN, discover: IMAGES.activities.l4, plan: IMAGES.hero }
