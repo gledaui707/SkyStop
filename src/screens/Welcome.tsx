@@ -101,7 +101,7 @@ export function Welcome() {
         <div className="flex h-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]" style={{ width: `${SLIDES.length * 100}%`, transform: `translateX(calc(${(-i * 100) / SLIDES.length}% + ${drag}px))`, transitionDuration: drag ? '0ms' : undefined }}>
           {SLIDES.map((s, n) => (
             <div key={s.headline} className="ph relative h-full flex-1" aria-hidden={n !== i}>
-              <img src={sized(s.img, 900, 1800)} alt={s.img.alt} title={`Photo: ${s.img.credit} / Unsplash`} draggable={false}
+              <img src={sized(s.img, 900, 1800)} alt={s.img.alt} draggable={false}
                 onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className={cx('absolute inset-0 size-full select-none object-cover', n === i && 'anim-kenburns')} />
               <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/5 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 h-[72%] bg-gradient-to-t from-deep via-deep/75 to-transparent" />

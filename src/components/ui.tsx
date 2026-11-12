@@ -7,9 +7,9 @@ import { sized, type Img } from '../data/images'
 
 export const cx = (...c: (string | false | undefined | null)[]) => c.filter(Boolean).join(' ')
 
-/** Photo with object-cover cropping. Credit is exposed via title and in the app's photo credits. */
+/** Photo with object-cover cropping. */
 export function Photo({ img, w, h, className }: { img: Img; w: number; h?: number; className?: string }) {
-  return <img src={sized(img, w * 2, h ? h * 2 : undefined)} alt={img.alt} loading="lazy" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} title={`Photo: ${img.credit} / Unsplash`}
+  return <img src={sized(img, w * 2, h ? h * 2 : undefined)} alt={img.alt} loading="lazy" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }}
     className={cx('object-cover anim-fade', className)} />
 }
 
@@ -183,7 +183,6 @@ export function ActivitySheet({ a, onClose, action }: { a: Activity | null; onCl
           <div className="ph relative h-52 overflow-hidden rounded-[1.5rem]">
             <Photo img={a.image} w={440} h={208} className="absolute inset-0 size-full" />
             <span className="glass-dark absolute left-3 top-3 rounded-full px-3 py-1 text-cap font-semibold">{a.category}</span>
-            <span className="glass-dark absolute bottom-3 right-3 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-medium">Illustrative photo</span>
           </div>
           <dl className="grid grid-cols-3 gap-2 text-center">
             {[['Est. time', fmtDur(a.durationMin)], ['Price', a.costLabel.replace(' (illustrative)', '')], ['Access', a.access === 'Unverified' ? 'Not confirmed' : a.access]].map(([k, v]) => (

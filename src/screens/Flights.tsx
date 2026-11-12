@@ -82,7 +82,7 @@ export function Results({ origin, destination, date }: { origin: string; destina
           <Chip active={viaF === 'SIN'} onClick={() => setViaF(viaF === 'SIN' ? 'All' : 'SIN')}>Via Singapore</Chip>
           <Chip active={nonStop} onClick={() => setNonStop(!nonStop)}>Non-stop</Chip>
         </ChipRow></div>
-        <p className="mt-2 text-sub text-muted-text">Illustrative sample schedules and prices. Tick up to 3 to compare.</p>
+        <p className="mt-2 text-sub text-muted-text">Sample schedules and prices. Tick up to 3 to compare.</p>
         {nonStop ? (
           <div className="mt-3"><Notice>No non-stop flights for this route.</Notice></div>
         ) : flights.length === 0 ? <p className="mt-6 text-center text-muted-text">No flights match.</p> : (
@@ -151,7 +151,7 @@ export function FlightDetails({ flightId, origin, destination, date }: { flightI
   )
   return (
     <div className="pb-40">
-      <Header title={`${origin} to ${destination}`} subtitle={`${AIRLINES[f.airline].name} · illustrative`} />
+      <Header title={`${origin} to ${destination}`} subtitle={AIRLINES[f.airline].name} />
       <div className="px-5 pt-2">
         <div className="mb-3"><Airline code={f.airline} size={40} bold /></div>
         <section className="panel relative rounded-[1.75rem] p-4">

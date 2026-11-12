@@ -73,7 +73,7 @@ export function FindJourney() {
 
         <p className="flex gap-2.5 rounded-2xl bg-ink-tint px-4 py-3 text-cap text-muted-text">
           <Info size={16} className="mt-px shrink-0" />
-          <span>SkyStop does not connect to airline reservation systems. These references open illustrative sample journeys, not real bookings or live flight data.</span>
+          <span>SkyStop does not connect to airline reservation systems. These references open sample journeys, not real bookings or live flight data.</span>
         </p>
 
         <div className="flex items-center gap-3 text-cap font-semibold uppercase tracking-[0.1em] text-muted"><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
@@ -154,7 +154,6 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
         </section>
         <p className="panel flex gap-2.5 rounded-2xl p-3.5 text-sub text-muted-text"><Info size={18} className="mt-0.5 shrink-0 text-accent-dark" />
           <span>The planning buffer keeps time free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding.</span></p>
-        <p className="text-cap text-muted-text">Sample journey for demonstration. Not a real booking; no flight data is verified.</p>
       </div>
       <ActionBar>
         <Button className="w-full" onClick={start}>{supported ? `Explore ${city(j.connection)}` : 'Build my itinerary'}</Button>

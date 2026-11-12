@@ -162,7 +162,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
   return (
     <div className="pb-[calc(var(--nav-h)+6.5rem)]">
       <div className="ph relative h-[25rem] overflow-hidden">
-        <img src={sized(ap.image, 900, 800)} alt={ap.image.alt} title={`Photo: ${ap.image.credit} / Unsplash`} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
+        <img src={sized(ap.image, 900, 800)} alt={ap.image.alt} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent" />
         {/* dark scrim under the white title, then a thin melt into the light canvas */}
         <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-deep/90 via-deep/45 to-transparent" />
@@ -196,7 +196,6 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
                 <div className="ph relative flex h-44 gap-0.5">
                   {items.map((a) => <span key={a.id} className="relative h-full min-w-0 flex-1 overflow-hidden"><Photo img={a.image} w={200} h={176} className="absolute inset-0 size-full" /></span>)}
                   <div className="photo-fade absolute inset-x-0 bottom-0 h-[90%]" />
-                  <span className="glass-dark absolute right-3 top-3 rounded-full px-3 py-1 text-cap font-medium text-white">Illustrative</span>
                   <div className="absolute inset-x-4 bottom-3 text-white">
                     <h3 className="text-h2 font-bold leading-tight">{t.name}</h3>
                     <p className="text-sub text-white/80">{ap.code} · {fmtDur(dur)} · {items.length} stops</p>

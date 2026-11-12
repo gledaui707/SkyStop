@@ -1,12 +1,23 @@
 // Central image registry. Replace any entry (url, credit) without touching UI components.
-// All photos are from Unsplash (https://unsplash.com) and are ILLUSTRATIVE: they do not
-// necessarily depict the named airport, venue or business.
+// Activity photos are from Unsplash and are ILLUSTRATIVE (not the named venue). Airport photos are real photos of
+// each airport from Wikimedia Commons under Creative Commons licences; their credit is shown where they appear.
 export interface Img {
   url: string
   alt: string
   credit: string // photographer
-  page: string // Unsplash profile
+  page: string // Unsplash profile or Commons file page
+  source?: 'Unsplash' | 'Wikimedia Commons'
+  license?: string
 }
+
+/** A Wikimedia Commons file, served as a 1280 px thumbnail (a standard Commons size). */
+const commons = (file: string, hash: string, alt: string, credit: string, license: string): Img => ({
+  url: `https://upload.wikimedia.org/wikipedia/commons/thumb/${hash[0]}/${hash}/${encodeURIComponent(file)}/1280px-${encodeURIComponent(file)}`,
+  alt, credit, license, source: 'Wikimedia Commons',
+  page: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file)}`,
+})
+/** Short credit line, e.g. "Photo: Matteo Morando · CC BY-SA 4.0". */
+export const creditLine = (img: Img) => `Photo: ${img.credit} · ${img.license ?? img.source ?? 'Unsplash'}`
 
 const photo = (id: string, alt: string, credit: string, handle: string): Img => ({
   url: `https://images.unsplash.com/photo-${id}`,
@@ -17,18 +28,17 @@ const photo = (id: string, alt: string, credit: string, handle: string): Img => 
 
 /** Append sizing params for responsive cropping. */
 export const sized = (img: Img, w: number, h?: number) =>
-  `${img.url}?auto=format&fit=crop&q=70&w=${w}${h ? `&h=${h}` : ''}`
+  img.source === 'Wikimedia Commons' ? img.url : `${img.url}?auto=format&fit=crop&q=70&w=${w}${h ? `&h=${h}` : ''}`
 
 export const IMAGES = {
   onboarding: {} as Record<'connection' | 'discover' | 'plan', Img>, // filled below
   hero: photo('1593182440709-4b7b56482c55', 'Aircraft wing above the clouds', 'Johny Goerend', 'johnygoerend'),
   results: photo('1530469641172-8ac15d0a7d6a', 'View of an aircraft wing from a window seat', 'Blake Guidry', 'blakeguidry'),
   airports: {
-    LIS: photo('1611782571163-aa82aac33685', 'Aircraft on an airport apron in daylight (illustrative)', 'Hugo Silva', 'hugomigueldasilva'),
-    SIN: photo('1688693105312-0ad821a15bd9', 'Large airport atrium with a chandelier (illustrative)', 'Michael Stevanus Hartono', 'michaelstevanus'),
-    // No licence-checked photos of Heathrow or Dubai could be sourced from the build environment: illustrative only.
-    LHR: photo('1530469641172-8ac15d0a7d6a', 'View of an aircraft wing from a window seat (illustrative)', 'Blake Guidry', 'blakeguidry'),
-    DXB: photo('1593182440709-4b7b56482c55', 'Aircraft wing above the clouds (illustrative)', 'Johny Goerend', 'johnygoerend'),
+    SIN: commons('JewelSingaporeVortex1.jpg', 'e9', 'The Rain Vortex waterfall inside Jewel, Changi Airport', 'Matteo Morando', 'CC BY-SA 4.0'),
+    LIS: commons('Aeroporto_Humberto_Delgado_(Portela_Airport_Aeroporto_de_Lisboa),_Lisbon,_Portugal_(51323558287).jpg', '20', 'Lisbon Humberto Delgado Airport', 'Sharon Hahn Darlin', 'CC BY 2.0'),
+    LHR: commons('TerminalFiveAirportHeathrowAugust2012.JPG', '7a', 'Departures area in Heathrow Terminal 5', 'Citizen59', 'CC BY-SA 3.0'),
+    DXB: commons('Interior_of_Terminal_3_Dubai_Airport._United_Arab_Emirates.jpg', '48', 'Interior of Terminal 3, Dubai International Airport', 'Ввласенко', 'CC BY-SA 3.0'),
   } as Record<string, Img>,
   activities: {
     l1: photo('1716360806681-b4defdfba134', 'Plate of pastries (illustrative)', 'Magdalena Raczka', 'magda_raczka'),

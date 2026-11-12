@@ -175,7 +175,6 @@ export function Home() {
               <Photo img={heroAct.image} w={420} h={352} className="absolute inset-0 size-full" />
               <span className="photo-fade absolute inset-x-0 bottom-0 h-[78%]" />
               <span className="glass-dark absolute left-4 top-4 rounded-full px-3 py-1 text-sub font-medium">Curated itinerary</span>
-              <span className="glass-dark absolute right-4 top-4 rounded-full px-3 py-1 text-cap font-medium">Illustrative</span>
               <span className="absolute inset-x-5 bottom-5 block">
                 <span className="block text-h1 font-bold leading-tight">{featured.name}</span>
                 <span className="mt-0.5 block text-body text-white/85">{featAp.city}</span>
@@ -209,7 +208,7 @@ export function FindFlight() {
       <Header title="Compare connections" subtitle="Before you book" />
       <div className="px-5 pt-2">
         <h2 className="text-h1 font-bold">Find a layover<br />worth having</h2>
-        <p className="mt-2 text-sub text-muted-text">Compare illustrative one-stop routes by how much usable time each connection leaves you.</p>
+        <p className="mt-2 text-sub text-muted-text">Compare one-stop routes by how much usable time each connection leaves you.</p>
       </div>
       <form id="find" className="mt-5 px-5" onSubmit={(e) => { e.preventDefault(); if (origin && dest && !same) go({ name: 'results', origin, destination: dest, date }) }}>
         <div className="panel-accent relative rounded-[1.75rem] p-2">
@@ -229,7 +228,6 @@ export function FindFlight() {
         </div>
         {same && <p role="alert" className="mt-3 text-sub font-medium text-error">Choose different cities.</p>}
         <Button type="submit" className="mt-5 w-full" disabled={!origin || !dest || same}>Compare connections</Button>
-        <p className="mt-3 text-center text-cap text-muted-text">Sample schedules and prices for demonstration only.</p>
       </form>
     </div>
   )
