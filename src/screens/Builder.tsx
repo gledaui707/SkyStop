@@ -5,7 +5,7 @@ import { getAirport, isSupported } from '../data/mock'
 import { fmtDay, fmtDur, fmtTime, isOvernight } from '../data/time'
 import { computeItinerary, MODE_LABEL, terminalChoices } from '../data/itinerary'
 import { ACCESS_LABEL, BudgetHero } from '../components/BudgetHero'
-import { ActionBar, ActivitySheet, Button, Header, Notice, Photo, cx } from '../components/ui'
+import { ActionBar, ActivitySheet, Button, Header, Notice, Photo, cx, IconButton, SectionHeader, Chip } from '../components/ui'
 import type { Activity } from '../data/types'
 import type { Hop } from '../domain/itinerary'
 
@@ -19,7 +19,7 @@ export function Builder() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [reorder, setReorder] = useState(false)
   const [open, setOpen] = useState<Activity | null>(null)
-  if (!draft) return <div><Header title="Itinerary" /><div className="panel mx-5 mt-4 rounded-[1.75rem] p-6 text-center"><p className="text-body">No plan in progress.</p>
+  if (!draft) return <div><Header title="Itinerary" /><div className="panel mx-5 mt-4 rounded-surface p-6 text-center"><p className="text-body">No plan in progress.</p>
     <Button className="mx-auto mt-4" onClick={() => go({ name: 'trip' })}>Plan a layover</Button></div></div>
   const ap = getAirport(draft.airport)
   const { items, itin, hero, total: mins } = computeItinerary(draft)
@@ -76,18 +76,18 @@ export function Builder() {
 
         {/* access status, separate from time */}
         {items.length > 0 && (
-          <p className={cx('mt-3 flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sub font-semibold',
+          <p className={cx('mt-3 flex items-center gap-2 rounded-control px-3.5 py-2.5 text-sub font-semibold',
             itin.access === 'airside' ? 'bg-success-tint text-success' : 'bg-accent-tint text-accent-dark')}>
             {itin.access === 'airside' ? <Check size={18} /> : <ShieldAlert size={18} />}{ACCESS_LABEL[itin.access]}
           </p>)}
         {/* transfer time, separate from activity time and access */}
         {items.length > 0 && !itin.routing && (
-          <p className="mt-2 flex items-start gap-2 rounded-2xl bg-ink-tint px-3.5 py-2.5 text-sub text-ink">
+          <p className="mt-2 flex items-start gap-2 rounded-control bg-ink-tint px-3.5 py-2.5 text-sub text-ink">
             <Clock size={18} className="mt-0.5 shrink-0 text-accent-dark" /><span><b className="font-semibold">Transfer time unavailable</b> · walking times between places at {ap.city} are not counted.</span>
           </p>)}
 
         {terminals.length > 0 && (
-          <section aria-label="Terminals" className="panel mt-3 grid grid-cols-[minmax(0,1fr)] gap-3 rounded-2xl p-3.5">
+          <section aria-label="Terminals" className="panel mt-3 grid grid-cols-[minmax(0,1fr)] gap-3 rounded-control p-3.5">
             {([['Arriving at', 'arrivalLocation'], ['Departing from', 'departureLocation']] as const).map(([label, key]) => (
               <div key={key} role="group" aria-label={label} className="flex min-w-0 items-center gap-2">
                 <span className="w-[6.5rem] shrink-0 text-sub font-semibold">{label}</span>
@@ -107,13 +107,10 @@ export function Builder() {
 
         {otherWarnings.length > 0 && (
           <ul aria-label="Things to check" className="mt-3 grid gap-2">
-            {otherWarnings.map((w) => <li key={w} className="flex gap-2.5 rounded-2xl bg-ink-tint px-3.5 py-2.5 text-sub text-ink"><AlertTriangle size={17} className="mt-0.5 shrink-0 text-accent-dark" />{w}</li>)}
+            {otherWarnings.map((w) => <li key={w} className="flex gap-2.5 rounded-control bg-ink-tint px-3.5 py-2.5 text-sub text-ink"><AlertTriangle size={17} className="mt-0.5 shrink-0 text-accent-dark" />{w}</li>)}
           </ul>)}
 
-        <div className="mb-4 mt-8 flex items-center justify-between">
-          <h2 className="text-h2 font-bold">Your plan</h2>
-          {items.length > 1 && <button aria-pressed={reorder} onClick={() => setReorder(!reorder)} className={cx('press min-h-11 rounded-full px-4 text-sub font-semibold', reorder ? 'bg-ink text-white' : 'bg-white text-ink ring-1 ring-line')}>{reorder ? 'Done' : 'Reorder'}</button>}
-        </div>
+        <SectionHeader className="mb-4 mt-8" action={items.length > 1 && <Chip active={reorder} onClick={() => setReorder(!reorder)}>{reorder ? 'Done' : 'Reorder'}</Chip>}>Your plan</SectionHeader>
 
         <ol aria-label="Itinerary" className="relative ml-[1.1rem] pl-6 before:absolute before:bottom-3 before:left-[-1px] before:top-4 before:w-0.5 before:rounded-full before:bg-gradient-to-b before:from-ink/20 before:via-accent/60 before:to-ink/20">
           <li className="relative pb-3"><span aria-hidden="true" className="absolute -left-[2.15rem] top-0.5 grid size-7 place-items-center rounded-full bg-ink text-white ring-4 ring-canvas"><Plane size={14} className="rotate-45" /></span>
@@ -133,20 +130,20 @@ export function Builder() {
               <li className="anim-rise relative pb-3">
                 <Dot cls={late ? 'bg-error' : a.access === 'Landside' ? 'bg-amber' : 'bg-accent'} />
                 <p className={cx('text-sub font-semibold tabular-nums', late ? 'text-error' : 'text-muted-text')}>{i + 1}. {fmtDur(used)} of {fmtDur(hero.usable)} used{late && ' · beyond your usable time'}</p>
-                <div className={cx('panel mt-1.5 flex items-center gap-1 rounded-[1.25rem] p-2 pr-1', late && '!border-error/50')}>
+                <div className={cx('panel mt-1.5 flex items-center gap-1 rounded-card p-2 pr-1', late && '!border-error/50')}>
                   <button onClick={() => setOpen(a)} className="press flex min-h-14 min-w-0 flex-1 items-center gap-3 text-left">
-                    <span className="ph relative size-14 shrink-0 overflow-hidden rounded-2xl"><Photo img={a.image} w={56} h={56} className="absolute inset-0 size-full" /></span>
+                    <span className="ph relative size-14 shrink-0 overflow-hidden rounded-control"><Photo img={a.image} w={56} h={56} className="absolute inset-0 size-full" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-card font-semibold">{a.name}</span>
                       <span className="block text-sub text-muted-text">{fmtDur(a.durationMin)} · {a.terminal ?? 'Terminal not confirmed'}</span>
                       <ZoneTag a={a} /></span></button>
                   {reorder ? (
                     <>
-                      <button aria-label={`Move ${a.name} earlier`} disabled={i === 0} onClick={() => move(i, -1)} className="grid size-11 shrink-0 place-items-center rounded-full text-accent-dark disabled:opacity-25"><ArrowUp size={22} /></button>
-                      <button aria-label={`Move ${a.name} later`} disabled={i === rows.length - 1} onClick={() => move(i, 1)} className="grid size-11 shrink-0 place-items-center rounded-full text-accent-dark disabled:opacity-25"><ArrowDown size={22} /></button>
+                      <IconButton label={`Move ${a.name} earlier`} icon={ArrowUp} tone="accent" size="sm" disabled={i === 0} onClick={() => move(i, -1)} />
+                      <IconButton label={`Move ${a.name} later`} icon={ArrowDown} tone="accent" size="sm" disabled={i === rows.length - 1} onClick={() => move(i, 1)} />
                     </>
                   ) : (
-                    <button aria-label={`Remove ${a.name}`} onClick={() => remove(a.id)} className="press grid size-11 shrink-0 place-items-center rounded-full text-error active:bg-error-tint"><Trash2 size={20} /></button>
+                    <IconButton label={`Remove ${a.name}`} icon={Trash2} tone="danger" size="sm" iconSize={20} onClick={() => remove(a.id)} />
                   )}
                 </div>
               </li>
@@ -156,7 +153,7 @@ export function Builder() {
 
           {returnHop && <li className="relative pb-1"><HopRow h={returnHop} /></li>}
           <li className="relative pb-5 pt-1"><Dot cls="bg-muted/60" />
-            <div className="rounded-[1.25rem] border border-dashed border-[rgb(35_26_23/0.18)] bg-[repeating-linear-gradient(135deg,rgb(35_26_23/0.035)_0_8px,transparent_8px_16px)] p-3.5">
+            <div className="rounded-card border border-dashed border-[rgb(35_26_23/0.18)] bg-[repeating-linear-gradient(135deg,rgb(35_26_23/0.035)_0_8px,transparent_8px_16px)] p-3.5">
               <p className="text-sub font-semibold">Departure preparation · {fmtDur(hero.buffer)} buffer</p>
               <p className="text-sub text-muted-text">Kept free for airport procedures, the walk to your gate and boarding.</p></div></li>
           <li className="relative"><span aria-hidden="true" className="btn-coral absolute -left-[2.15rem] top-0.5 grid size-7 place-items-center rounded-full ring-4 ring-canvas"><Plane size={14} className="-rotate-45" /></span>
@@ -197,7 +194,7 @@ export function Builder() {
 function ZoneTag({ a }: { a: Activity }) {
   const [label, cls] = a.access === 'Airside' ? ['Airside', 'bg-success-tint text-success']
     : a.access === 'Landside' ? ['Landside · Immigration required', 'bg-accent-tint text-accent-dark'] : ['Access conditions unknown', 'bg-ink-tint text-muted-text']
-  return <span className={cx('mt-1 inline-flex rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold', cls)}>{label}</span>
+  return <span className={cx('mt-1 inline-flex rounded-full px-2 py-0.5 text-tab font-semibold', cls)}>{label}</span>
 }
 
 /** One transfer between stops: duration range, how it is made, checkpoints, and how sure SkyStop is. */
@@ -215,9 +212,9 @@ function HopRow({ h }: { h: Hop }) {
         )}
         {h.kind === 'unknown' && <p className="text-cap text-muted-text">
           {h.fromLabel.includes('not set') || h.toLabel.includes('not set') ? 'Not counted until a terminal is chosen.' : 'Not counted in your time.'}</p>}
-        {h.immigration && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-[0.6875rem] font-semibold text-accent-dark">Immigration required · time not included</p>}
-        {h.departureChecks && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-[0.6875rem] font-semibold text-accent-dark">Check-in, departure immigration and security · time not included</p>}
-        {h.throughCheck && <p className="mt-1 inline-flex rounded-full bg-ink-tint px-2 py-0.5 text-[0.6875rem] font-semibold text-ink">Through-checked passengers only</p>}
+        {h.immigration && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-tab font-semibold text-accent-dark">Immigration required · time not included</p>}
+        {h.departureChecks && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-tab font-semibold text-accent-dark">Check-in, departure immigration and security · time not included</p>}
+        {h.throughCheck && <p className="mt-1 inline-flex rounded-full bg-ink-tint px-2 py-0.5 text-tab font-semibold text-ink">Through-checked passengers only</p>}
       </div>
     </div>
   )
@@ -234,7 +231,7 @@ function EntryCheck({ names, country, url, onRemove }: { names: string[]; countr
   const authority = country === 'Singapore' ? 'Immigration & Checkpoints Authority (ICA)' : country === 'United Kingdom' ? 'GOV.UK'
     : country === 'Portugal' ? 'the Portuguese visa portal' : country === 'United Arab Emirates' ? 'the UAE government portal' : 'the official immigration authority'
   return (
-    <section aria-label="Entry check" className="mt-3 rounded-[1.5rem] border border-accent/30 bg-white p-4">
+    <section aria-label="Entry check" className="mt-3 rounded-card border border-accent/30 bg-white p-4">
       <p className="flex items-center gap-2 text-sub font-bold text-accent-dark"><ShieldAlert size={18} />Check airport entry requirements · Landside activity</p>
       <p className="mt-1.5 text-body text-ink">{names.join(' and ')} {names.length > 1 ? 'are' : 'is'} outside the transit area. You may need permission to enter {country || 'the country'}.</p>
       <p className="mt-1 text-sub text-muted-text">To reach {names.length > 1 ? 'them' : 'it'} you leave the transit area through arrival immigration, then return through check-in, departure immigration and security. Waiting times are not published, so they are not included in your time budget.</p>

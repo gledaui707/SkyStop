@@ -6,7 +6,7 @@ import { airportInfo } from '../data/airportDirectory'
 import { budget, fmtDur, isOvernight, layoverMinutesAt, timeSpan } from '../data/time'
 import { validateLayover } from '../domain'
 import { AirportPicker } from '../components/AirportPicker'
-import { ActionBar, Button, Header, Field, InfoTip, Photo, cx, inputCls } from '../components/ui'
+import { ActionBar, Button, Header, Field, InfoTip, Photo, cx, inputCls, IconButton } from '../components/ui'
 
 const BUFFERS = [90, 120, 180]
 const split = (v: string) => { const [d = '', t = ''] = v.split('T'); return { date: d, time: t.slice(0, 5) } }
@@ -70,7 +70,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
       <Header title="Plan a layover" subtitle={tplApplies ? `Itinerary: ${tpl!.name}` : conn ? airportInfo(conn)!.name : undefined} />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 px-5 pt-1">
         {sup ? (
-          <div className="ph relative h-36 overflow-hidden rounded-[1.75rem]">
+          <div className="ph relative h-36 overflow-hidden rounded-surface">
             <Photo img={sup.image} w={440} h={144} className="absolute inset-0 size-full" />
             <span className="photo-fade absolute inset-x-0 bottom-0 h-full" />
             <div className="absolute inset-x-4 bottom-3 text-white">
@@ -97,7 +97,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
                   : `This itinerary is for ${getAirport(tpl.airport).city} (${tpl.airport}). Choose that airport to use it.`}
               </p>
             </div>
-            <button type="button" onClick={() => setTplId(undefined)} aria-label={`Don't use ${tpl.name}`} className="grid size-11 shrink-0 place-items-center rounded-full text-muted-text"><X size={18} /></button>
+            <IconButton label={`Don't use ${tpl.name}`} icon={X} tone="quiet" size="sm" iconSize={18} onClick={() => setTplId(undefined)} />
           </section>
         )}
         {carried.length > 0 && (
@@ -107,12 +107,12 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
               <p className="text-body font-semibold">{carried.length} {carried.length === 1 ? 'activity' : 'activities'} selected</p>
               <p className="text-sub text-muted-text">{carriedNames.join(', ')}. They will be added to your plan.</p>
             </div>
-            <button type="button" onClick={() => setPicked(null)} aria-label="Clear selected activities" className="grid size-11 shrink-0 place-items-center rounded-full text-muted-text"><X size={18} /></button>
+            <IconButton label="Clear selected activities" icon={X} tone="quiet" size="sm" iconSize={18} onClick={() => setPicked(null)} />
           </section>
         )}
 
         {/* The connection as one surface: airport, then an arrive → depart rail. */}
-        <section aria-label="Connection" className="panel rounded-[1.75rem] p-4">
+        <section aria-label="Connection" className="panel rounded-surface p-4">
           <AirportPicker label="Connecting airport" value={conn} onChange={setConn} exclude={[origin, destination].filter(Boolean)} placeholder="Where do you change planes?" />
           {!conn ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -153,11 +153,11 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
         </fieldset>
 
         {timesOk && (
-          <section aria-label="Layover time breakdown" className="panel-accent anim-rise rounded-[1.75rem] p-5">
+          <section aria-label="Layover time breakdown" className="panel-accent anim-rise rounded-surface p-5">
             <div className="flex items-end justify-between gap-3">
               <div>
                 <p className="text-sub text-muted-text">Estimated usable time</p>
-                <p className="text-[2.5rem] font-bold leading-none tracking-[-0.03em] tabular-nums">{fmtDur(b.usable)}</p>
+                <p className="text-metric font-bold tabular-nums">{fmtDur(b.usable)}</p>
               </div>
               <Clock size={28} className="mb-1 text-accent-dark" aria-hidden="true" />
             </div>
@@ -177,7 +177,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
         )}
 
         {/* The whole journey is optional: where it starts and ends, shown on the saved plan's card. */}
-        <section aria-label="Flight route" className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-[1.75rem] p-4">
+        <section aria-label="Flight route" className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-surface p-4">
           <p className="text-body font-semibold">Flight route <span className="font-normal text-muted-text">(optional)</span></p>
           <AirportPicker label="Flying from (optional)" value={origin} onChange={setOrigin} exclude={[conn, destination].filter(Boolean)} placeholder="City, airport or code" />
           <AirportPicker label="Final destination (optional)" value={destination} onChange={setDestination} exclude={[conn, origin].filter(Boolean)} placeholder="City, airport or code" />

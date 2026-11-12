@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useMotionValue, useReducedMotion, useTransform
 import { Clock, Plane, ShoppingBag, Sparkles, Utensils } from 'lucide-react'
 import { useApp } from '../store'
 import { IMAGES, sized, type Img } from '../data/images'
-import { cx } from '../components/ui'
+import { Button, cx } from '../components/ui'
 import { SSMark } from '../components/SSMark'
 import { guestStore } from '../data/mock'
 
@@ -22,7 +22,7 @@ interface Slide {
   extra?: ReactNode
 }
 
-const Tag = () => <span className="rounded-full bg-white/18 px-2 py-0.5 text-[0.6875rem] font-semibold text-white/80">Example</span>
+const Tag = () => <span className="rounded-full bg-white/18 px-2 py-0.5 text-tab font-semibold text-white/80">Example</span>
 
 const SLIDES: Slide[] = [
   {
@@ -50,13 +50,13 @@ const SLIDES: Slide[] = [
     compact: true,
     card: (
       <div className="flex items-center gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white/18"><Utensils size={18} /></span>
+        <span className="grid size-10 shrink-0 place-items-center rounded-control bg-white/18"><Utensils size={18} /></span>
         <span className="min-w-0"><span className="block text-sub font-semibold">Dining</span><span className="block text-cap text-white/75">about 45 min</span></span>
       </div>
     ),
     extra: (
       <div className="flex items-center gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white/18"><ShoppingBag size={18} /></span>
+        <span className="grid size-10 shrink-0 place-items-center rounded-control bg-white/18"><ShoppingBag size={18} /></span>
         <span className="min-w-0"><span className="block text-sub font-semibold">Shopping</span><span className="block text-cap text-white/75">about 30 min</span></span>
       </div>
     ),
@@ -177,7 +177,7 @@ export function Welcome() {
 
       <div className="pointer-events-none relative flex flex-1 flex-col px-6 pb-[calc(var(--safe-bottom)+1.25rem)] pt-[calc(var(--safe-top)+0.5rem)]">
         <div className="pointer-events-auto flex min-h-11 items-center justify-between">
-          <span className="flex min-h-11 items-center gap-2.5 text-[1.375rem] font-bold tracking-[-0.02em] [text-shadow:0_1px_8px_rgb(0_0_0/0.35)]">
+          <span className="flex min-h-11 items-center gap-2.5 text-h2 font-bold [text-shadow:0_1px_8px_rgb(0_0_0/0.35)]">
             <SSMark className="h-8 w-auto drop-shadow-[0_2px_8px_rgb(0_0_0/0.35)]" />SkyStop</span>
           <AnimatePresence initial={false}>
             {!last && (
@@ -212,7 +212,7 @@ export function Welcome() {
           <div className="relative" aria-live="polite">
             <AnimatePresence mode="popLayout" initial={false} custom={dir}>
               <motion.div key={i} initial="enter" animate="show" exit="exit" custom={dir} variants={NONE}>
-                <motion.h1 custom={dir} variants={v(HEADLINE)} className="text-[2.375rem] font-bold leading-[1.05] tracking-[-0.03em] [@media(max-height:640px)]:text-[1.875rem]">{slide.headline}</motion.h1>
+                <motion.h1 custom={dir} variants={v(HEADLINE)} className="text-display font-bold [@media(max-height:640px)]:text-[1.875rem]">{slide.headline}</motion.h1>
                 <motion.p custom={dir} variants={v(BODY)} className="mt-3 max-w-[21rem] text-body text-white/85 [@media(max-height:640px)]:mt-2 [@media(max-height:640px)]:text-sub">{slide.body}</motion.p>
               </motion.div>
             </AnimatePresence>
@@ -231,11 +231,9 @@ export function Welcome() {
         {/* Both choices on every step: Get started moves through onboarding (and finishes it on the last step); Sign in opens
             the email sign-in form. Same pills as the app's action bar. A signed-in visitor replaying onboarding sees no Sign in. */}
         <div className="pointer-events-auto mt-2 grid grid-cols-[minmax(0,1fr)] gap-2.5 [@media(max-height:640px)]:mt-0 [@media(max-height:640px)]:gap-2">
-          <button type="button" onClick={last ? done : () => go(i + 1)}
-            className="btn-coral press flex min-h-[3.25rem] w-full items-center justify-center rounded-full text-[1.125rem] font-bold">Get started</button>
+          <Button className="w-full" onClick={last ? done : () => go(i + 1)}>Get started</Button>
           {account.status !== 'registered' && (
-            <button type="button" onClick={signInNow}
-              className="press flex min-h-[3.25rem] w-full items-center justify-center rounded-full border border-white bg-white/90 text-body font-semibold text-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.9)] backdrop-blur-xl">Sign in</button>
+            <Button variant="secondary" className="w-full" onClick={signInNow}>Sign in</Button>
           )}
         </div>
       </div>

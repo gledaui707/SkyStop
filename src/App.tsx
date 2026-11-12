@@ -10,7 +10,7 @@ import { Builder } from './screens/Builder'
 import { Plans, PlanDetail } from './screens/Plans'
 import { Profile } from './screens/Profile'
 import { AccountAccess } from './features/access/AccountAccess'
-import { cx } from './components/ui'
+import { cx, LoadingState } from './components/ui'
 
 function Screen() {
   const { route: r } = useApp()
@@ -58,7 +58,7 @@ function Toast() {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] mx-auto flex max-w-[480px] justify-center px-4 pt-[calc(var(--safe-top)+0.5rem)]">
       <div role="status" aria-live="polite" onClick={() => setNotice(null)}
-        className="anim-toast pointer-events-auto flex max-w-full items-center gap-2.5 rounded-[1.4rem] bg-[#141414] py-3 pl-3.5 pr-4 text-sub font-medium text-white shadow-[0_14px_34px_rgb(0_0_0/0.28)]">
+        className="anim-toast pointer-events-auto flex max-w-full items-center gap-2.5 rounded-card bg-[#141414] py-3 pl-3.5 pr-4 text-sub font-medium text-white shadow-[0_14px_34px_rgb(0_0_0/0.28)]">
         <span className="grid size-6 shrink-0 place-items-center rounded-full bg-white/15"><Check size={14} strokeWidth={3} /></span>
         <span className="min-w-0">{notice}</span>
       </div>
@@ -120,12 +120,9 @@ function Shell() {
   if (catalogue.status !== 'ready') return (
     <div className="mx-auto grid min-h-dvh max-w-[480px] place-items-center px-6 text-center">
       {catalogue.status === 'loading' ? (
-        <div role="status" className="anim-fade grid justify-items-center gap-4">
-          <span aria-hidden="true" className="btn-coral grid size-16 place-items-center rounded-[1.25rem]"><Plane size={30} className="-rotate-45" /></span>
-          <p className="text-body text-muted-text">Loading SkyStop…</p>
-        </div>
+        <LoadingState label="Loading SkyStop…" />
       ) : (
-        <div role="alert" className="panel anim-rise rounded-[1.75rem] p-6">
+        <div role="alert" className="panel anim-rise rounded-surface p-6">
           <p className="text-h2 font-bold">We could not load the airports</p>
           <p className="mt-2 text-body text-muted-text">Check your connection and try again.</p>
           <p className="mt-1 text-cap text-muted-text">{catalogue.error}</p>

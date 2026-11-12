@@ -101,7 +101,7 @@ export function Home() {
             <Button variant="secondary" className="w-full px-3" onClick={() => switchTab('airports')}>Explore airports</Button>
           </div>
         </>) : (
-          <section aria-label="Plan a layover" className="panel-accent rounded-[1.75rem] p-5">
+          <section aria-label="Plan a layover" className="panel-accent rounded-surface p-5">
             <span aria-hidden="true" className="btn-coral grid size-12 place-items-center rounded-full"><Plane size={22} className="-rotate-45" /></span>
             <h1 className="mt-4 text-h1 font-bold leading-tight">Find out what fits between your flights</h1>
             <p className="mt-2 text-body text-muted-text">Enter your connecting airport and times to see how much time you have and what you could do.</p>
@@ -123,7 +123,7 @@ export function Home() {
         <ul className="no-scrollbar flex snap-x scroll-px-5 gap-3 overflow-x-auto px-5 pb-2" aria-label="Things to do">
           {things.map((a) => (
             <li key={a.id} className="shrink-0 snap-start">
-              <button onClick={() => go({ name: 'airport', code: a.airport, view: 'list' })} className="ph press relative block h-[13.5rem] w-[10.5rem] overflow-hidden rounded-[1.5rem] text-left text-white">
+              <button onClick={() => go({ name: 'airport', code: a.airport, view: 'list' })} className="ph press relative block h-[13.5rem] w-[10.5rem] overflow-hidden rounded-card text-left text-white">
                 <Photo img={a.image} w={168} h={216} className="absolute inset-0 size-full" />
                 <span className="photo-fade absolute inset-x-0 bottom-0 h-[70%]" />
                 <span className="glass-dark absolute left-2.5 top-2.5 rounded-full px-2.5 py-0.5 text-cap font-semibold">{fmtDur(a.durationMin)}</span>
@@ -145,7 +145,7 @@ export function Home() {
               const itineraries = getTemplates(a.code).length
               return (
                 <li key={a.code} className="shrink-0 snap-start">
-                  <button onClick={() => go({ name: 'airport', code: a.code, view: 'list' })} className="ph press relative block h-[17rem] w-[min(20rem,calc(100vw-3.5rem))] overflow-hidden rounded-[1.75rem] text-left text-white">
+                  <button onClick={() => go({ name: 'airport', code: a.code, view: 'list' })} className="ph press relative block h-[17rem] w-[min(20rem,calc(100vw-3.5rem))] overflow-hidden rounded-surface text-left text-white">
                     <Photo img={a.image} w={320} h={272} className="absolute inset-0 size-full" />
                     <span className="photo-fade absolute inset-x-0 bottom-0 h-[72%]" />
                     <span className="glass-dark absolute left-3 top-3 rounded-full px-3 py-1 text-sub font-bold tracking-wide">{a.code}</span>
@@ -167,7 +167,7 @@ export function Home() {
         {!filtering && featured && heroAct && (
           <>
             <Heading>Featured experience</Heading>
-            <button onClick={() => go({ name: 'airport', code: featured.airport, view: 'list' })} className="ph press relative block h-[22rem] w-full overflow-hidden rounded-[2rem] text-left text-white">
+            <button onClick={() => go({ name: 'airport', code: featured.airport, view: 'list' })} className="ph press relative block h-[22rem] w-full overflow-hidden rounded-tray text-left text-white">
               <Photo img={heroAct.image} w={420} h={352} className="absolute inset-0 size-full" />
               <span className="photo-fade absolute inset-x-0 bottom-0 h-[78%]" />
               <span className="glass-dark absolute left-4 top-4 rounded-full px-3 py-1 text-sub font-medium">Curated itinerary</span>
@@ -204,7 +204,7 @@ export function Airports() {
       <ul className="grid gap-4 px-5">
         {airports.map((a, i) => (
           <li key={a.code} className="anim-rise" style={{ animationDelay: `${i * 70}ms` }}>
-            <button onClick={() => go({ name: 'airport', code: a.code, view: 'list' })} className="ph press relative block h-[19rem] w-full overflow-hidden rounded-[2rem] text-left text-white shadow-[0_18px_40px_rgb(0_0_0/0.35)]">
+            <button onClick={() => go({ name: 'airport', code: a.code, view: 'list' })} className="ph press relative block h-[19rem] w-full overflow-hidden rounded-tray text-left text-white shadow-[0_18px_40px_rgb(0_0_0/0.35)]">
               <Photo img={a.image} w={420} h={304} className="absolute inset-0 size-full" />
               <span className="photo-fade absolute inset-x-0 bottom-0 h-[70%]" />
               <span className="glass-dark absolute left-4 top-4 rounded-full px-3 py-1 text-sub font-bold tracking-wide">{a.code}</span>

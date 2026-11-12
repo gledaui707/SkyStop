@@ -4,7 +4,7 @@ import { useApp } from '../store'
 import { ACTIVITIES, GRAPHS, getActivities, getAirport, getTemplates } from '../data/mock'
 import { sized } from '../data/images'
 import { budget, fmtDur, layoverMinutesAt, timeSpan } from '../data/time'
-import { ActionBar, ActivityRow, ActivitySheet, Button, CATEGORIES, Chip, ChipRow, Photo, cx } from '../components/ui'
+import { ActionBar, ActivityRow, ActivitySheet, Button, CATEGORIES, Chip, ChipRow, Photo, cx, IconButton } from '../components/ui'
 import { AirportMap, zoneOf, type Zone } from '../components/AirportMap'
 import { AIRPORT_GEO, terminalKeysOf } from '../data/airportGeo'
 import type { Activity, Category } from '../data/types'
@@ -57,7 +57,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
   const bar = (
     <div className="absolute inset-x-0 top-0 z-20 px-3 pt-[calc(var(--safe-top)+0.5rem)]">
       <div className="flex items-center gap-2">
-        <button onClick={back} aria-label="Back" className="glass-dark press grid size-12 shrink-0 place-items-center rounded-full"><ChevronLeft size={26} strokeWidth={2.4} /></button>
+        <IconButton label="Back" icon={ChevronLeft} tone="dark" iconSize={26} onClick={back} />
         <div role="tablist" aria-label="Airport view" className="glass-dark grid flex-1 grid-cols-2 rounded-full p-1">
           {(['list', 'map'] as View[]).map((v) => (
             <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
@@ -87,24 +87,24 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
           <div className="absolute right-3 top-[11.5rem] z-20 grid gap-2">
             <button onClick={() => setZone(ZONES[(ZONES.indexOf(zone) + 1) % 3])} aria-label={`Map layers: ${zone === 'all' ? 'all zones' : zone}. Tap to change.`}
               className={cx('grid size-12 place-items-center rounded-full', zone === 'all' ? 'glass-dark' : 'bg-white text-[#2a1b18]')}><Layers size={22} /></button>
-            <button onClick={() => { setFocusId(null); setTerminal(null); setCat('All'); setZone('all') }} aria-label="Reset map" className="glass-dark grid size-12 place-items-center rounded-full"><LocateFixed size={22} /></button>
+            <IconButton label="Reset map" icon={LocateFixed} tone="dark" onClick={() => { setFocusId(null); setTerminal(null); setCat('All'); setZone('all') }} />
           </div>
           {zone !== 'all' && <p className="glass-dark absolute right-[4.25rem] top-[11.75rem] z-20 rounded-full px-3 py-1.5 text-cap">{zone} only</p>}
         </div>
 
         {/* Floating preview / summary sheet */}
-        <div className={cx("glass relative z-20 -mt-6 rounded-t-[2rem] !border-b-0 px-4 pt-3", showMapAction ? "pb-[calc(var(--nav-h)+5.5rem)]" : "pb-[calc(var(--nav-h)+0.25rem)]")}>
+        <div className={cx("glass relative z-20 -mt-6 rounded-t-tray !border-b-0 px-4 pt-3", showMapAction ? "pb-[calc(var(--nav-h)+5.5rem)]" : "pb-[calc(var(--nav-h)+0.25rem)]")}>
           <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-ink/20" />
           {focus ? (
             <div>
               <div className="flex items-center gap-3">
-                <span className="ph relative size-[3.75rem] shrink-0 overflow-hidden rounded-2xl"><Photo img={focus.image} w={60} h={60} className="absolute inset-0 size-full" /></span>
+                <span className="ph relative size-[3.75rem] shrink-0 overflow-hidden rounded-control"><Photo img={focus.image} w={60} h={60} className="absolute inset-0 size-full" /></span>
                 <div className="min-w-0 flex-1">
                   <p className="text-card font-semibold leading-tight">{focus.name}</p>
                   <p className="text-sub text-muted-text">{fmtDur(focus.durationMin)} · {focus.costLabel} · {focus.category}</p>
                   <p className="text-cap text-muted-text">{[focus.terminal, focus.access === 'Unverified' ? null : focus.access].filter(Boolean).join(' · ')}{focus.leavesAirport ? ' · leaves airport' : ''}</p>
                 </div>
-                <button onClick={() => setFocusId(null)} aria-label="Close preview" className="grid size-11 shrink-0 place-items-center rounded-full bg-ink-tint ring-1 ring-line"><X size={18} /></button>
+                <IconButton label="Close preview" icon={X} tone="plain" size="sm" iconSize={18} onClick={() => setFocusId(null)} />
               </div>
               {b && !planned.includes(focus.id) && focus.durationMin > b.remaining && (
                 <p role="alert" className="mt-2 text-sub font-medium text-error">Adds {fmtDur(focus.durationMin - Math.max(b.remaining, 0))} beyond your usable time.</p>)}
@@ -127,7 +127,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                   <ul className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Activities at this airport">
                     {acts.filter((a) => (cat === 'All' || a.category === cat) && (zone === 'all' || zoneOf(a) === zone) && (!terminal || terminalKeysOf(code, a.terminal).includes(terminal))).map((a) => (
                       <li key={a.id} className="shrink-0">
-                        <button onClick={() => setFocusId(a.id)} className={cx('press flex w-[13.5rem] items-center gap-2.5 rounded-2xl border p-2 text-left', planned.includes(a.id) ? 'border-accent/70 bg-accent-tint' : 'border-line bg-white')}>
+                        <button onClick={() => setFocusId(a.id)} className={cx('press flex w-[13.5rem] items-center gap-2.5 rounded-control border p-2 text-left', planned.includes(a.id) ? 'border-accent/70 bg-accent-tint' : 'border-line bg-white')}>
                           <span className="ph relative size-12 shrink-0 overflow-hidden rounded-xl"><Photo img={a.image} w={48} h={48} className="absolute inset-0 size-full" /></span>
                           <span className="min-w-0"><span className="block truncate text-sub font-semibold">{a.name}</span>
                             <span className="block text-cap text-muted-text">{fmtDur(a.durationMin)}{planned.includes(a.id) ? (ready ? ' · added' : ' · selected') : ''}</span></span>
@@ -169,7 +169,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
   const templates = getTemplates(code)
   return (
     <div className="pb-[calc(var(--nav-h)+6.5rem)]">
-      <div className="ph relative h-[25rem] overflow-hidden rounded-b-[2rem]">
+      <div className="ph relative h-[25rem] overflow-hidden rounded-b-tray">
         <img src={sized(ap.image, 900, 800)} alt={ap.image.alt} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-deep/90 via-deep/45 to-transparent" />
@@ -185,7 +185,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
       </div>
       <div className="relative px-5">
         {/* Estimated usable time first; transfers and access are reviewed in the plan, so nothing here says "fits". */}
-        <section aria-label="Estimated usable time" className="panel-accent mt-4 rounded-[1.5rem] px-4 py-3.5">
+        <section aria-label="Estimated usable time" className="panel-accent mt-4 rounded-card px-4 py-3.5">
           {usable !== undefined && b ? (<>
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-sub text-muted-text">Estimated usable time</p>
@@ -204,7 +204,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
             const dur = timeSpan(items)
             const fit = usable === undefined ? null : dur <= usable
             return (
-              <li key={t.id} className="panel overflow-hidden rounded-[1.75rem]">
+              <li key={t.id} className="panel overflow-hidden rounded-surface">
                 <div className="ph relative flex h-44 gap-0.5">
                   {items.map((a) => <span key={a.id} className="relative h-full min-w-0 flex-1 overflow-hidden"><Photo img={a.image} w={200} h={176} className="absolute inset-0 size-full" /></span>)}
                   <div className="photo-fade absolute inset-x-0 bottom-0 h-[90%]" />
@@ -218,7 +218,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
                   <ol className="relative mt-3 ml-1.5 border-l border-dashed border-accent-dark/50 pl-4 text-body">
                     {items.map((a) => <li key={a.id} className="relative flex justify-between gap-3 py-1"><span aria-hidden="true" className="absolute -left-[1.3rem] top-[0.7rem] size-2.5 rounded-full bg-accent ring-4 ring-[#2a1f1d]" /><span className="min-w-0">{a.name}</span><span className="shrink-0 text-muted-text tabular-nums">{fmtDur(a.durationMin)}</span></li>)}
                   </ol>
-                  <p className={cx('mt-3 rounded-2xl px-3 py-2 text-sub font-medium', fit === false ? 'bg-error-tint text-ink' : 'bg-ink-tint text-ink')}>
+                  <p className={cx('mt-3 rounded-control px-3 py-2 text-sub font-medium', fit === false ? 'bg-error-tint text-ink' : 'bg-ink-tint text-ink')}>
                     {fit === null ? `Activities take ${fmtDur(dur)}. Set your layover times to compare it with your usable time.`
                       : fit ? `Activities take ${fmtDur(dur)} of your ${fmtDur(usable!)} usable time. Transfers and access are checked in your plan.`
                       : `Activities alone take ${fmtDur(dur - usable!)} more than your usable time.`}</p>

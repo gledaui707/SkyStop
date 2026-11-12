@@ -144,7 +144,7 @@ export function AccountAccess() {
               onSubmit={(e) => { e.preventDefault(); void submit() }}>
               <p className="access__title access__title--start">{mode === 'create' ? 'Create account' : 'Sign in'}</p>
               {/* the whole form sits in the frosted tray */}
-              <div className="access__tray grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[2rem] border border-white/70 bg-white/75 p-2.5 shadow-[0_18px_40px_rgb(70_35_25/0.14),inset_0_1px_0_rgb(255_255_255/0.85)] backdrop-blur-[28px] backdrop-saturate-150 gap-3 p-4">
+              <div className="access__tray glass-premium grid grid-cols-[minmax(0,1fr)] gap-3 rounded-tray p-4">
                 <label className="access__label">Email
                   <input className="access__field" type="email" autoComplete="email" inputMode="email" autoFocus value={email}
                     onChange={(e) => { setEmail(e.target.value); setError(null) }} placeholder="you@example.com" /></label>
@@ -160,9 +160,9 @@ export function AccountAccess() {
         ) : (
           <div className="access__actions" role="group" aria-label="Account">
             {/* Same frosted tray and pills as the app's action bar (e.g. Explore / Save to My flights). */}
-            <div className="access__tray grid grid-cols-[minmax(0,1fr)] gap-2 rounded-[2rem] border border-white/70 bg-white/75 p-2.5 shadow-[0_18px_40px_rgb(70_35_25/0.14),inset_0_1px_0_rgb(255_255_255/0.85)] backdrop-blur-[28px] backdrop-saturate-150">
+            <div className="access__tray glass-premium grid grid-cols-[minmax(0,1fr)] gap-2 rounded-tray p-2.5">
               <Button className="w-full" onClick={() => setMode('create')}>Create account</Button>
-              <button type="button" onClick={() => setMode('signin')} className="press flex min-h-[3.25rem] w-full items-center justify-center rounded-full border border-white/90 bg-white/70 text-body font-semibold text-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.9)] backdrop-blur-xl">Sign in</button>
+              <Button variant="secondary" className="w-full" onClick={() => setMode('signin')}>Sign in</Button>
             </div>
             <button type="button" className="access__guest press" onClick={() => finishAccess()}>
               Continue as guest<ArrowRight size={18} aria-hidden="true" />

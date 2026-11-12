@@ -5,7 +5,7 @@ import { getSupabase } from '../api/client'
 import { avatarUrl, createAccount, removeAvatar, signIn, signOut, updateName, uploadAvatar } from '../api/account'
 import { ensureGuestSession } from '../api/session'
 import { deleteProfile, saveProfile } from '../api/repositories'
-import { Button, Header, InfoTip, Notice, cx, inputCls } from '../components/ui'
+import { Button, Header, InfoTip, Notice, cx, inputCls, SectionHeader, Surface } from '../components/ui'
 
 /** Country names for the optional nationality / residence fields (ISO 3166 regions known to the browser). */
 function countryNames(): string[] {
@@ -28,9 +28,9 @@ function Avatar({ src, size }: { src: string | null; size: string }) {
 
 const Section = ({ title, action, children, bare }: { title: string; action?: React.ReactNode; children: React.ReactNode; bare?: boolean }) => (
   <section aria-label={title} className="grid gap-3">
-    <div className="flex min-h-9 items-center justify-between gap-3 px-1">
-      <h2 className="text-sub font-semibold text-muted-text">{title}</h2>{action}</div>
-    <div className={bare ? 'grid grid-cols-[minmax(0,1fr)] gap-3' : 'panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-[1.5rem] p-4'}>{children}</div>
+    <SectionHeader kind="label" action={action}>{title}</SectionHeader>
+    {bare ? <div className="grid grid-cols-[minmax(0,1fr)] gap-3">{children}</div>
+      : <Surface className="grid grid-cols-[minmax(0,1fr)] gap-3 p-4">{children}</Surface>}
   </section>
 )
 
@@ -121,7 +121,7 @@ export function Profile() {
           </form>
           <div className="grid gap-1.5">
             <p className="text-sub font-medium text-muted-text">Email</p>
-            <p className="flex min-h-[3.25rem] items-center truncate rounded-2xl bg-ink-tint px-4 text-body text-ink">{account.email}</p>
+            <p className="flex min-h-[3.25rem] items-center truncate rounded-control bg-ink-tint px-4 text-body text-ink">{account.email}</p>
           </div>
           </>)}
           {account.status === 'registered' ? null : (
@@ -142,7 +142,7 @@ export function Profile() {
           {profile && !editingDocs ? (
             <>
               {/* saved: a small passport cover (same composition as the Overnight connection card) */}
-              <aside aria-label="Passport details" className="relative flex items-center gap-4 overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#6e1f30] to-[#3b0f1b] p-4 text-white">
+              <aside aria-label="Passport details" className="relative flex items-center gap-4 overflow-hidden rounded-surface bg-gradient-to-br from-[#6e1f30] to-[#3b0f1b] p-4 text-white">
                 <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full border border-[#f1d49a]/15" />
                 <div aria-hidden="true" className="relative grid size-16 shrink-0 place-items-center rounded-full bg-[#8a3346] text-[#f1d49a] ring-1 ring-[#f1d49a]/30">
                   <Globe size={30} strokeWidth={1.4} />

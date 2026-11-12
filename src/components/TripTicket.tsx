@@ -26,10 +26,10 @@ export function TripTicket({ plan, onView }: Props) {
   const code = 'block text-[clamp(2.25rem,11.5vw,3rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-ink'
   const big = 'block text-[clamp(1.875rem,9.5vw,2.25rem)] font-semibold leading-none tracking-[-0.03em] tabular-nums text-ink'
   const name = 'block truncate text-[clamp(1.25rem,6vw,1.5rem)] font-semibold leading-tight tracking-[-0.01em] text-ink/75'
-  const caption = 'mt-1.5 block whitespace-nowrap text-[0.6875rem] leading-tight text-muted-text'
+  const caption = 'mt-1.5 block whitespace-nowrap text-tab leading-tight text-muted-text'
 
   return (
-    <article aria-label="Upcoming trip" className="relative overflow-hidden rounded-[1.75rem] bg-white text-ink shadow-[0_10px_30px_rgb(70_35_25/0.09)] ring-1 ring-[rgb(35_26_23/0.06)]">
+    <article aria-label="Upcoming trip" className="relative overflow-hidden rounded-surface bg-white text-ink shadow-[0_10px_30px_rgb(70_35_25/0.09)] ring-1 ring-[rgb(35_26_23/0.06)]">
       <section aria-label={hasRoute ? `Journey ${plan.origin} to ${plan.destination} via ${ap.code}` : `Connection at ${ap.code}`} className="px-5 pb-5 pt-5">
         {/* names at opposite ends */}
         <div className="flex justify-between gap-3">
@@ -41,13 +41,13 @@ export function TripTicket({ plan, onView }: Props) {
         <div className="mt-1 grid grid-cols-[auto_minmax(2.25rem,1fr)_auto] items-center gap-x-2.5">
           <span className={hasRoute ? code : big}>{hasRoute ? plan.origin : time(plan.arrival)}</span>
           <span className="flex min-w-0 flex-col items-center" aria-label={`Transit ${ap.code}, ${fmtDur(total)} layover`}>
-            <span className="btn-coral rounded-lg px-2 py-0.5 text-[0.8125rem] font-bold leading-tight tracking-[0.02em]">{ap.code}</span>
+            <span className="btn-coral rounded-lg px-2 py-0.5 text-cap font-bold leading-tight tracking-[0.02em]">{ap.code}</span>
             <span aria-hidden="true" className="mt-1 flex w-full min-w-0 items-center gap-1.5 text-ink/75">
               <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.5)]" />
               <Plane size={24} strokeWidth={1} fill="currentColor" className="shrink-0 rotate-45" />
               <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.5)]" />
             </span>
-            <span className="mt-0.5 whitespace-nowrap text-[0.8125rem] font-medium tabular-nums text-ink/60">{fmtDur(total)}</span>
+            <span className="mt-0.5 whitespace-nowrap text-cap font-medium tabular-nums text-ink/60">{fmtDur(total)}</span>
           </span>
           <span className={cx(hasRoute ? code : big, 'text-right')}>{hasRoute ? plan.destination : time(plan.departure)}</span>
         </div>
@@ -73,12 +73,12 @@ export function TripTicket({ plan, onView }: Props) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sub font-semibold text-accent-dark">Transit</p>
-            <p className="mt-0.5 truncate text-[1.0625rem] font-semibold">{ap.code} · {ap.city}</p>
+            <p className="mt-0.5 truncate text-body font-semibold">{ap.code} · {ap.city}</p>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-[0.75rem] text-muted-text">Time to explore</p>
-            <p className="text-[1.75rem] font-bold leading-none tracking-[-0.02em] tabular-nums text-accent-dark">{fmtDur(usable)}</p>
-            {count > 0 && <p className="mt-1.5 text-[0.75rem] text-muted-text">{count} {count === 1 ? 'activity' : 'activities'} saved</p>}
+            <p className="text-micro text-muted-text">Time to explore</p>
+            <p className="text-h1 font-bold leading-none tracking-[-0.03em] tabular-nums text-accent-dark">{fmtDur(usable)}</p>
+            {count > 0 && <p className="mt-1.5 text-micro text-muted-text">{count} {count === 1 ? 'activity' : 'activities'} saved</p>}
           </div>
         </div>
         <button onClick={onView} className="btn-coral press mt-4 flex min-h-12 w-full scroll-mb-[calc(var(--nav-h)+1rem)] items-center justify-center rounded-full text-body font-semibold">View layover</button>

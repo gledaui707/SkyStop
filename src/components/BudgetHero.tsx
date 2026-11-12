@@ -30,9 +30,9 @@ export function BudgetHero({ n, overnight, bufferInfo }: { n: HeroNumbers; overn
   const used = Math.min(n.activityMin, n.usable), moved = Math.min(n.transferMin, Math.max(0, n.usable - used))
   return (
     <>
-      <section aria-label="Time budget" className="sunset relative rounded-[1.75rem] p-5">
+      <section aria-label="Time budget" className="sunset relative rounded-surface p-5">
         <p className="text-sub font-medium text-white/85">{over ? 'Over your usable time by' : 'Estimated time remaining'}</p>
-        <p className={cx('text-[2.75rem] font-bold leading-none tracking-[-0.03em] tabular-nums', over && 'text-[#fff1c2]')} aria-live="polite">
+        <p className={cx('text-metric font-bold tabular-nums', over && 'text-[#fff1c2]')} aria-live="polite">
           {fmtDur(Math.abs(n.remaining))}
         </p>
         {n.time !== 'fits' && <p className="mt-2 inline-flex rounded-full bg-white/20 px-2.5 py-1 text-cap font-semibold">{TIME_LABEL[n.time]}</p>}
@@ -52,7 +52,7 @@ export function BudgetHero({ n, overnight, bufferInfo }: { n: HeroNumbers; overn
         {(n.unknownTransfers > 0 || n.proceduresUnknown) && (
           <p className="mt-1 text-cap text-white/80">{n.proceduresUnknown ? 'Immigration and re-entry checks are not included: no waiting times are published. ' : ''}{n.unknownTransfers > 0 ? `${n.unknownTransfers} transfer${n.unknownTransfers > 1 ? 's are' : ' is'} not verified and not counted.` : ''}</p>)}
         {n.time === 'exceeds' && (
-          <p role="alert" className="mt-3 flex gap-2 rounded-2xl bg-white p-3 text-sub font-medium text-ink">
+          <p role="alert" className="mt-3 flex gap-2 rounded-control bg-white p-3 text-sub font-medium text-ink">
             <AlertTriangle size={20} className="mt-0.5 shrink-0 text-[#c23b24]" />
             This plan does not fit. Remove or shorten an activity.
           </p>
@@ -61,7 +61,7 @@ export function BudgetHero({ n, overnight, bufferInfo }: { n: HeroNumbers; overn
       </section>
       {overnight && (
         <aside aria-label="Overnight connection"
-          className="relative mt-3 flex items-center gap-4 overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#102445] to-[#0a142c] p-4 text-white">
+          className="relative mt-3 flex items-center gap-4 overflow-hidden rounded-surface bg-gradient-to-br from-[#102445] to-[#0a142c] p-4 text-white">
           <div aria-hidden="true" className="relative grid size-16 shrink-0 place-items-center rounded-full bg-[#243c66] text-[#dbe9ff]">
             <MoonStar size={32} strokeWidth={1.5} />
             <Star size={9} className="absolute bottom-2 left-2 fill-current" />
