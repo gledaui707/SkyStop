@@ -167,7 +167,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
         <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-deep/90 via-deep/45 to-transparent" />
         {bar}
         <div className="absolute inset-x-5 bottom-5 text-white">
-          <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold uppercase tracking-[0.08em]">{ap.code} · {ap.country}</p>
+          <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold">{ap.code} · {ap.country}</p>
           <h1 className="mt-2 text-title font-bold leading-tight">{ap.name}</h1>
           <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/30 pt-3 text-sub text-white/90">
             <li className="flex items-center gap-1.5"><ListChecks size={16} aria-hidden="true" /><span>{acts.length} {acts.length === 1 ? 'activity' : 'activities'}</span></li>

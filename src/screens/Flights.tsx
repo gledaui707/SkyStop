@@ -62,7 +62,7 @@ export function Results({ origin, destination, date }: { origin: string; destina
         <div className="relative">
           <button onClick={back} className="glass-dark press mt-2 flex min-h-11 items-center rounded-full pl-2 pr-4"><ChevronLeft size={24} strokeWidth={2.4} /><span className="text-sub font-medium">Change route</span></button>
           <div className="mt-4">
-          <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold uppercase tracking-[0.08em]">Choose your connection</p>
+          <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold">Choose your connection</p>
           <div className="mt-3 flex items-center justify-between">
             <div><p className="text-title font-bold leading-none">{origin}</p><p className="mt-1 text-sub text-white/80">{city(origin).split(',')[0]}</p></div>
             <Plane size={24} className="text-white/70" />

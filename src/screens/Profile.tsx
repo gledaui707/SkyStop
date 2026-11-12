@@ -29,7 +29,7 @@ function Avatar({ src, size }: { src: string | null; size: string }) {
 const Section = ({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) => (
   <section aria-label={title} className="grid gap-3">
     <div className="flex min-h-9 items-center justify-between gap-3 px-1">
-      <h2 className="text-cap font-semibold uppercase tracking-[0.12em] text-muted-text">{title}</h2>{action}</div>
+      <h2 className="text-sub font-semibold text-muted-text">{title}</h2>{action}</div>
     <div className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-[1.5rem] p-4">{children}</div>
   </section>
 )
@@ -136,7 +136,6 @@ export function Profile() {
                 <form className="grid gap-2.5" onSubmit={(e) => { e.preventDefault(); void submitEmail() }} noValidate>
                   <label className="grid gap-1.5 text-sub font-medium text-muted-text">Email
                     <input type="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="you@example.com" /></label>
-                  {mode === 'create' && <p className="text-cap text-muted-text">Your current flights and plans stay with you: the account is added to this guest session.</p>}
                   {mode === 'signin' && plans.length > 0 && <p className="text-cap text-muted-text">Signing in switches to that account. The {plans.length} {plans.length === 1 ? 'flight' : 'flights'} saved as a guest here are not merged into it. To keep them, create an account instead.</p>}
                   <Button type="submit" icon={Mail} disabled={busy || !email.trim()}>{busy ? 'Sending…' : mode === 'create' ? 'Send confirmation link' : 'Send sign-in link'}</Button>
                   <button type="button" onClick={() => { setMode(null); setError(null) }} className="min-h-11 text-sub font-semibold text-muted-text">Cancel</button>

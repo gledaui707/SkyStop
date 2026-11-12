@@ -113,7 +113,7 @@ export function AirportMap({ airport, activities, planned, terminal, onTerminal,
         const { key, box } = it
         if (it.kind === 'tlabel') return (
           <span key={key} aria-hidden="true" style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
-            className="pointer-events-none absolute z-[6] grid place-items-center rounded-full bg-white/80 text-cap font-bold uppercase tracking-wide text-ink/70 ring-1 ring-ink/10">{it.t!.name}</span>)
+            className="pointer-events-none absolute z-[6] grid place-items-center rounded-full bg-white/80 text-cap font-bold text-ink/70 ring-1 ring-ink/10">{it.t!.name}</span>)
         const t = it.t!
         const list = activities.filter((a) => terminalKeysOf(airport, a.terminal).includes(t.key))
         const shown = list.filter(matches)

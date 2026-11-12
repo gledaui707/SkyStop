@@ -128,7 +128,7 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
           <img src={sized(conn.image, 800, 420)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="absolute inset-0 size-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-deep/90 via-deep/50 to-deep/20" />
           <div className="relative p-5">
-            <p className="text-cap font-semibold uppercase tracking-[0.1em] text-white/80">Connecting in</p>
+            <p className="text-cap font-semibold text-white/80">Connecting in</p>
             <p className="text-h1 font-bold leading-tight">{city(j.connection)} <span className="text-white/75">{j.connection}</span></p>
             <div className="mt-4 flex items-center gap-2 text-sub font-semibold">
               <span>{j.origin}</span><span className="h-px flex-1 border-t border-dashed border-white/50" />

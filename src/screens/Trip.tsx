@@ -74,7 +74,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
             <Photo img={sup.image} w={440} h={144} className="absolute inset-0 size-full" />
             <span className="photo-fade absolute inset-x-0 bottom-0 h-full" />
             <div className="absolute inset-x-4 bottom-3 text-white">
-              <p className="text-cap font-semibold uppercase tracking-[0.08em] text-white/75">Connecting in</p>
+              <p className="text-cap font-semibold text-white/75">Connecting in</p>
               <p className="text-h2 font-bold leading-tight">{sup.city} <span className="font-semibold text-white/70">{sup.code}</span></p>
             </div>
           </div>

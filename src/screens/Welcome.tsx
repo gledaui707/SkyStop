@@ -12,7 +12,7 @@ interface Slide { img: Img; headline: string; body: string; preview: ReactNode }
 const Example = ({ children, className }: { children: ReactNode; className?: string }) => (
   <div className={cx('glass-dark rounded-[1.5rem] p-4 text-white', className)}>{children}</div>
 )
-const Tag = () => <span className="rounded-full bg-white/18 px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-white/80">Example</span>
+const Tag = () => <span className="rounded-full bg-white/18 px-2 py-0.5 text-[0.6875rem] font-semibold text-white/80">Example</span>
 
 const SLIDES: Slide[] = [
   {

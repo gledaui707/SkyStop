@@ -72,7 +72,7 @@ export function TripTicket({ plan, onView }: Props) {
       <section aria-label="Layover" className="px-5 pb-5 pt-4">
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-accent-dark">Transit</p>
+            <p className="text-sub font-semibold text-accent-dark">Transit</p>
             <p className="mt-0.5 truncate text-[1.0625rem] font-semibold">{ap.code} · {ap.city}</p>
           </div>
           <div className="shrink-0 text-right">
