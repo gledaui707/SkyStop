@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="337 140 640 640" fill="none" role="img" aria-labelledby="title desc">
+<title id="title">SkyStop</title>
+<desc id="desc">A white layered SS monogram with an airplane cutout on a rounded orange gradient.</desc>
+<defs>
+<linearGradient id="orange" x2="1" y2="1">
+  <stop stop-color="#f25808"/>
+  <stop offset="1" stop-color="#e9360c"/>
+</linearGradient>
+<radialGradient id="amber" cx="0" cy="1" r="1">
+  <stop stop-color="#f5a119"/>
+  <stop offset=".73" stop-color="#f5a119" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="peach" cx="1" cy="0" r="1">
+  <stop stop-color="#ff9a70"/>
+  <stop offset=".81" stop-color="#ff9a70" stop-opacity="0"/>
+</radialGradient>
+<path id="s" d="M510 312H794C794 362 754 402 704 402H510C503 402 500 405 500 408C500 412 504 415 510 415H704C754 415 794 455 794 504H510C460 504 420 464 420 414V402C420 352 460 312 510 312Z M510 518H794C794 567 754 608 704 608H420C420 558 460 518 510 518Z"/>
+<mask id="front-cutout" maskUnits="userSpaceOnUse" x="400" y="300" width="410" height="320"><path fill="white" d="M400 300H810V620H400Z"/><path fill="black" d="M467 408C467 403 495 402 508 399C513 398 516 395 520 390L561 342Q568 334 578 333L549 399L579 400Q584 400 588 395L603 380L612 376L602 401H711V415H602L613 440L603 436L586 420Q582 416 577 416H549L578 480Q568 479 562 472L520 424Q515 418 509 417C493 416 467 414 467 408Z"/></mask>
+<mask id="behind-front" maskUnits="userSpaceOnUse" x="400" y="300" width="550" height="320"><path fill="white" d="M400 300H950V620H400Z"/><use href="#s" fill="black" stroke="black" stroke-width="18" stroke-linejoin="round"/><path fill="black" d="M467 408C467 403 495 402 508 399C513 398 516 395 520 390L561 342Q568 334 578 333L549 399L579 400Q584 400 588 395L603 380L612 376L602 401H711V415H602L613 440L603 436L586 420Q582 416 577 416H549L578 480Q568 479 562 472L520 424Q515 418 509 417C493 416 467 414 467 408Z"/></mask>
+</defs>
+<rect x="337" y="140" width="640" height="640" rx="140" fill="url(#orange)"/>
+<rect x="337" y="140" width="640" height="640" rx="140" fill="url(#amber)"/>
+<rect x="337" y="140" width="640" height="640" rx="140" fill="url(#peach)"/>
+
+<g mask="url(#behind-front)"><use href="#s" transform="translate(100 0)" fill="white"/></g>
+<use href="#s" fill="white" mask="url(#front-cutout)"/>
+</svg>
