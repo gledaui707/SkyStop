@@ -459,6 +459,21 @@ try {
     await G.getByRole('button', { name: 'Profile' }).click();
     await G.getByText('traveller@example.com').first().waitFor();
     check('account: after confirmation the profile shows the account; flights and nationality are kept', await visible(G, 'Signed in') && (await G.getByLabel('Passport nationality').inputValue()) === 'Indonesia');
+    check('account: Account shows name field and the email', await G.getByLabel('Name').isVisible() && (await G.getByText('traveller@example.com').count()) >= 2);
+    await G.getByLabel('Name').fill('Glenda Traveller');
+    await G.getByRole('button', { name: 'Save', exact: true }).first().click();
+    await G.getByRole('heading', { name: 'Glenda Traveller' }).or(G.getByText('Glenda Traveller', { exact: true })).first().waitFor();
+    check('account: name saved to the account and shown at the top', fake.accounts.get(uid).user_metadata.display_name === 'Glenda Traveller');
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==', 'base64');
+    await G.locator('input[type=file]').setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: png });
+    await G.getByRole('button', { name: 'Change profile picture' }).waitFor();
+    check('account: profile picture uploaded to the private avatars bucket in the user\'s own folder and shown', fake.avatars.has(`${uid}/avatar.jpg`) && /avatar\.jpg/.test(fake.accounts.get(uid).user_metadata.avatar_path) && (await G.locator('img[src*="avatars"]').count()) >= 1);
+    await G.reload(); await G.getByRole('button', { name: 'Profile' }).click();
+    await G.getByRole('button', { name: 'Change profile picture' }).waitFor();
+    check('account: name and picture persist after a reload', await visible(G, 'Glenda Traveller') && (await G.locator('img[src*="avatars"]').count()) >= 1);
+    await G.getByRole('button', { name: 'Remove photo' }).click();
+    await G.getByRole('button', { name: 'Add profile picture' }).waitFor();
+    check('account: picture can be removed', !fake.avatars.has(`${uid}/avatar.jpg`));
     // Another device: sign in to the same account
     const other = await browser.newContext({ ...devices['iPhone 13'] });
     await other.addInitScript((s) => { localStorage.setItem('skystop.onboarded.v2', '1'); localStorage.setItem('sb-sgwbtgwccskqamzttczz-auth-token', s) }, JSON.stringify(fake.sessionFor(uid)));

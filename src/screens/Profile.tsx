@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
-import { LogOut, Mail, RotateCcw, ShieldCheck, Trash2, UserRound } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Camera, LogOut, Mail, RotateCcw, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { useApp } from '../store'
 import { getSupabase } from '../api/client'
-import { createAccount, signIn, signOut } from '../api/account'
+import { avatarUrl, createAccount, removeAvatar, signIn, signOut, updateName, uploadAvatar } from '../api/account'
+import { ensureGuestSession } from '../api/session'
 import { deleteProfile, saveProfile } from '../api/repositories'
 import { Button, Header, Notice, cx, inputCls } from '../components/ui'
 
@@ -17,6 +18,12 @@ function countryNames(): string[] {
     }
     return [...out].sort((x, y) => x.localeCompare(y))
   } catch { return [] }
+}
+
+function Avatar({ src, size }: { src: string | null; size: string }) {
+  return src
+    ? <img src={src} alt="" className={cx(size, 'shrink-0 rounded-full object-cover ring-2 ring-white shadow-md')} />
+    : <span className={cx(size, 'btn-coral grid shrink-0 place-items-center rounded-full')}><UserRound size={26} /></span>
 }
 
 const Section = ({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) => (
@@ -40,6 +47,17 @@ export function Profile() {
   const [savedNote, setSavedNote] = useState<string | null>(null)
   const [docsHelp, setDocsHelp] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
+  const [name, setName] = useState(account.name ?? '')
+  const [photo, setPhoto] = useState<string | null>(null)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { setName(account.name ?? '') }, [account.name])
+  useEffect(() => {
+    let live = true
+    if (!account.avatarPath) { setPhoto(null); return }
+    void avatarUrl(getSupabase(), account.avatarPath).then((u) => { if (live) setPhoto(u) })
+    return () => { live = false }
+  }, [account.avatarPath])
   const sb = getSupabase()
   const guest = account.status !== 'registered'
 
@@ -57,6 +75,15 @@ export function Profile() {
     setProfile(p); setSavedNote('Saved to your profile.'); await refreshAccount()
   })
   const logOut = () => run(async () => { await signOut(sb); setConfirmLogout(false); setMode(null); setSent(null); await refreshAccount() })
+  const saveName = () => run(async () => { await ensureGuestSession(sb); await updateName(sb, name); await refreshAccount() })
+  const pickPhoto = async (f: File | undefined) => {
+    if (!f || photoBusy) return
+    setPhotoBusy(true); setError(null)
+    try { const uid = await ensureGuestSession(sb); await uploadAvatar(sb, uid, f); await refreshAccount() }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)) }
+    finally { setPhotoBusy(false); if (fileRef.current) fileRef.current.value = '' }
+  }
+  const dropPhoto = () => run(async () => { if (account.userId) await removeAvatar(sb, account.userId); await refreshAccount() })
   const clearDocs = () => run(async () => {
     await deleteProfile(sb); setProfile(null); setNationality(''); setResidence(''); setSavedNote('Your travel details were removed.')
   })
@@ -66,19 +93,38 @@ export function Profile() {
       <Header title="Profile" />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-7 px-5 pt-2">
         <div className="flex items-center gap-4">
-          <span className="btn-coral grid size-14 shrink-0 place-items-center rounded-full"><UserRound size={26} /></span>
+          <Avatar src={photo} size="size-14" />
           <div className="min-w-0">
-            <p className="truncate text-h2 font-bold">{account.status === 'registered' ? account.email : 'Guest'}</p>
+            <p className="truncate text-h2 font-bold">{account.name || (account.status === 'registered' ? account.email : 'Guest')}</p>
             {account.status !== 'guest' && account.status !== 'none' && <p className="text-sub text-muted-text">{account.status === 'registered' ? 'Signed in' : 'Guest · confirmation pending'}</p>}
           </div>
         </div>
 
         <Section title="Account">
-          {account.status === 'registered' ? (
-            <>
-              <p className="text-body text-ink/85">Your flights and plans are saved to this account. Sign in with the same email on another browser or device to see them there.</p>
-            </>
-          ) : (
+          <div className="flex items-center gap-4">
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={photoBusy} aria-label={photo ? 'Change profile picture' : 'Add profile picture'} className="press relative shrink-0">
+              <Avatar src={photo} size="size-[4.5rem]" />
+              <span className="absolute -bottom-0.5 -right-0.5 grid size-7 place-items-center rounded-full bg-ink text-white ring-2 ring-white"><Camera size={14} /></span>
+            </button>
+            <div className="grid min-w-0 gap-0.5">
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={photoBusy} className="min-h-9 text-left text-sub font-semibold text-accent-dark">{photoBusy ? 'Uploading…' : photo ? 'Change photo' : 'Add photo'}</button>
+              {photo && <button type="button" onClick={dropPhoto} disabled={busy} className="min-h-9 text-left text-sub font-medium text-muted-text">Remove photo</button>}
+            </div>
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => void pickPhoto(e.target.files?.[0])} />
+          </div>
+          <form className="grid gap-1.5" onSubmit={(e) => { e.preventDefault(); void saveName() }}>
+            <label htmlFor="profile-name" className="text-sub font-medium text-muted-text">Name</label>
+            <div className="flex gap-2">
+              <input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" placeholder="Your name" className={cx(inputCls, 'flex-1')} />
+              {name.trim() !== (account.name ?? '') && <Button type="submit" className="shrink-0 px-4" disabled={busy}>Save</Button>}
+            </div>
+          </form>
+          {account.status === 'registered' && (
+            <div className="grid gap-1.5">
+              <p className="text-sub font-medium text-muted-text">Email</p>
+              <p className="flex min-h-[3.25rem] items-center truncate rounded-2xl bg-ink-tint px-4 text-body text-ink">{account.email}</p>
+            </div>)}
+          {account.status === 'registered' ? null : (
             <>
               {account.status === 'guest-pending' && <Notice tone="info">Check {account.pendingEmail} for a confirmation link. Your guest flights move with you once it is confirmed.</Notice>}
               {sent ? (
@@ -101,6 +147,7 @@ export function Profile() {
               {error && <Notice tone="warn">{error}</Notice>}
             </>
           )}
+          {account.status === 'registered' && error && <Notice tone="warn">{error}</Notice>}
         </Section>
 
         <Section title="Travel documents" action={

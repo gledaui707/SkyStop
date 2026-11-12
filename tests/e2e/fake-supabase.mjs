@@ -895,7 +895,8 @@ export function createFakeSupabase() {
   const accounts = new Map(); // uid -> auth user
   const details = new Map(); // layover_id -> { row, owner }
   const profiles = new Map(); // owner -> row
-  const db = { plans, accounts, details, profiles, calls: [], failNext: {}, emails: [] };
+  const avatars = new Map(); // object path -> bytes
+  const db = { plans, accounts, details, profiles, avatars, calls: [], failNext: {}, emails: [] };
   const tokenFor = (sub) => { const exp = Math.floor(Date.now() / 1000) + 3600; return { access_token: `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub, role: 'authenticated', exp, is_anonymous: !!accounts.get(sub)?.is_anonymous })}.sig`, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: `r-${sub}`, user: accounts.get(sub) }; };
   /** Simulates the user opening the confirmation link: the guest becomes a permanent account with the SAME id. */
   db.confirmEmail = (uid) => { const u = accounts.get(uid); u.email = u.new_email; delete u.new_email; u.is_anonymous = false; };
@@ -920,11 +921,22 @@ export function createFakeSupabase() {
     }
     if (path === '/auth/v1/user') {
       const uid = userOf(req); if (!uid || !accounts.get(uid)) return json(route, 401, { message: 'invalid JWT' });
-      if (method === 'PUT') { const b = req.postDataJSON(); if (b.email) { accounts.get(uid).new_email = b.email; db.emails.push({ kind: 'confirm', to: b.email, uid }); } }
+      if (method === 'PUT') { const b = req.postDataJSON(); const u = accounts.get(uid); if (b.email) { u.new_email = b.email; db.emails.push({ kind: 'confirm', to: b.email, uid }); } if (b.data) u.user_metadata = { ...u.user_metadata, ...b.data }; }
       return json(route, 200, accounts.get(uid));
     }
     if (path === '/auth/v1/otp') { const b = req.postDataJSON(); db.emails.push({ kind: 'signin', to: b.email }); return json(route, 200, {}); }
     if (path === '/auth/v1/logout') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' } });
+    // Storage: private 'avatars' bucket, owner folder only (mirrors the storage.objects policies)
+    const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==', 'base64');
+    if (path.startsWith('/storage/v1/')) {
+      const uid = userOf(req);
+      const m = /^\/storage\/v1\/object\/(sign\/)?avatars\/(.+)$/.exec(path);
+      if (path.startsWith('/storage/v1/object/public/') || (m && m[1] && method === 'GET')) return route.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: PNG });
+      if (!uid) return json(route, 401, { statusCode: '403', message: 'not authorised' });
+      if (m && !m[1] && method === 'POST') { if (m[2].split('/')[0] !== uid) return json(route, 403, { statusCode: '403', message: 'new row violates row-level security policy' }); avatars.set(m[2], req.postDataBuffer()); return json(route, 200, { Key: `avatars/${m[2]}` }); }
+      if (m && m[1] && method === 'POST') { if (m[2].split('/')[0] !== uid || !avatars.has(m[2])) return json(route, 400, { statusCode: '404', message: 'Object not found' }); return json(route, 200, { signedURL: `/object/sign/avatars/${m[2]}?token=t` }); }
+      if (path === '/storage/v1/object/avatars' && method === 'DELETE') { const b = req.postDataJSON(); for (const k of b.prefixes || []) if (k.split('/')[0] === uid) avatars.delete(k); return json(route, 200, []); }
+    }
     const table = path.replace('/rest/v1/', '');
     const single = (req.headers()['accept'] || '').includes('vnd.pgrst.object');
     if (table === 'layover_details') {

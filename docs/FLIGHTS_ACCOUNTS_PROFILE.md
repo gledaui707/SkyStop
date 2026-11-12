@@ -27,3 +27,9 @@ The nearest upcoming flight is the full boarding pass in front. Up to three othe
 
 ## Profile
 Account (guest / pending / signed in, create account, sign in, sign out); **Travel documents**: optional passport nationality and country of residence, stored owner-only in `traveler_profiles` and used only to prefill the entry-check panel on landside activities — never an eligibility decision; no passport numbers or photos. **Settings**: replay the introduction (does not touch saved data), short app information.
+
+## Name and profile picture (2026-11-15)
+- **Name**: stored in the user's own Supabase Auth metadata (`display_name`); shown at the top of Profile.
+- **Email**: shown read-only for signed-in accounts.
+- **Picture**: resized in the browser to a 256 px square JPEG and uploaded to the private Storage bucket `avatars` at `<user id>/avatar.jpg` (migration `202611150001_avatars.sql`: bucket limited to 1 MB JPEG/PNG/WebP; owner-only select/insert/update/delete on `storage.objects` by folder = user id). Displayed through a 1-hour signed link. Can be removed.
+- Verified against the simulated backend (upload into own folder, display, persistence after reload, removal). Not yet exercised against the hosted Storage API from a real browser session.
