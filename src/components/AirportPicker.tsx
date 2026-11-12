@@ -25,7 +25,7 @@ export function AirportPicker({ label, value, onChange, placeholder, exclude = [
     .sort((a, b) => (a.code.toLowerCase() === q ? -1 : b.code.toLowerCase() === q ? 1 : 0)).slice(0, 5)
   // Manual entry: any unknown 3-letter code is accepted as typed.
   if (/^[a-z]{3}$/.test(q) && !DIRECTORY.some((a) => a.code.toLowerCase() === q)) {
-    matches.push({ code: q.toUpperCase(), name: 'Use this code as entered', city: q.toUpperCase(), country: '', supported: false })
+    matches.push({ code: q.toUpperCase(), name: 'Use as entered', city: q.toUpperCase(), country: '', supported: false })
   }
   const blocked = (a: DirAirport) => exclude.includes(a.code)
   const pick = (a: DirAirport) => { if (blocked(a)) return; onChange(a.code); setQuery(''); setOpen(false) }
@@ -44,14 +44,14 @@ export function AirportPicker({ label, value, onChange, placeholder, exclude = [
       </div>
       {open && (
         <ul id={`${id}-list`} role="listbox" aria-label={`${label} suggestions`} className="glass anim-fade mt-2 overflow-hidden rounded-2xl">
-          {matches.length === 0 && <li className="px-4 py-3 text-body text-muted-text">No match. Type a 3-letter airport code to enter it manually.</li>}
+          {matches.length === 0 && <li className="px-4 py-3 text-body text-muted-text">No match. Try a 3-letter code.</li>}
           {matches.map((a) => (
             <li key={a.code} role="option" aria-selected={value === a.code} aria-disabled={blocked(a)}>
               <button type="button" disabled={blocked(a)} onClick={() => pick(a)} onMouseDown={(e) => e.preventDefault()}
                 className="flex min-h-14 w-full items-center gap-3 border-b border-line px-4 py-2 text-left last:border-b-0 disabled:opacity-45">
                 <span className="grid h-8 w-12 shrink-0 place-items-center rounded-lg bg-white/10 text-sub font-bold tracking-wide">{a.code}</span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-body font-medium">{a.city}</span>
-                  <span className="block truncate text-cap text-muted-text">{blocked(a) ? 'Already used in this trip' : a.supported ? `${a.name} · layover guide` : a.name}</span></span>
+                  <span className="block truncate text-cap text-muted-text">{blocked(a) ? 'Already selected' : a.supported ? `${a.name} · layover guide` : a.name}</span></span>
               </button>
             </li>))}
         </ul>

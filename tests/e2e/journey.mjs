@@ -33,8 +33,8 @@ const visible = (page, text) => page.getByText(text, { exact: false }).first().i
 
 const pick = async (page, label, text) => { await page.getByLabel(label, { exact: true }).fill(text); await page.getByRole('option').first().getByRole('button').click(); };
 const setTimes = async (page) => {
-  await page.getByLabel('Arrival at the connecting airport (local time)').fill(`${day(7)}T10:00`);
-  await page.getByLabel('Onward departure (local time)').fill(`${day(7)}T15:00`);
+  await page.getByLabel('Arrival (airport local time)').fill(`${day(7)}T10:00`);
+  await page.getByLabel('Departure (airport local time)').fill(`${day(7)}T15:00`);
   await page.getByRole('button', { name: '1h 30m' }).click();
 };
 const bar = (page) => page.locator('div.fixed.bottom-\\[var\\(--nav-h\\)\\]').last();
@@ -50,7 +50,7 @@ try {
   check('no guest account created just by opening the app', !fake.calls.some((c) => c.includes('/auth/v1/signup')));
   await page.getByRole('button', { name: 'Plan a layover' }).click();
   check('setup is one screen with no numbered steps or tips', !(await visible(page, 'Step 1 of')) && !(await visible(page, 'Tip 1 of')));
-  check('connecting airport, arrival, departure and buffer are the primary inputs', await page.getByLabel('Connecting airport', { exact: true }).isVisible() && await page.getByLabel('Arrival at the connecting airport (local time)').isVisible() && await page.getByRole('button', { name: '2h' }).isVisible());
+  check('connecting airport, arrival, departure and buffer are the primary inputs', await page.getByLabel('Connecting airport', { exact: true }).isVisible() && await page.getByLabel('Arrival (airport local time)').isVisible() && await page.getByRole('button', { name: '2h' }).isVisible());
   check('origin/destination are optional and collapsed', !(await page.getByLabel('Flying from', { exact: true }).isVisible()));
   await page.getByRole('button', { name: 'Lisbon LIS' }).click();
   await setTimes(page);
@@ -134,7 +134,7 @@ try {
   await e.page.getByRole('button', { name: 'Set layover times (2 selected)' }).click();
   check('explore-first: setup shows the airport and the 2 selected activities', (await e.page.getByLabel('Connecting airport', { exact: true }).inputValue()).includes('LIS') && await visible(e.page, '2 activities selected'));
   await setTimes(e.page);
-  await e.page.getByRole('button', { name: 'Build my itinerary' }).click();
+  await e.page.getByRole('button', { name: 'Build itinerary' }).click();
   await e.page.getByRole('heading', { name: 'Your plan' }).waitFor();
   check('explore-first: builder contains both selected activities (1h 30m planned, 2h left)', await visible(e.page, 'Demo quiet rest') && await visible(e.page, 'Demo gift browse') && (await barText(e.page)).includes('2h left'));
   await e.page.getByRole('button', { name: 'Home' }).click();
@@ -151,7 +151,7 @@ try {
   await d.page.getByRole('button', { name: 'Use this itinerary' }).click();
   check('itinerary-first: setup names the itinerary', await visible(d.page, 'Itinerary: Demo snack and rest') && await visible(d.page, 'It will be added to your plan'));
   await setTimes(d.page);
-  await d.page.getByRole('button', { name: 'Build my itinerary' }).click();
+  await d.page.getByRole('button', { name: 'Build itinerary' }).click();
   await d.page.getByRole('heading', { name: 'Your plan' }).waitFor();
   check('itinerary-first: builder has the itinerary (1h 50m left)', (await barText(d.page)).includes('1h 50m left') && await visible(d.page, 'Demo Portuguese snack break'));
   await d.ctx.close();
@@ -167,7 +167,7 @@ try {
     await v.page.getByRole('button', { name: /Set layover times/ }).click();
     await setTimes(v.page);
     const tripOk = await v.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
-    await v.page.getByRole('button', { name: 'Build my itinerary' }).click();
+    await v.page.getByRole('button', { name: 'Build itinerary' }).click();
     await v.page.getByRole('heading', { name: 'Your plan' }).waitFor();
     const m = await v.page.evaluate(() => {
       window.scrollTo(0, document.documentElement.scrollHeight);

@@ -30,8 +30,8 @@ try {
 
   const pick = async (label, text) => { await page.getByLabel(label, { exact: true }).fill(text); await page.getByRole('option').first().getByRole('button').click(); };
   await page.getByRole('button', { name: 'Lisbon LIS' }).click();
-  await page.getByLabel('Arrival at the connecting airport (local time)').fill(`${day(7)}T10:00`);
-  await page.getByLabel('Onward departure (local time)').fill(`${day(7)}T15:00`);
+  await page.getByLabel('Arrival (airport local time)').fill(`${day(7)}T10:00`);
+  await page.getByLabel('Departure (airport local time)').fill(`${day(7)}T15:00`);
   await page.getByRole('button', { name: '1h 30m' }).click();
   const bd = (await page.getByLabel('Layover time breakdown').innerText()).replace(/\n/g, ' ');
   check('time breakdown: 5h total, 3h 30m usable', bd.includes('5h') && bd.includes('3h 30m'), bd);

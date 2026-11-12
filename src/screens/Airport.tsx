@@ -106,8 +106,8 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                 <>
                   <p className="text-card font-semibold leading-tight">{ap.name}</p>
                   <p className="mt-0.5 text-sub text-muted-text">
-                    {b ? `${fmtDur(b.usable)} usable · ${items.length} planned · ${b.over ? 'over by ' + fmtDur(-b.remaining) : fmtDur(b.remaining) + ' left'}` : `${items.length ? items.length + ' selected · ' : ''}Set your layover times to check what fits.`}</p>
-                  <p className="mt-0.5 text-cap text-muted-text">Illustrative zone schematic, not a navigation map.</p>
+                    {b ? `${fmtDur(b.usable)} usable · ${items.length} planned · ${b.over ? 'over by ' + fmtDur(-b.remaining) : fmtDur(b.remaining) + ' left'}` : `${items.length ? items.length + ' selected · ' : ''}Add layover times to check fit.`}</p>
+                  <p className="mt-0.5 text-cap text-muted-text">Schematic map, not for navigation.</p>
                   <ul className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Activities at this airport">
                     {acts.filter((a) => cat === 'All' || a.category === cat).map((a) => (
                       <li key={a.id} className="shrink-0">
@@ -124,7 +124,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                 <div className="mt-3">
                   {ready
                     ? <Button className="w-full" onClick={() => go({ name: 'builder' })}>{`Build itinerary (${items.length})`}</Button>
-                    : <Button className="w-full" onClick={() => startTrip()}>{items.length ? `Set layover times (${items.length} selected)` : 'Set my layover times'}</Button>}
+                    : <Button className="w-full" onClick={() => startTrip()}>{items.length ? `Set layover times (${items.length} selected)` : 'Set layover times'}</Button>}
                 </div>)}
             </div>
           )}
@@ -173,8 +173,8 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
         </dl>
         <p className={cx('mt-4 rounded-2xl px-4 py-3 text-sub', usable !== undefined ? 'panel-accent text-ink' : 'panel text-muted-text')}>
           {usable !== undefined
-            ? <>Everything below is checked against your <b className="text-ink">{fmtDur(usable)}</b> usable time{b && !b.over ? <>, <b className="text-ink">{fmtDur(b.remaining)}</b> still free</> : b?.over ? <>; your plan is <b className="text-error">{fmtDur(-b.remaining)} over</b></> : null}.</>
-            : <>Pick a curated itinerary or select single activities. Set your layover times to check what fits; your selection is kept.</>}
+            ? <>Checked against your <b className="text-ink">{fmtDur(usable)}</b> usable time{b && !b.over ? <> · <b className="text-ink">{fmtDur(b.remaining)}</b> free</> : b?.over ? <> · <b className="text-error">{fmtDur(-b.remaining)} over</b></> : null}</>
+            : <>Add layover times to check what fits.</>}
         </p>
         <h2 className="mb-3 mt-8 text-h2 font-bold">Curated itineraries</h2>
         <ul className="grid gap-4">
@@ -199,7 +199,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
                     {items.map((a) => <li key={a.id} className="relative flex justify-between gap-3 py-1"><span aria-hidden="true" className="absolute -left-[1.3rem] top-[0.7rem] size-2.5 rounded-full bg-accent ring-4 ring-[#2a1f1d]" /><span className="min-w-0">{a.name}</span><span className="shrink-0 text-muted-text tabular-nums">{fmtDur(a.durationMin)}</span></li>)}
                   </ol>
                   <p className={cx('mt-3 rounded-2xl px-3 py-2 text-sub font-medium', fit === null ? 'bg-white/[0.06] text-muted-text' : fit ? 'bg-success/12 text-success' : 'bg-error-tint text-ink')}>
-                    {fit === null ? 'Set your layover times to check whether it fits.' : fit ? `Fits with ${fmtDur(usable! - dur)} to spare.` : `Needs ${fmtDur(dur - usable!)} more than your usable time. You can trim it.`}</p>
+                    {fit === null ? 'Add layover times to check fit.' : fit ? `Fits with ${fmtDur(usable! - dur)} to spare.` : `Needs ${fmtDur(dur - usable!)} more than your usable time.`}</p>
                   <Button variant="secondary" className="mt-3 w-full" onClick={() => applyItinerary(t.id)}>Use this itinerary</Button>
                 </div>
               </li>
@@ -227,7 +227,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
       <div className="pointer-events-none fixed inset-x-0 bottom-[var(--nav-h)] z-30 mx-auto max-w-[480px] px-4 pb-2">
         <div className="glass pointer-events-auto rounded-[1.75rem] p-2.5">
           {ready ? <Button className="w-full" onClick={() => go({ name: 'builder' })}>Build itinerary ({planned.length})</Button>
-            : <Button className="w-full" onClick={() => startTrip()}>{planned.length ? `Set layover times (${planned.length} selected)` : 'Set my layover times'}</Button>}
+            : <Button className="w-full" onClick={() => startTrip()}>{planned.length ? `Set layover times (${planned.length} selected)` : 'Set layover times'}</Button>}
         </div>
       </div>
       <ActivitySheet a={acts.find((a) => a.id === open) ?? null} onClose={() => setOpen(null)} />

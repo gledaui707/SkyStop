@@ -24,7 +24,7 @@ export function Welcome() {
         <div className="anim-rise mt-auto">
           <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold uppercase tracking-[0.08em]">Layover planner</p>
           <h1 className="mt-4 text-[2.5rem] font-bold leading-[1.05] tracking-[-0.03em]">More than a<br />connection.</h1>
-          <p className="mt-3 max-w-[22rem] text-body text-white/85">See how much usable time your layover really has, then plan it.</p>
+          <p className="mt-3 max-w-[22rem] text-body text-white/85">Know your usable time. Then plan it.</p>
           <div className="mt-7 flex items-center gap-3">
             <button onClick={() => finishWelcome({ name: 'trip' })}
               className="btn-coral press flex min-h-14 flex-1 items-center justify-between rounded-full pl-6 pr-2 text-[1.125rem] font-bold">

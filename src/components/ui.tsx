@@ -116,7 +116,7 @@ export function Notice({ children, tone = 'info' }: { children: ReactNode; tone?
 
 export const PassportNote = () => (
   <Notice>
-    Entry requirements depend on your passport and transit country. Verify with official sources. SkyStop does not check visa eligibility or whether you can leave the airport.
+    Entry rules depend on your passport and transit country. SkyStop does not check visas or whether you can leave the airport. Verify with official sources.
   </Notice>
 )
 

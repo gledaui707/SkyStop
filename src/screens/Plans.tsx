@@ -18,7 +18,7 @@ export function Plans() {
       <LargeTitle>My plans</LargeTitle>
       <div className="px-5">
         {plansState.status === 'loading' ? (
-          <p role="status" className="py-8 text-center text-body text-muted-text">Loading your plans…</p>
+          <p role="status" className="py-8 text-center text-body text-muted-text">Loading…</p>
         ) : plansState.status === 'error' ? (
           <Notice tone="warn"><p className="font-semibold">We could not load your plans</p>
             <p>Check your connection and try again.</p>
@@ -27,7 +27,6 @@ export function Plans() {
           <div className="panel-accent rounded-[1.75rem] p-6 text-center">
             <span aria-hidden="true" className="btn-coral mx-auto mb-4 grid size-14 place-items-center rounded-full"><Plane size={24} className="-rotate-45" /></span>
             <p className="text-card font-semibold">No saved plans yet</p>
-            <p className="mt-1 text-body text-muted-text">Choose a connection or an airport, add activities and save your itinerary.</p>
             <Button className="mt-4 w-full" onClick={() => go({ name: 'trip' })}>Plan a layover</Button>
           </div>
         ) : (
@@ -53,7 +52,7 @@ export function Plans() {
             })}
           </ul>
         )}
-        <div className="mt-5"><DemoNote>Plans are saved to a guest session in this browser. Clearing browser data removes access to them.</DemoNote></div>
+        <div className="mt-5"><DemoNote>Saved to this browser as a guest. Clearing browser data loses access.</DemoNote></div>
       </div>
     </div>
   )
@@ -62,7 +61,7 @@ export function Plans() {
 export function PlanDetail({ id }: { id: string }) {
   const { plans, plansState, setDraft, go, back } = useApp()
   const p = plans.find((x) => x.id === id)
-  if (!p) return <div><Header title="Plan" /><p className="p-6 text-center text-muted-text">{plansState.status === 'loading' ? 'Loading your plan…' : 'This plan is not available.'}</p></div>
+  if (!p) return <div><Header title="Plan" /><p className="p-6 text-center text-muted-text">{plansState.status === 'loading' ? 'Loading…' : 'This plan is not available.'}</p></div>
   const items = itemsOf(p)
   const ap = getAirport(p.airport)
   const mins = layoverMinutesAt(p.arrival, p.departure, ap.timezone)
@@ -88,7 +87,7 @@ export function PlanDetail({ id }: { id: string }) {
         <BudgetHero b={b} overnight={isOvernight(new Date(p.arrival), new Date(p.departure))} />
         <SectionTitle>Activities ({items.length})</SectionTitle>
         {items.length ? <ul className="grid gap-3">{items.map((a) => <ActivityRow key={a.id} a={a} />)}</ul>
-          : <p className="text-body text-muted-text">No activities yet. Edit the plan to add some.</p>}
+          : <p className="text-body text-muted-text">No activities yet.</p>}
         <Button icon={Pencil} className="mt-3" onClick={() => {
           setDraft({ planId: p.id, revision: p.revision, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination })
           go({ name: 'builder' })

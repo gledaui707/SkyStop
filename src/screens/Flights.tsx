@@ -82,7 +82,7 @@ export function Results({ origin, destination, date }: { origin: string; destina
           <Chip active={viaF === 'SIN'} onClick={() => setViaF(viaF === 'SIN' ? 'All' : 'SIN')}>Via Singapore</Chip>
           <Chip active={nonStop} onClick={() => setNonStop(!nonStop)}>Non-stop</Chip>
         </ChipRow></div>
-        <p className="mt-2 text-sub text-muted-text">Illustrative sample schedules and prices. Tick up to 3 to compare.</p>
+        <p className="mt-2 text-sub text-muted-text">Sample schedules and prices. Compare up to 3.</p>
         {nonStop ? (
           <div className="mt-3"><Notice>No non-stop flights for this route.</Notice></div>
         ) : flights.length === 0 ? <p className="mt-6 text-center text-muted-text">No flights match.</p> : (
@@ -110,11 +110,11 @@ export function Results({ origin, destination, date }: { origin: string; destina
                   <div className="mt-3 flex items-center gap-3 rounded-2xl bg-white/[0.06] p-2.5 ring-1 ring-line">
                     <span className="ph relative size-11 shrink-0 overflow-hidden rounded-xl"><Photo img={IMAGES.airports[f.via]} w={44} h={44} className="absolute inset-0 size-full" /></span>
                     <p className="text-sub leading-snug">Layover <b>{fmtDur(f.layoverMin)}</b> in {f.via}<br />
-                      <span className="text-muted-text">{fmtDur(usable)} usable · {fits(f)} itinerary fits</span></p>
+                      <span className="text-muted-text">{fmtDur(usable)} usable · fits {fits(f)} {fits(f) === 1 ? 'itinerary' : 'itineraries'}</span></p>
                   </div>
                   <div className="mt-3 flex items-end justify-between gap-3">
                     <p className="text-h1 font-bold tabular-nums">{money(f.priceUsd)}<span className="block text-cap font-normal text-muted-text">sample price</span></p>
-                    <Button variant="secondary" className="min-h-11 px-4 text-sub" onClick={() => go({ name: 'flight', flightId: f.id, origin, destination, date })}>View connection</Button>
+                    <Button variant="secondary" className="min-h-11 px-4 text-sub" onClick={() => go({ name: 'flight', flightId: f.id, origin, destination, date })}>View details</Button>
                   </div>
                   <label className="mt-3 flex min-h-11 items-center gap-3 border-t border-line pt-2 text-body">
                     <input type="checkbox" checked={cmp.includes(f.id)} onChange={() => toggle(f.id)} className="size-5 accent-accent" />Compare</label>
@@ -151,34 +151,34 @@ export function FlightDetails({ flightId, origin, destination, date }: { flightI
   )
   return (
     <div className="pb-40">
-      <Header title={`${origin} to ${destination}`} subtitle={`${AIRLINES[f.airline].name} · illustrative`} />
+      <Header title={`${origin} to ${destination}`} subtitle={`${AIRLINES[f.airline].name} · sample`} />
       <div className="px-5 pt-2">
         <div className="mb-3"><Airline code={f.airline} size={40} bold /></div>
         <section className="panel relative rounded-[1.75rem] p-4">
           <span className="absolute bottom-10 left-[1.625rem] top-8 w-0.5 bg-line" />
           <Node time={f.departAt} day code={origin} label={city(origin)} strong />
           <Leg dur={f.legOneMin} />
-          <Node time={arriveConn(f)} code={f.via} label="Arrive at connecting airport" />
+          <Node time={arriveConn(f)} code={f.via} label="Arrive" />
           <button onClick={() => choose(f)}
             className="panel-accent press mb-5 ml-9 flex w-[calc(100%-2.25rem)] items-center gap-3 rounded-2xl p-3 text-left">
             <span className="ph relative size-12 shrink-0 overflow-hidden rounded-xl"><Photo img={ap.image} w={48} h={48} className="absolute inset-0 size-full" /></span>
             <span className="min-w-0 flex-1"><b className="block text-body font-semibold leading-tight">{fmtDur(f.layoverMin)} layover</b>
-              <span className="text-sub text-muted-text">{fmtDur(usable)} usable · {fits(f)} itinerary fits</span></span>
+              <span className="text-sub text-muted-text">{fmtDur(usable)} usable · fits {fits(f)} {fits(f) === 1 ? 'itinerary' : 'itineraries'}</span></span>
             <ChevronRight size={20} className="shrink-0 text-accent-dark" /></button>
-          <Node time={departConn(f)} day={night} code={f.via} label="Depart for onward flight" />
+          <Node time={departConn(f)} day={night} code={f.via} label="Depart" />
           <Leg dur={f.legTwoMin} />
           <div className="relative pl-9"><span className="absolute left-0 top-1 size-5 rounded-full border-[3px] border-accent bg-accent" />
             <p className="text-card font-semibold tabular-nums">{fmtTime(arriveDest(f))} <span className="text-sub font-normal text-muted-text">{fmtDay(arriveDest(f))}</span></p>
             <p className="text-sub"><b>{destination}</b> <span className="text-muted-text">· {city(destination)}</span></p></div>
         </section>
-        {night && <div className="mt-3"><Notice>This is an overnight connection. Check airport service hours.</Notice></div>}
+        {night && <div className="mt-3"><Notice>Overnight connection. Check airport service hours.</Notice></div>}
         <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
           {[['Total', fmtDur(total(f))], ['Layover', fmtDur(f.layoverMin)], ['Sample price', money(f.priceUsd)]].map(([k, v]) => (
             <div key={k} className="panel rounded-2xl py-3"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
         </dl>
       </div>
       <ActionBar>
-          <Button className="w-full" onClick={() => choose(f)}>Select this connection</Button>
+          <Button className="w-full" onClick={() => choose(f)}>Choose connection</Button>
         </ActionBar>
     </div>
   )

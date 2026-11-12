@@ -91,17 +91,16 @@ export function Home() {
             <button onClick={() => go({ name: 'trip' })} className="ph press relative block h-[21rem] w-full overflow-hidden rounded-[2rem] text-left text-white shadow-[0_20px_44px_rgb(0_0_0/0.4)]">
               <img src={sized(IMAGES.results, 760, 680)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-fade absolute inset-0 size-full object-cover" />
               <span className="photo-fade absolute inset-x-0 bottom-0 h-[70%]" />
-              <span className="glass-dark absolute left-4 top-4 rounded-full px-3 py-1 text-sub font-medium">Your trip</span>
               <span className="absolute bottom-5 left-5 right-24 block">
                 <span className="block text-h1 font-bold leading-tight">Plan a layover</span>
-                <span className="mt-1 block text-body text-white/80">See your usable time between flights</span>
+                <span className="mt-1 block text-body text-white/80">Check your usable time</span>
               </span>
               <Notch icon={Plus} />
             </button>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <button onClick={() => go({ name: 'find' })} className="panel press flex min-h-[7.5rem] flex-col justify-between rounded-[1.5rem] p-4 text-left">
                 <span className="grid size-10 place-items-center rounded-full bg-accent-tint text-accent-dark"><Compass size={20} /></span>
-                <span><b className="block text-card font-semibold leading-tight">Plan ahead</b><span className="text-sub text-muted-text">Compare connections</span></span>
+                <span><b className="block text-card font-semibold leading-tight">Plan ahead</b><span className="text-sub text-muted-text">Before you book</span></span>
               </button>
               <button onClick={() => switchTab('airports')} className="panel press flex min-h-[7.5rem] flex-col justify-between rounded-[1.5rem] p-4 text-left">
                 <span className="grid size-10 place-items-center rounded-full bg-accent-tint text-accent-dark"><MapPin size={20} /></span>
@@ -118,7 +117,7 @@ export function Home() {
           {CATEGORIES.map((c) => { const I = CAT_ICONS[c]; return <Chip key={c} active={cat === c} onClick={() => setCat(c)}><I size={16} />{c}</Chip> })}
         </ChipRow></div>
       </div>
-      {things.length === 0 ? <p className="px-5 py-4 text-body text-muted-text">Nothing matches. Try another search or category.</p> : (
+      {things.length === 0 ? <p className="px-5 py-4 text-body text-muted-text">No matches.</p> : (
         <ul className="no-scrollbar flex snap-x scroll-px-5 gap-3 overflow-x-auto px-5 pb-2" aria-label="Things to do">
           {things.map((a) => (
             <li key={a.id} className="shrink-0 snap-start">
@@ -137,8 +136,8 @@ export function Home() {
 
       {airports.length > 0 && (
         <>
-          <div className="px-5"><Heading>Recommended airports</Heading></div>
-          <ul className="no-scrollbar flex snap-x scroll-px-5 gap-3 overflow-x-auto px-5 pb-2" aria-label="Recommended airports">
+          <div className="px-5"><Heading>Airports</Heading></div>
+          <ul className="no-scrollbar flex snap-x scroll-px-5 gap-3 overflow-x-auto px-5 pb-2" aria-label="Airports">
             {airports.map((a) => {
               const acts = getActivities(a.code)
               const mins = acts.map((x) => x.durationMin)
@@ -167,7 +166,7 @@ export function Home() {
       <div className="px-5">
         {!filtering && featured && heroAct && (
           <>
-            <Heading>Featured experience</Heading>
+            <Heading>Featured</Heading>
             <button onClick={() => go({ name: 'airport', code: featured.airport, view: 'list' })} className="ph press relative block h-[22rem] w-full overflow-hidden rounded-[2rem] text-left text-white">
               <Photo img={heroAct.image} w={420} h={352} className="absolute inset-0 size-full" />
               <span className="photo-fade absolute inset-x-0 bottom-0 h-[78%]" />
@@ -203,10 +202,9 @@ export function FindFlight() {
   const sel = 'min-h-12 w-full min-w-0 appearance-none bg-transparent text-card font-semibold text-ink focus:outline-none'
   return (
     <div className="pb-[calc(var(--nav-h)+2rem)]">
-      <Header title="Compare connections" subtitle="Before you book" />
+      <Header title="Compare connections" />
       <div className="px-5 pt-2">
         <h2 className="text-h1 font-bold">Find a layover<br />worth having</h2>
-        <p className="mt-2 text-sub text-muted-text">Compare illustrative one-stop routes by how much usable time each connection leaves you.</p>
       </div>
       <form id="find" className="mt-5 px-5" onSubmit={(e) => { e.preventDefault(); if (origin && dest && !same) go({ name: 'results', origin, destination: dest, date }) }}>
         <div className="panel-accent relative rounded-[1.75rem] p-2">
@@ -226,7 +224,7 @@ export function FindFlight() {
         </div>
         {same && <p role="alert" className="mt-3 text-sub font-medium text-error">Choose different cities.</p>}
         <Button type="submit" className="mt-5 w-full" disabled={!origin || !dest || same}>Compare connections</Button>
-        <p className="mt-3 text-center text-cap text-muted-text">Sample schedules and prices for demonstration only.</p>
+        <p className="mt-3 text-center text-cap text-muted-text">Sample schedules and prices only.</p>
       </form>
     </div>
   )
@@ -237,7 +235,7 @@ export function Airports() {
   const { go } = useApp()
   return (
     <div className="pb-8">
-      <LargeTitle sub="Explore what a connection can offer.">Airports</LargeTitle>
+      <LargeTitle>Airports</LargeTitle>
       <ul className="grid gap-4 px-5">
         {AIRPORTS.map((a, i) => (
           <li key={a.code} className="anim-rise" style={{ animationDelay: `${i * 70}ms` }}>
@@ -248,7 +246,7 @@ export function Airports() {
               <span className="glass-dark absolute right-4 top-4 rounded-full px-3 py-1 text-cap font-medium">{a.country}</span>
               <span className="absolute bottom-5 left-5 right-24 block">
                 <span className="block text-h1 font-bold leading-tight">{a.name}</span>
-                <span className="mt-1 block text-sub text-white/80">{getActivities(a.code).length} activities · {getTemplates(a.code).length} curated itinerary</span>
+                <span className="mt-1 block text-sub text-white/80">{getActivities(a.code).length} activities · {getTemplates(a.code).length} {getTemplates(a.code).length === 1 ? 'itinerary' : 'itineraries'}</span>
               </span>
               <Notch />
             </button>

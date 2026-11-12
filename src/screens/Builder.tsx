@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, Check, Info, Plane, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Plane, Plus, Trash2 } from 'lucide-react'
 import { useApp } from '../store'
 import { getAirport, ACTIVITIES, isSupported } from '../data/mock'
 import { budget, fmtDay, fmtDur, fmtTime, isOvernight, layoverMinutesAt } from '../data/time'
 import { BudgetHero } from '../components/BudgetHero'
+import { InfoTip } from '../components/InfoTip'
 import { ActionBar, ActivitySheet, Button, Header, Notice, Photo, cx } from '../components/ui'
 import type { Activity } from '../data/types'
 
@@ -46,7 +47,7 @@ export function Builder() {
       setDraft({ ...draft, name: p.name, planId: p.id, revision: p.revision }); setSaved(true)
       if (wasNew) { // new trips land on Home, where the trip card appears, with an explicit confirmation
         switchTab('home')
-        setNotice(`“${p.name}” is saved. Find it any time in My Plans on this device.`)
+        setNotice(`“${p.name}” saved. Find it in My Plans on this device.`)
       }
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e))
@@ -63,22 +64,20 @@ export function Builder() {
             className="min-h-12 w-full rounded-none border-b border-line bg-transparent text-h1 font-bold focus:border-accent-dark focus:outline-none" />
         </label>
         <div className="mt-4"><BudgetHero b={b} overnight={night} /></div>
-        <p className="panel mt-3 flex gap-3 rounded-2xl p-3.5 text-sub text-muted-text"><Info size={18} className="mt-0.5 shrink-0 text-accent-dark" />
-          <span>The {fmtDur(b.buffer)} planning buffer is kept free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding. Activities only use the remaining {fmtDur(b.usable)}.</span></p>
 
         <div className="mb-4 mt-8 flex items-center justify-between">
-          <h2 className="text-h2 font-bold">Your plan</h2>
+          <h2 className="flex items-center gap-1 text-h2 font-bold">Your plan<InfoTip label="Estimated order">Order is an estimate. Times on the day may vary.</InfoTip></h2>
           {items.length > 1 && <button aria-pressed={reorder} onClick={() => setReorder(!reorder)} className={cx('press min-h-11 rounded-full px-4 text-sub font-semibold', reorder ? 'bg-white text-[#2a1b18]' : 'bg-white/10 text-ink ring-1 ring-line')}>{reorder ? 'Done' : 'Reorder'}</button>}
         </div>
 
         <ol className="relative ml-[1.1rem] pl-6 before:absolute before:bottom-3 before:left-[-1px] before:top-4 before:w-0.5 before:rounded-full before:bg-gradient-to-b before:from-white/50 before:via-accent/60 before:to-white/40">
           <li className="relative pb-5"><span aria-hidden="true" className="absolute -left-[2.15rem] top-0.5 grid size-7 place-items-center rounded-full bg-white text-[#2a1b18] ring-4 ring-canvas"><Plane size={14} className="rotate-45" /></span>
             <p className="text-card font-bold tabular-nums">{fmtTime(arrival)}<span className="text-sub font-normal text-muted-text">{dayTag(arrival)}</span></p>
-            <p className="text-sub text-muted-text">Arrive at {ap.code}. Allow time to leave the aircraft and pass any transfer checks first.</p></li>
+            <p className="text-sub text-muted-text">Arrive at {ap.code}</p></li>
 
           {rows.length === 0 && (
             <li className="relative pb-4"><Dot cls="bg-line" />
-              <div className="rounded-card border border-dashed border-white/25 bg-white/[0.03] p-4 text-body text-muted-text">No activities yet. Use “Add activities” below.</div></li>)}
+              <div className="rounded-card border border-dashed border-white/25 bg-white/[0.03] p-4 text-body text-muted-text">No activities yet.</div></li>)}
 
           {rows.map(({ a, used }, i) => {
             const late = used > b.usable
@@ -106,8 +105,7 @@ export function Builder() {
 
           <li className="relative pb-5 pt-1"><Dot cls="bg-white/40" />
             <div className="rounded-[1.25rem] border border-dashed border-white/20 bg-[repeating-linear-gradient(135deg,rgb(255_255_255/0.04)_0_8px,transparent_8px_16px)] p-3.5">
-              <p className="text-sub font-semibold">Planning buffer · {fmtDur(b.buffer)}</p>
-              <p className="text-sub text-muted-text">Kept free across your layover for airport procedures and getting back to the gate.</p></div></li>
+              <p className="flex items-center gap-1 text-sub font-semibold">Planning buffer · {fmtDur(b.buffer)}<InfoTip label="Planning buffer">Kept free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding. Activities only use the remaining {fmtDur(b.usable)}.</InfoTip></p></div></li>
           <li className="relative"><span aria-hidden="true" className="btn-coral absolute -left-[2.15rem] top-0.5 grid size-7 place-items-center rounded-full ring-4 ring-canvas"><Plane size={14} className="-rotate-45" /></span>
             <p className="text-card font-bold tabular-nums">{fmtTime(departure)}<span className="text-sub font-normal text-muted-text">{dayTag(departure)}</span></p>
             <p className="text-sub text-muted-text">Onward departure</p></li>
@@ -115,10 +113,9 @@ export function Builder() {
 
         {isSupported(draft.airport)
           ? <Button variant="secondary" icon={Plus} className="mt-6 w-full" onClick={() => go({ name: 'airport', code: draft.airport, view: 'list' })}>Add activities</Button>
-          : <p className="mt-6 text-body text-muted-text">No activity guide for {ap.city} yet. You can still see your time budget.</p>}
-        {items.length > 0 && <p className="mt-3 text-sub text-muted-text">{items.length} {items.length === 1 ? 'activity' : 'activities'} · order is an estimate; times on the day may vary.</p>}
+          : <p className="mt-6 text-body text-muted-text">No activity guide for {ap.city} yet.</p>}
         {saveError && <div className="mt-4"><Notice tone="warn"><p className="font-semibold">Plan not saved</p><p>{saveError}</p><p>Your changes are still here. Try again.</p></Notice></div>}
-        {!canSave && <p className="mt-4 text-sub text-muted-text">Saving is available for airports with a layover guide.</p>}
+        {!canSave && <p className="mt-4 text-sub text-muted-text">Saving needs an airport with a layover guide.</p>}
       </div>
       <ActionBar>
         <div className="flex items-center gap-3">
