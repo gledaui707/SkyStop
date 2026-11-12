@@ -8,7 +8,7 @@ As of architecture handoff, 2026-11-11. Update with evidence, not optimism.
 - [ ] Apply migrations and seed to verified Supabase project.
 - [ ] Confirm hosted anonymous Auth, abuse controls and two-user isolation.
 - [ ] Integrate Figma Make export into one React app.
-- [ ] Implement domain logic and automated unit tests.
+- [x] Implement domain logic and automated unit tests. (35 passing, docs/VALIDATION.md 2026-11-12)
 - [ ] Implement catalogue → plan → save → refresh → edit.
 - [ ] Implement automated browser critical-flow tests.
 - [ ] Complete manual every-screen and AI UI review; student compares A1 mockups.

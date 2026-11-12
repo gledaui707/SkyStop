@@ -28,3 +28,10 @@ Frontend import, domain unit tests U1–U9, real Auth/JWT integration, browser E
 
 ## Implementation evidence log
 Append: date | commit | environment | command/scenario | expected | actual | result | evidence | limitations. A failing release-blocking check prevents release until fixed and rerun.
+
+## 2026-11-12 — Step 2 domain logic and Step 1 hosted status
+**Correction to earlier docs:** the owner reports the hosted Supabase project (ref `rdrkskrzdyqezzopnena`) already has all six tables and the seed (2 airports, 8 activities, 2 templates, 4 template items); `layovers`/`plan_items` empty. This is the owner's statement, not yet verified by me.
+
+**Step 2 (done, verified):** `npm test -- --run` → 35 tests passed; `npm run typecheck` clean. Covers U1–U9, overnight, DST gap/overlap rejection (Europe/Lisbon 2027-03-28 and 2027-10-31), process-TZ independence (Lisbon/New York/Auckland), exactly-48h boundary, zero-usable time, exact-fit budget, 20-item cap, duplicate/cross-airport ignore. Code: `src/domain/`. Temporal polyfill `temporal-polyfill`. Root `package.json` is a placeholder to merge into the Figma Make export's package.
+
+**Step 1 (NOT verified):** network to the Supabase host was allowed; the publishable key saved via the credential form is rejected by the API ("Invalid API key"), so no schema, anonymous Auth, RLS or two-session checks have run. Pending: a valid publishable (anon) key. Nothing was applied to the remote database.
