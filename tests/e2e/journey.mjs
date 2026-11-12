@@ -206,7 +206,7 @@ try {
   const e = await newGuest();
   await e.page.goto(BASE);
   await e.page.getByRole('heading', { name: /next stop/ }).waitFor();
-  check('new guest: home shows an empty flights state (no fabricated flight), with Add flight and Compare flights', await visible(e.page, 'No flights yet') && (await e.page.getByLabel('Upcoming trip').count()) === 0
+  check('new guest: home shows an empty flights state (no fabricated flight), with Add flight and Compare flights', (await e.page.getByRole('heading', { name: 'My flights' }).count()) === 0 && (await e.page.getByLabel('Upcoming trip').count()) === 0
     && await e.page.getByRole('button', { name: /^Add flight/ }).isVisible() && await e.page.getByRole('button', { name: /^Compare flights/ }).isVisible());
   await e.page.getByRole('button', { name: 'Airports', exact: true }).click();
   await e.page.getByRole('button', { name: /Lisbon Airport/ }).first().click();
@@ -521,7 +521,7 @@ try {
     await G.getByRole('button', { name: 'Log out' }).click();
     await G.getByRole('button', { name: 'Create account' }).waitFor();
     await G.getByRole('button', { name: 'Home' }).click();
-    check('account: after signing out this browser shows no flights', await visible(G, 'No flights yet'));
+    check('account: after signing out this browser shows no flights', (await G.getByRole('heading', { name: 'My flights' }).count()) === 0 && (await G.getByLabel('Upcoming trip').count()) === 0);
     await G.getByRole('button', { name: 'Profile' }).click();
     await G.getByRole('button', { name: 'Sign in' }).click();
     await G.getByLabel('Email').fill('traveller@example.com');

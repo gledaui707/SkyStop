@@ -76,20 +76,23 @@ export function Home() {
 
 
       <div className="mt-6 px-5">
+        {/* With no saved flights at all, Home goes straight to Add flight / Compare flights (no empty section). */}
+        {plans.length > 0 && (<>
         <div className="mb-3 flex items-end justify-between">
           <h2 className="text-h2 font-bold">My flights</h2>
-          {plans.length > 0 && <button onClick={() => go({ name: 'flights' })} className="min-h-11 text-body font-medium text-accent-dark">See all{plans.length > 1 ? ` (${plans.length})` : ''}</button>}
+          <button onClick={() => go({ name: 'flights' })} className="min-h-11 text-body font-medium text-accent-dark">See all{plans.length > 1 ? ` (${plans.length})` : ''}</button>
         </div>
         {upcoming.length > 0 ? (
           <FlightStack flights={upcoming} onOpen={(p) => go({ name: 'plan', id: p.id })} />
         ) : (
           <div className="rounded-[1.75rem] border border-dashed border-[rgb(35_26_23/0.18)] bg-white/70 px-5 py-6 text-center">
             <span className="mx-auto grid size-12 place-items-center rounded-full bg-accent-tint text-accent-dark"><Plane size={22} className="-rotate-45" /></span>
-            <p className="mt-3 text-card font-semibold">{plans.length ? 'No upcoming flights' : 'No flights yet'}</p>
-            <p className="mt-1 text-sub text-muted-text">{plans.length ? 'Your past flights are in See all.' : 'Add a booked flight to see your layover and plan it.'}</p>
+            <p className="mt-3 text-card font-semibold">No upcoming flights</p>
+            <p className="mt-1 text-sub text-muted-text">Your past flights are in See all.</p>
           </div>
         )}
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        </>)}
+        <div className={plans.length > 0 ? 'mt-4 grid grid-cols-2 gap-3' : 'grid grid-cols-2 gap-3'}>
           <button onClick={() => go({ name: 'booking' })} className="btn-coral press flex min-h-[6.25rem] flex-col items-start justify-between gap-2 rounded-[1.4rem] p-3.5 text-left">
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/20"><Plus size={19} /></span>
             <span className="min-w-0"><b className="block text-body font-semibold leading-tight">Add flight</b><span className="block text-cap text-white/85">Already booked</span></span>
