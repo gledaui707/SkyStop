@@ -1,0 +1,66 @@
+.launch-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #ea5139;
+  animation: skystop-reveal 1500ms linear both;
+}
+
+.launch-splash__logo {
+  display: block;
+  width: min(88vw, 28rem, 105dvh);
+  height: auto;
+}
+
+.launch-splash__upper,
+.launch-splash__lower,
+.launch-splash__letters,
+.launch-splash__plane,
+.launch-splash__cutout {
+  animation-duration: 1500ms;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(.42, 0, .24, 1);
+}
+
+.launch-splash__upper { animation-name: skystop-upper; }
+.launch-splash__lower { animation-name: skystop-lower; }
+.launch-splash__letters {
+  animation-name: skystop-retract;
+  font: 800 270px/1 system-ui, sans-serif;
+  letter-spacing: -.055em;
+  fill: #fff5ed;
+}
+.launch-splash__plane { animation-name: skystop-flight; }
+.launch-splash__cutout { animation-name: skystop-cutout; }
+
+@keyframes skystop-retract {
+  0%, 20% { transform: translateX(0); }
+  53.333%, 100% { transform: translateX(-490px); }
+}
+@keyframes skystop-upper {
+  0%, 53.333% { transform: translate(-150px, -165px); }
+  80%, 100% { transform: translate(0, 0); }
+}
+@keyframes skystop-lower {
+  0%, 53.333% { transform: translate(-150px, 165px); }
+  80%, 100% { transform: translate(100px, 0); }
+}
+@keyframes skystop-flight {
+  0%, 53.333% { transform: translateX(355px); }
+  79.9%, 100% { transform: translateX(0); }
+}
+@keyframes skystop-cutout {
+  0%, 79.9% { opacity: 0; }
+  80%, 100% { opacity: 1; }
+}
+@keyframes skystop-reveal {
+  0%, 86.667% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launch-splash { display: none; }
+}

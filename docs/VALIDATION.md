@@ -146,3 +146,10 @@ Not done: real-device iPhone check, Safari backdrop-filter rendering, production
 2026-11-13 | same | unit | `npm test` (itinerary engine scenarios A–E, shortest path, unknown route, unsupported airport) | pass | 118 passed, 1 skipped | PASS | console | —
 2026-11-13 | same | simulated API, Chromium | `npm run test:e2e`: A airside-only (8h 40m left = 10h 20m − 1h 10m − 30m), B Jewel (entry check, immigration chips, ICA link, no eligibility claim, nationality not stored), C over budget (explained), D terminals unknown (cannot verify), E reorder/remove, F save → refresh → reopen → edit terminal → save → refresh | all pass | 82/82 | PASS | screenshots in scratch | simulated API; no hosted save in this pass
 2026-11-13 | same | simulated API, Chromium | `npm run test:layout` incl. Changi builder + entry panel at 320/375/390/430 | 0 issues | 0 | PASS | console | Chromium only; no WebKit/real iPhone
+
+### Launch splash
+
+- `npm run build` passed on the final implementation. `npm test -- --run`: 118 passed, one hosted test skipped.
+- `npm run test:e2e`: 82/82 checks passed against simulated Supabase before the final SVG mask and centering adjustment.
+- A separate headless Chromium check on the final build passed at 320, 375 and 390 px: centered SVG, 1.5-second CSS animation, interaction restored at reveal, no replay on navigation, replay after reload, and immediate onboarding with reduced motion. Inspected captures at 180, 650, 1,000 and 1,260 ms.
+- No hosted database checks were run.
