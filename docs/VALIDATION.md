@@ -153,3 +153,5 @@ Not done: real-device iPhone check, Safari backdrop-filter rendering, production
 - `npm run test:e2e`: 82/82 checks passed against simulated Supabase before the final SVG mask and centering adjustment.
 - A separate headless Chromium check on the final build passed at 320, 375 and 390 px: centered SVG, 1.5-second CSS animation, interaction restored at reveal, no replay on navigation, replay after reload, and immediate onboarding with reduced motion. Inspected captures at 180, 650, 1,000 and 1,260 ms.
 - No hosted database checks were run.
+
+- Size and timing adjustment: reduced logo width by about 20% and set duration to 2 seconds. Build, 118 tests (one hosted skip), and the focused Chromium checks at 320, 375 and 390 px passed.

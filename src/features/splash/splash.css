@@ -1,4 +1,5 @@
 .launch-splash {
+  --splash-duration: 2s;
   position: fixed;
   inset: 0;
   z-index: 2147483647;
@@ -6,12 +7,12 @@
   place-items: center;
   overflow: hidden;
   background: #ea5139;
-  animation: skystop-reveal 1500ms linear both;
+  animation: skystop-reveal var(--splash-duration) linear both;
 }
 
 .launch-splash__logo {
   display: block;
-  width: min(88vw, 28rem, 105dvh);
+  width: min(70vw, 22.4rem, 84dvh);
   height: auto;
 }
 
@@ -20,7 +21,7 @@
 .launch-splash__letters,
 .launch-splash__plane,
 .launch-splash__cutout {
-  animation-duration: 1500ms;
+  animation-duration: var(--splash-duration);
   animation-fill-mode: both;
   animation-timing-function: cubic-bezier(.42, 0, .24, 1);
 }

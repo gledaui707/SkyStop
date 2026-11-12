@@ -19,7 +19,7 @@ export function LaunchSplash({ children }: { children: ReactNode }) {
     const onPreferenceChange = () => { if (preference.matches) finish() }
     preference.addEventListener('change', onPreferenceChange)
     // Keep the application reachable if the animation is interrupted.
-    const timeout = window.setTimeout(finish, 1600)
+    const timeout = window.setTimeout(finish, 2100)
     return () => {
       preference.removeEventListener('change', onPreferenceChange)
       window.clearTimeout(timeout)
