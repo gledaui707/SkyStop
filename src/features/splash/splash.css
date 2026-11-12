@@ -7,7 +7,7 @@
   place-items: center;
   overflow: hidden;
   isolation: isolate;
-  background: #ea5139;
+  background: linear-gradient(145deg, #d84129, #a92d1c);
   animation: skystop-reveal var(--splash-duration) linear both;
 }
 
@@ -15,15 +15,15 @@
   content: "";
   position: absolute;
   z-index: -1;
-  inset: -28%;
-  background: radial-gradient(ellipse at 28% 28%, #f47731, transparent 58%),
-    linear-gradient(135deg, #ea5139 15%, #e65324 55%, #b83e23);
-  animation: skystop-warm-drift var(--splash-duration) ease-in-out both;
+  inset: -12%;
+  background: radial-gradient(ellipse at center, #ff9a35 0%, #f56a22 32%, transparent 66%);
+  animation: skystop-orange-sweep var(--splash-duration) linear both;
 }
 
-@keyframes skystop-warm-drift {
-  from { transform: translate(-12%, 9%) scale(1); }
-  to { transform: translate(13%, -11%) scale(1.12); }
+@keyframes skystop-orange-sweep {
+  0% { transform: translate(-36%, -35%) scale(1.12); }
+  42% { transform: translate(20%, -12%) scale(1.3); }
+  85%, 100% { transform: translate(-4%, 38%) scale(1.16); }
 }
 
 .launch-splash__logo {
