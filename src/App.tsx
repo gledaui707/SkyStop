@@ -38,14 +38,12 @@ function Screen() {
   }
 }
 
-/** Airports tab icon: a globe with a small plane flying across its lower right. */
+/** Airports tab icon: a globe with a plane flying across its lower right. */
 function AirportsIcon({ size = 22, strokeWidth = 2 }: { size?: number; strokeWidth?: number }) {
   return (
     <span aria-hidden="true" className="relative inline-block" style={{ width: size, height: size }}>
       <Earth size={size} strokeWidth={strokeWidth} />
-      <span className="absolute -bottom-1 -right-1.5 grid place-items-center rounded-full bg-[var(--color-canvas)] p-[1.5px]">
-        <Plane size={Math.round(size * 0.5)} strokeWidth={strokeWidth} fill="currentColor" className="rotate-[-20deg]" />
-      </span>
+      <Plane size={Math.round(size * 0.68)} strokeWidth={strokeWidth} fill="currentColor" className="absolute -bottom-1.5 -right-2 rotate-[-20deg]" />
     </span>
   )
 }

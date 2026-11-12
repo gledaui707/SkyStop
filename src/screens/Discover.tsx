@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import { Plane, UserRound, ArrowUpDown, ArrowUpRight, Bed, Check, ChevronRight, Info, X, Clock, Compass, Laptop, ListChecks, MapPin, Plus, Search, ShoppingBag, Sparkles, Landmark, Utensils, type LucideIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Bell, Plane, UserRound, ArrowUpDown, ArrowUpRight, Bed, Check, ChevronRight, Info, X, Clock, Compass, Laptop, ListChecks, MapPin, Plus, Search, ShoppingBag, Sparkles, Landmark, Utensils, type LucideIcon } from 'lucide-react'
 import { useApp } from '../store'
+import { getSupabase } from '../api/client'
+import { avatarUrl } from '../api/account'
 import { ACTIVITIES, AIRPORTS, CITIES, TEMPLATES, getActivities, getAirport, getTemplates } from '../data/mock'
 import { localToInstant } from '../domain'
 import { IMAGES, sized } from '../data/images'
@@ -47,7 +49,14 @@ const Notch = ({ icon: Icon = ArrowUpRight }: { icon?: LucideIcon }) => (
 
 /** Home: discovery-first, with the next saved trip on top when there is one. */
 export function Home() {
-  const { plans, go, switchTab, account } = useApp()
+  const { plans, go, switchTab, account, setNotice } = useApp()
+  const [photo, setPhoto] = useState<string | null>(null)
+  useEffect(() => {
+    let live = true
+    if (!account.avatarPath) { setPhoto(null); return }
+    void avatarUrl(getSupabase(), account.avatarPath).then((u) => { if (live) setPhoto(u) })
+    return () => { live = false }
+  }, [account.avatarPath])
   const q = ''
   const [cat, setCat] = useState<'All' | Category>('All')
   const upcoming = nextTrip(plans)
@@ -65,13 +74,19 @@ export function Home() {
   return (
     <div className="pb-8">
       <div className="px-5 pt-[calc(var(--safe-top)+0.5rem)]">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sub font-medium text-muted-text">{greeting()}{account.status === 'registered' && account.name ? `, ${account.name.split(' ')[0]}` : ''}</p>
-            <h1 className="mt-0.5 text-title font-bold">Where’s your<br />next stop?</h1>
-          </div>
-          <button onClick={() => go({ name: 'profile' })} aria-label="Profile" className="glass press mt-1 grid size-12 shrink-0 place-items-center rounded-full"><UserRound size={21} /></button>
+        {/* profile (photo) and greeting on the left, notifications on the right; the big question below */}
+        <div className="flex items-center justify-between gap-3">
+          <button onClick={() => go({ name: 'profile' })} aria-label="Profile" className="press flex min-w-0 items-center gap-3 text-left">
+            {photo
+              ? <img src={photo} alt="" className="size-12 shrink-0 rounded-full object-cover ring-2 ring-white shadow-md" />
+              : <span className="btn-coral grid size-12 shrink-0 place-items-center rounded-full"><UserRound size={22} /></span>}
+            <span className="min-w-0 truncate text-body text-muted-text">{greeting()}{account.status === 'registered' && account.name ? <>, <b className="font-semibold text-ink">{account.name.split(' ')[0]}</b></> : ''}</span>
+          </button>
+          <button onClick={() => setNotice('No new notifications')} aria-label="Notifications" className="glass press relative grid size-12 shrink-0 place-items-center rounded-full">
+            <Bell size={20} />
+          </button>
         </div>
+        <h1 className="mt-5 text-title font-bold">Where’s your<br />next stop?</h1>
       </div>
 
 

@@ -187,7 +187,7 @@ try {
   const journey = (await k.page.getByRole('region', { name: 'Journey CGK to CDG via SIN' }).innerText()).replace(/\s+/g, ' ');
   const layover = (await k.page.getByRole('region', { name: 'Layover' }).innerText()).replace(/\s+/g, ' ');
   check('sample Home card: CGK and CDG at the ends, SIN connection times beneath, labelled as SIN arrival/departure', /Jakarta.*Paris.*CGK.*CDG.*11:15.*23:35.*Arrive SIN.*Depart SIN/.test(journey), journey);
-  check('sample Home card: transit SIN, 10h 20m to explore = 12h 20m connection − 2h buffer', ['SIN · Singapore', '10h 20m', '12h 20m connection − 2h buffer'].every((v) => layover.includes(v)), layover);
+  check('sample Home card: transit SIN with 10h 20m to explore; 12h 20m layover shown under the plane', ['SIN · Singapore', '10h 20m'].every((v) => layover.includes(v)) && journey.includes('12h 20m'), layover);
   await k.page.evaluate(() => { const m = JSON.parse(localStorage.getItem('skystop.planmeta.v1')); for (const v of Object.values(m)) { delete v.origin; delete v.destination } localStorage.setItem('skystop.planmeta.v1', JSON.stringify(m)) });
   await k.page.reload(); await k.page.getByLabel('Upcoming trip').waitFor();
   check('sample route is restored from the booking reference when its stored labels are missing', await k.page.getByRole('region', { name: 'Journey CGK to CDG via SIN' }).isVisible());
