@@ -7,7 +7,7 @@ if (!URL_) throw new Error('SUPABASE_URL required');
 const results = []; let failed = 0;
 const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  -> ' + detail : ''}`); };
 const call = async (path, { method = 'GET', token, body, headers = {} } = {}) => {
-  const r = await fetch(URL_ + path, { method, headers: { apikey: KEY, 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...headers }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(20000) });
+  const t0 = Date.now(); let r; try { r = await fetch(URL_ + path, { method, headers: { apikey: KEY, 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...headers }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(20000) }); } catch (e) { return { status: 0, body: { code: 'CLIENT_TIMEOUT_OR_NETWORK', message: String(e.name) + ' after ' + (Date.now() - t0) + 'ms' } }; }
   const t = await r.text(); let j; try { j = JSON.parse(t); } catch { j = t; } return { status: r.status, body: j };
 };
 const guest = async () => { const r = await call('/auth/v1/signup', { method: 'POST', body: {} }); if (!r.body.access_token) throw new Error('anon signin failed ' + JSON.stringify(r.body)); return { token: r.body.access_token, id: r.body.user.id, role: r.body.user.role, anon: r.body.user.is_anonymous }; };
