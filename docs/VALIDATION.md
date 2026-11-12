@@ -51,3 +51,10 @@ Target: project ref `rdrkskrzdyqezzopnena`, publishable key only, via PostgREST/
 | CAPTCHA | optional | none configured in auth settings | noted |
 
 Action required (owner): Supabase dashboard → Authentication → Sign In / Providers → enable "Allow anonymous sign-ins". Consider CAPTCHA/rate limits afterwards. Then run the two-identity test. `.env` values for the app are the project URL and publishable key only. Database types not yet generated.
+
+## 2026-11-12 — Step 1 two-session test: NOT RUN to completion
+Anonymous sign-in now works (two distinct users, role `authenticated`, `is_anonymous` true). However, in the cloud sandbox the egress proxy does not forward a caller-supplied `Authorization: Bearer <user JWT>` to Supabase: `/auth/v1/user` returns `no_authorization` for both a real session JWT and a garbage token, and PostgREST evaluates requests as role `anon` (`permission denied ... layovers TO anon`). The failures seen (`save_plan` 42501, own-plan reads denied) are therefore an artifact of this sandbox, **not** evidence about the database's RLS/grants, and no pass/fail is claimed for ownership, save, edit, conflict or rollback.
+
+Test prepared: `tests/hosted/ownership.mjs` (~30 assertions: two identities, A create/read/edit, B read/edit/takeover denied, direct writes denied, revision conflict, duplicate create, 10 rollback cases, empty plan, catalogue immutability). Run locally (creates anonymous users and a few synthetic plans in the target project; no delete path exists):
+`SUPABASE_URL=https://rdrkskrzdyqezzopnena.supabase.co SUPABASE_PUBLISHABLE_KEY=<publishable key> node tests/hosted/ownership.mjs`
+Database types are not generated (needs Supabase CLI auth): `npx supabase gen types typescript --project-id rdrkskrzdyqezzopnena > src/types/database.types.ts`.
