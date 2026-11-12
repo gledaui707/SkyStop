@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowUpDown, ArrowUpRight, Bed, Check, ChevronRight, Info, X, Clock, Compass, Laptop, ListChecks, MapPin, Plus, Search, ShoppingBag, Sparkles, Landmark, Utensils, type LucideIcon } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, AIRPORTS, CITIES, TEMPLATES, getActivities, getAirport, getTemplates } from '../data/mock'
+import { localToInstant } from '../domain'
 import { IMAGES, sized } from '../data/images'
 import { fmtDur, timeSpan, toLocalInput } from '../data/time'
 import type { Category, Plan } from '../data/types'
@@ -12,8 +13,20 @@ const Heading = ({ children, action }: { children: React.ReactNode; action?: Rea
   <div className="mb-3 mt-8 flex items-center justify-between"><h2 className="text-h2 font-bold">{children}</h2>{action}</div>
 )
 
-const nextTrip = (plans: Plan[]) =>
-  [...plans].filter((p) => new Date(p.departure).getTime() >= Date.now()).sort((a, b) => +new Date(a.arrival) - +new Date(b.arrival))
+const nextTrip = (plans: Plan[]) => {
+  const now = Date.now()
+  return plans.flatMap((plan) => {
+    if (!/^[A-Z]{3}$/.test(plan.airport) || !Number.isFinite(plan.bufferMin) || plan.bufferMin < 0) return []
+    const zone = getAirport(plan.airport).timezone
+    try {
+      const arrival = localToInstant(plan.arrival.slice(0, 10), plan.arrival.slice(11, 16), zone).epochMilliseconds
+      const departure = localToInstant(plan.departure.slice(0, 10), plan.departure.slice(11, 16), zone).epochMilliseconds
+      return departure > arrival && departure >= now ? [{ plan, arrival }] : []
+    } catch {
+      return []
+    }
+  }).sort((a, b) => a.arrival - b.arrival).map(({ plan }) => plan)
+}
 
 const CAT_ICONS: Record<string, LucideIcon> = { All: Sparkles, Food: Utensils, Rest: Bed, Shopping: ShoppingBag, Work: Laptop, Sights: Landmark }
 

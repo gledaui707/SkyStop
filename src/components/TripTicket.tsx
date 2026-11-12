@@ -1,65 +1,68 @@
-import { Plane } from 'lucide-react'
+import { ChevronRight, Plane } from 'lucide-react'
 import type { Plan } from '../data/types'
 import { getAirport } from '../data/mock'
 import { airportInfo } from '../data/airportDirectory'
-import { SAMPLE_JOURNEYS } from '../data/journeys'
-import { budget, fmtDur, fmtTime, layoverMinutesAt } from '../data/time'
+import { fmtDay, fmtDur, layoverMinutesAt } from '../data/time'
 
 interface Props { plan: Plan; onView: () => void }
 
-/** Ticket-inspired summary of a saved journey. Shows only what the user entered. */
 export function TripTicket({ plan, onView }: Props) {
-  const ap = getAirport(plan.airport)
-  const o = airportInfo(plan.origin), d = airportInfo(plan.destination)
-  const sample = SAMPLE_JOURNEYS.find((journey) =>
-    journey.ref === plan.bookingRef && journey.origin === plan.origin
-      && journey.destination === plan.destination && journey.connection === plan.airport)
+  const airport = getAirport(plan.airport)
+  const origin = airportInfo(plan.origin)
+  const destination = airportInfo(plan.destination)
+  const usable = Math.max(0, layoverMinutesAt(plan.arrival, plan.departure, airport.timezone) - plan.bufferMin)
   const activityCount = plan.activityIds.length
-  const { usable } = budget(layoverMinutesAt(plan.arrival, plan.departure, ap.timezone), plan.bufferMin, [])
+  const hasRoute = !!(plan.origin && plan.destination)
+  const airportCode = 'block text-[clamp(1.5rem,7.5vw,2.25rem)] font-bold leading-none tracking-tight'
+
   return (
-    <article aria-label="Upcoming trip" className="overflow-hidden rounded-[1.75rem] text-ink drop-shadow-[0_8px_18px_rgb(0_0_0/0.08)]">
-      <div className="bg-white px-4 pb-5 pt-4 sm:px-5">
-        <p className="text-cap font-semibold uppercase tracking-wide text-accent-dark">Next connection</p>
-        <div className="mt-3 grid grid-cols-2 items-end gap-3">
+    <article aria-label="Upcoming trip" className="rounded-[1.75rem] bg-white p-4 text-ink shadow-[0_8px_26px_rgb(70_35_25/0.08)] ring-1 ring-line sm:p-5">
+      <h2 className="text-cap font-semibold uppercase tracking-wide text-muted-text">Next layover</h2>
+      {hasRoute && (
+        <div role="group" aria-label="Full route" className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-1.5">
           <div>
-            <p className="text-sub text-muted-text">{o ? `From · ${o.city}` : 'From'}</p>
-            <p className="text-[2rem] font-bold leading-tight tracking-tight">{o?.code ?? plan.origin ?? '—'}</p>
+            <span className={airportCode}>{plan.origin}</span>
+            <span className="mt-1 block break-words text-cap text-muted-text">{origin?.city ?? 'Origin'}</span>
           </div>
-          <div className="text-right">
-            <p className="text-sub text-muted-text">{d ? `To · ${d.city}` : 'To'}</p>
-            <p className="text-[2rem] font-bold leading-tight tracking-tight">{d?.code ?? plan.destination ?? '—'}</p>
-          </div>
-        </div>
-        <div className="my-3 flex items-center gap-3" aria-hidden="true">
-          <span className="h-0.5 flex-1 rounded-full bg-accent/75" />
-          <Plane size={24} className="rotate-90 text-accent-dark" />
-          <span className="h-0.5 flex-1 rounded-full bg-line" />
-        </div>
-        <dl className="grid grid-cols-3 items-start gap-2">
-          <div>
-            <dt className="text-cap text-muted-text">{sample ? 'Departure' : 'Transit arrival'}</dt>
-            <dd className="text-card font-bold tabular-nums">{sample?.segments[0].depart.time ?? fmtTime(new Date(plan.arrival))}</dd>
-          </div>
+          <Plane size={15} className="mt-1.5 rotate-90 text-muted-text" aria-hidden="true" />
           <div className="text-center">
-            <dt className="text-cap text-muted-text">Usable transit time</dt>
-            <dd className="mt-1 inline-block rounded-full bg-accent-tint px-2.5 py-0.5 text-sub font-bold tabular-nums text-accent-dark">{fmtDur(usable)}</dd>
+            <span className={`${airportCode} text-accent-dark`}>{airport.code}</span>
+            <span className="mt-1 block text-cap font-semibold text-accent-dark">Connection</span>
+          </div>
+          <ChevronRight size={15} className="mt-1.5 text-muted-text" aria-hidden="true" />
+          <div className="text-right">
+            <span className={airportCode}>{plan.destination}</span>
+            <span className="mt-1 block break-words text-cap text-muted-text">{destination?.city ?? 'Destination'}</span>
+          </div>
+        </div>
+      )}
+      <section aria-label="Transit" className={hasRoute ? 'mt-4 border-t border-line pt-4' : 'mt-4'}>
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+          <div>
+            {!hasRoute && <span className={`${airportCode} text-accent-dark`}>{airport.code}</span>}
+            <h3 className={`text-card font-semibold ${hasRoute ? '' : 'mt-1'}`}>{airport.city}</h3>
+          </div>
+          <div>
+            <p className="text-cap text-muted-text">Time to explore</p>
+            <p className="text-[1.65rem] font-bold leading-tight tabular-nums text-accent-dark">{fmtDur(usable)}</p>
+          </div>
+        </div>
+        <dl className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-canvas px-3 py-2.5">
+          <div>
+            <dt className="text-cap text-muted-text">Layover arrival</dt>
+            <dd className="text-[1.375rem] font-bold tabular-nums">{plan.arrival.slice(11, 16)}</dd>
+            <dd className="text-cap text-muted-text">{fmtDay(new Date(plan.arrival.slice(0, 10) + 'T12:00:00'))}</dd>
           </div>
           <div className="text-right">
-            <dt className="text-cap text-muted-text">{sample ? 'Final arrival' : 'Transit departure'}</dt>
-            <dd className="text-card font-bold tabular-nums">{sample?.segments[1].arrive.time ?? fmtTime(new Date(plan.departure))}</dd>
+            <dt className="text-cap text-muted-text">Onward departure</dt>
+            <dd className="text-[1.375rem] font-bold tabular-nums">{plan.departure.slice(11, 16)}</dd>
+            <dd className="text-cap text-muted-text">{fmtDay(new Date(plan.departure.slice(0, 10) + 'T12:00:00'))}</dd>
           </div>
         </dl>
-      </div>
-      <div aria-hidden="true" className="flex h-6 items-center bg-white px-5" style={{
-        mask: 'radial-gradient(circle at left center, transparent 11px, black 12px) left / 51% 100% no-repeat, radial-gradient(circle at right center, transparent 11px, black 12px) right / 51% 100% no-repeat',
-      }}>
-        <div className="w-full border-t-2 border-dotted border-line" />
-      </div>
-      <section aria-label="Transit" className="bg-white px-4 pb-4 pt-1 sm:px-5">
-        <p className="text-cap font-semibold uppercase tracking-wide text-muted-text">Transit</p>
-        <h2 className="mt-1 text-h2 font-bold"><span className="text-accent-dark">{ap.code}</span> · {ap.city}</h2>
-        <p className="mt-1 text-sub text-muted-text">{activityCount} {activityCount === 1 ? 'activity' : 'activities'} saved</p>
-        <button onClick={onView} className="btn-coral press mt-4 min-h-11 w-full rounded-full px-3 text-sub font-semibold">View layover</button>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sub text-muted-text">{activityCount} {activityCount === 1 ? 'activity' : 'activities'} saved</p>
+          <button onClick={onView} className="btn-coral press min-h-11 rounded-full px-4 text-sub font-semibold">View layover</button>
+        </div>
       </section>
     </article>
   )

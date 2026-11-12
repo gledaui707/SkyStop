@@ -110,7 +110,8 @@ try {
   check('stored UTC instants are Lisbon-local 10:00/15:00', stored.row.arrival_at === `${day(7)}T10:00:00Z` && stored.row.departure_at === `${day(7)}T15:00:00Z`, `${stored.row.arrival_at} → ${stored.row.departure_at}`);
   check('stored buffer 90 and 2 ordered activities', stored.row.buffer_minutes === 90 && stored.items.length === 2 && stored.items[0].activity_id.endsWith('1'));
   const ticket = await page.getByLabel('Upcoming trip').innerText();
-  check('home ticket: LIS, 2 activities', ticket.includes('LIS') && ticket.includes('2 activities saved'));
+  check('manual Home card shows only the actual transit airport and times', ['LIS', '10:00', '15:00', '3h 30m', '2 activities saved'].every((value) => ticket.includes(value))
+    && await page.getByRole('group', { name: 'Full route' }).count() === 0 && !ticket.includes('—'));
   await shot(page, '05-home-saved');
 
   await page.reload();
@@ -131,7 +132,7 @@ try {
   await ctx.close();
 
   // ---- 1b. Booking-reference flow: invalid reference, the four samples, then a full save through the shared builder
-  const k = await newGuest();
+  const k = await newGuest({ width: 320, height: 568 });
   await k.page.goto(BASE);
   await k.page.getByRole('button', { name: /Plan a layover/ }).first().click();
   await k.page.getByLabel('Booking reference').fill('zz9zz9');
@@ -177,6 +178,17 @@ try {
   const before = fake.plans.size;
   await k.page.getByRole('button', { name: 'Save plan' }).click();
   await k.page.getByLabel('Upcoming trip').waitFor();
+  const route = await k.page.getByRole('group', { name: 'Full route' }).innerText();
+  const transit = await k.page.getByRole('region', { name: 'Transit' }).innerText();
+  check('sample Home card separates CGK–SIN–CDG from SIN layover times', /CGK[\s\S]*SIN[\s\S]*CDG/.test(route)
+    && ['11:15', '23:35', '10h 20m'].every((value) => transit.includes(value)));
+  const viewLayover = k.page.getByRole('button', { name: 'View layover' });
+  await viewLayover.scrollIntoViewIfNeeded();
+  const actionBox = await viewLayover.boundingBox();
+  const navBox = await k.page.getByRole('navigation', { name: 'Primary' }).boundingBox();
+  check('320px Home card has no horizontal overflow and its action clears the tabs', await k.page.evaluate(() =>
+    document.documentElement.scrollWidth <= document.documentElement.clientWidth)
+    && actionBox.y + actionBox.height <= navBox.y);
   const kp = [...fake.plans.values()].find((p) => p.row.airport_id === 'SIN');
   check('booking: saved through the same save_plan path; SIN 11:15 local stored as 03:15Z', fake.plans.size === before + 1 && !!kp && kp.row.arrival_at.endsWith('T03:15:00Z') && kp.row.buffer_minutes === 120, kp?.row.arrival_at);
   await k.ctx.close();
