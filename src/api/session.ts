@@ -13,3 +13,9 @@ export function ensureGuestSession(sb: SupabaseClient): Promise<string> {
   })().finally(() => { pending = undefined; });
   return pending;
 }
+
+/** True when this browser already has a guest session (no sign-in is triggered). */
+export async function hasGuestSession(sb: SupabaseClient): Promise<boolean> {
+  const { data } = await sb.auth.getSession();
+  return !!data.session;
+}

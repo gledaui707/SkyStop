@@ -1,0 +1,104 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+
+  --color-deep: #202124; /* dark surface: same as text color */
+  --color-accent: #ea5139;
+  --color-accent-dark: #c23b24;
+  --color-accent-tint: #fff1ec;
+  --color-aqua: #ffb5a5;
+  --color-canvas: #f8f9fa;
+  --color-surface: #ffffff;
+  --color-ink: #202124;
+  --color-muted-text: #5f6368;
+  --color-muted: #9aa0a6;
+  --color-line: #e8eaed;
+  --color-ink-tint: #f1f3f4;
+  --color-error: #b3261e;
+  --color-error-tint: #fce8e6;
+  --color-success: #188038;
+
+  /* iOS type scale in rem so it follows system/browser text size */
+  --text-title: 2.125rem;
+  --text-title--line-height: 1.15;
+  --text-h1: 1.75rem;
+  --text-h1--line-height: 1.2;
+  --text-h2: 1.375rem;
+  --text-h2--line-height: 1.25;
+  --text-card: 1.125rem;
+  --text-card--line-height: 1.3;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.35;
+  --text-sub: 0.9375rem;
+  --text-sub--line-height: 1.35;
+  --text-cap: 0.8125rem;
+  --text-cap--line-height: 1.35;
+  --text-tab: 0.6875rem;
+  --text-tab--line-height: 1.2;
+
+  --radius-card: 1rem;
+}
+
+:root { --nav-h: calc(4rem + env(safe-area-inset-bottom)); }
+
+@layer base {
+  html, body, #root { min-height: 100dvh; }
+  :root { color-scheme: light; }
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.35;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+  }
+  button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  input, select { font-size: 1.0625rem; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+}
+
+:root { --nav-h: calc(5.5rem + env(safe-area-inset-bottom)); --safe-top: max(env(safe-area-inset-top), 3.25rem); }
+
+/* Glass material: restrained, used only on floating chrome. Solid fallbacks below. */
+@layer components {
+  .glass {
+    background: rgb(255 255 255 / 0.78);
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    backdrop-filter: blur(18px) saturate(1.5);
+    border: 1px solid rgb(255 255 255 / 0.6);
+    box-shadow: 0 8px 28px rgb(32 33 36 / 0.14);
+    color: var(--color-ink);
+  }
+  .glass-dark {
+    background: rgb(32 33 36 / 0.6);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid rgb(255 255 255 / 0.16);
+    box-shadow: 0 8px 28px rgb(32 33 36 / 0.3);
+    color: #fff;
+  }
+  /* Light blur behind text on photos: subtle, no border or shadow. */
+  .scrim {
+    background: rgb(32 33 36 / 0.16);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    text-shadow: 0 1px 8px rgb(0 0 0 / 0.35);
+  }
+  /* Progressive blur: the photo itself softens toward the bottom, tinted dark for text. */
+  .photo-fade {
+    pointer-events: none;
+    background: linear-gradient(to top, rgb(32 33 36 / 0.42) 0%, rgb(32 33 36 / 0.16) 55%, rgb(32 33 36 / 0) 100%);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    -webkit-mask-image: linear-gradient(to top, #000 40%, transparent 100%);
+    mask-image: linear-gradient(to top, #000 40%, transparent 100%);
+    text-shadow: none;
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass { background: rgb(255 255 255 / 0.97); }
+    .glass-dark { background: rgb(32 33 36 / 0.95); }
+  }
+}
