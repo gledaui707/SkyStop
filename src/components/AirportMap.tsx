@@ -3,7 +3,8 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Check, PlaneLanding, PlaneTakeoff } from 'lucide-react'
 import type { Activity, Category } from '../data/types'
-import { AIRPORT_GEO, terminalKeysOf } from '../data/airportGeo'
+import { AIRPORT_GEO } from '../data/airportGeo'
+import { venueTerminalKeys } from '../data/venueLocations'
 import { clusterPins } from '../features/wayfinding/pins'
 import '../features/wayfinding/map.css'
 
@@ -175,7 +176,7 @@ export function AirportMap({ airport, activities, planned, terminal, onTerminal,
   // Pins whose capsule would sit under the top controls are not drawn (pan or zoom to see them): a pin under
   // translucent chips is unreadable and looks like part of the controls.
   const clusters = clusterPins(pins, pinWidth(airport)).filter((c) => c.y - 48 >= insets.top)
-  const venuesIn = (keys: string[]) => activities.filter((a) => terminalKeysOf(airport, a.terminal).some((k) => keys.includes(k)))
+  const venuesIn = (keys: string[]) => activities.filter((a) => venueTerminalKeys(a).some((k) => keys.includes(k)))
 
   const zoomTo = (keys: string[]) => {
     const pts = terminals.filter((t) => keys.includes(t.key)).map((t) => L.latLng(t.lat, t.lng))

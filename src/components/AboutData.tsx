@@ -32,7 +32,7 @@ export function AboutData() {
             return <li key={a.code}><b className="font-semibold text-ink">{a.code}</b> · {n} venues{a.note ? ` · ${a.note}` : ''}</li>
           })}
         </ul>
-        <p>Venue durations are typical visit times, not guarantees.</p>
+        <p>Venue durations are typical visit times, not guarantees. Where a venue lists its terminals, those locations are real; extra branch locations (for chains such as coffee shops and duty free) are illustrative.</p>
       </Block>
 
       <Block title="Maps and directions (illustrative)">

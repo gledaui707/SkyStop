@@ -4,6 +4,7 @@ import { useApp } from '../store'
 import type { Activity, Category } from '../data/types'
 import { fmtDur } from '../data/time'
 import { sized, type Img } from '../data/images'
+import { groupByTerminal, venueLocations } from '../data/venueLocations'
 
 export const cx = (...c: (string | false | undefined | null)[]) => c.filter(Boolean).join(' ')
 
@@ -270,11 +271,42 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   )
 }
 
+/** Every place a venue can be found, grouped by terminal; tapping one opens directions to it. */
+function VenueLocations({ a, onPick }: { a: Activity; onPick: (branch: string) => void }) {
+  const locs = venueLocations(a)
+  if (!locs.length) return null
+  const groups = groupByTerminal(locs)
+  return (
+    <section aria-label="Locations" className="mt-1 grid gap-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-h2 font-bold">{locs.length > 1 ? 'Locations' : 'Location'}</h3>
+        {locs.length > 1 && <p className="text-cap text-muted-text">{locs.length} in {groups.length} {groups.length > 1 ? 'terminals' : 'terminal'}</p>}
+      </div>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-x-4 gap-y-3">
+        {groups.map((g) => (
+          <div key={g.terminal} className="grid content-start gap-1">
+            <h4 className="text-body font-bold">{g.name}</h4>
+            <ul className="grid gap-0.5">
+              {g.items.map((l) => (
+                <li key={l.id}>
+                  <button type="button" onClick={() => onPick(l.id)} aria-label={`Directions to ${a.name}, ${g.name}, ${l.area}`}
+                    className="press flex min-h-12 w-full items-center gap-3 rounded-control py-1 pr-1 text-left active:bg-ink-tint">
+                    <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-control bg-ink-tint text-ink"><MapPin size={19} strokeWidth={1.8} /></span>
+                    <span className="min-w-0 flex-1 text-sub leading-snug text-ink">{l.area}</span>
+                  </button>
+                </li>))}
+            </ul>
+          </div>))}
+      </div>
+    </section>
+  )
+}
+
 /** Venue details: where it is, how long it takes, how to get there, and the plan action. Sources and data notes live
  *  in Profile → About & data, not here. `onDirections` overrides the default (open the airport map with its route). */
-export function ActivitySheet({ a, onClose, action, onDirections }: { a: Activity | null; onClose: () => void; action?: ReactNode; onDirections?: () => void }) {
+export function ActivitySheet({ a, onClose, action, onDirections }: { a: Activity | null; onClose: () => void; action?: ReactNode; onDirections?: (branch?: string) => void }) {
   const { go } = useApp()
-  const directions = () => { if (!a) return; onClose(); if (onDirections) onDirections(); else go({ name: 'airport', code: a.airport, view: 'map', venue: a.id }) }
+  const directions = (branch?: string) => { if (!a) return; onClose(); if (onDirections) onDirections(branch); else go({ name: 'airport', code: a.airport, view: 'map', venue: a.id, branch }) }
   return (
     <Sheet open={!!a} onClose={onClose} title={a?.name ?? ''}>
       {a && (
@@ -287,11 +319,11 @@ export function ActivitySheet({ a, onClose, action, onDirections }: { a: Activit
             {[['Est. time', fmtDur(a.durationMin)], ['Price', a.costLabel.replace(' (illustrative)', '')], ['Access', a.access === 'Unverified' ? 'Not confirmed' : a.access]].map(([k, v]) => (
               <div key={k} className="panel min-w-0 rounded-control px-1 py-2.5"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
           </dl>
-          {a.terminal && <p className="flex items-start gap-2 text-sub text-ink"><MapPin size={17} className="mt-px shrink-0 text-accent-dark" aria-hidden="true" /><span>{a.terminal}</span></p>}
           {a.access === 'Landside' && <p className="flex items-start gap-2 text-sub font-medium text-warning"><ShieldAlert size={17} className="mt-px shrink-0" aria-hidden="true" />Outside the transit area: immigration required.</p>}
           <p className="text-body text-ink/85">{a.note}</p>
+          <VenueLocations a={a} onPick={directions} />
           <div className="grid gap-2">
-            <Button variant="secondary" icon={Navigation} onClick={directions}>How to get there</Button>
+            <Button variant="secondary" icon={Navigation} onClick={() => directions()}>How to get there</Button>
             {action}
           </div>
         </div>

@@ -1,15 +1,16 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowLeft, Bus, Check, ChevronDown, ChevronUp, Footprints, Layers, LocateFixed, Navigation, Plus, ShieldAlert, TrainFront, X, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, Bus, Check, MapPin, ChevronDown, ChevronUp, Footprints, Layers, LocateFixed, Navigation, Plus, ShieldAlert, TrainFront, X, type LucideIcon } from 'lucide-react'
 import { useApp } from '../../store'
 import { GRAPHS, getAirport } from '../../data/mock'
-import { AIRPORT_GEO, terminalKeysOf } from '../../data/airportGeo'
+import { AIRPORT_GEO } from '../../data/airportGeo'
+import { venueLocations, venueTerminalKeys, type VenueLocation } from '../../data/venueLocations'
 import { fmtDur, type budget } from '../../data/time'
 import { computeItinerary, MODE_LABEL } from '../../data/itinerary'
 import { planItinerary } from '../../domain/itinerary'
 import { AirportMap, zoneOf, type Wayfinding, type Zone } from '../../components/AirportMap'
 import { ActivitySheet, Button, Photo, cx } from '../../components/ui'
 import type { Activity, Category } from '../../data/types'
-import { buildRoute, type Leg, type LegStatus, type RouteView } from './route'
+import { buildRoute, mapKeyFor, type Leg, type LegStatus, type RouteView } from './route'
 
 const ZONES: Zone[] = ['all', 'Airside', 'Landside']
 const MODE_ICON: Record<string, LucideIcon> = { walk: Footprints, link_bridge_walk: Footprints, skytrain_or_walk: TrainFront, shuttle_bus: Bus }
@@ -33,17 +34,22 @@ interface Props {
   openDirections?: boolean
   /** Open with directions to this venue (from its details sheet). */
   openVenue?: string
+  /** …at this one of its locations (VenueLocation id). */
+  openBranch?: string
 }
 
 /** Airport map with one coordinated bottom sheet: browse (terminal filter + venues), a venue preview, or directions.
  *  Floating controls sit above the sheet, the sheet sits above the tab bar; nothing overlaps. */
-export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, startTrip, openDirections, openVenue }: Props) {
+export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, startTrip, openDirections, openVenue, openBranch }: Props) {
   const { go, draft } = useApp()
   const ap = getAirport(code)
   const graph = GRAPHS[code] ?? null
   const [zone, setZone] = useState<Zone>('all')
   const [terminal, setTerminal] = useState<string | null>(null)
-  const [focusId, setFocusId] = useState<string | null>(openVenue ?? null)
+  const [focusId, setFocus] = useState<string | null>(openVenue ?? null)
+  // Which of the focused venue's locations; null = its listed (catalogue) location.
+  const [branch, setBranch] = useState<string | null>(openBranch ?? null)
+  const setFocusId = (id: string | null) => { setFocus(id); setBranch(null) }
   const startOnRoute = !!openDirections && ready && planned.length > 0
   const [routeFor, setRouteFor] = useState<'plan' | string | null>(startOnRoute ? 'plan' : null)
   const [leg, setLeg] = useState<number | null>(startOnRoute ? 0 : null)
@@ -70,15 +76,25 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
   const roomForControls = typeof window === 'undefined' || window.innerHeight - bottomInset - topH >= 100
 
   const focus = acts.find((a) => a.id === focusId) ?? null
-  const shown = acts.filter((a) => (cat === 'All' || a.category === cat) && (zone === 'all' || zoneOf(a) === zone) && (!terminal || terminalKeysOf(code, a.terminal).includes(terminal)))
+  const shown = acts.filter((a) => (cat === 'All' || a.category === cat) && (zone === 'all' || zoneOf(a) === zone) && (!terminal || venueTerminalKeys(a).includes(terminal)))
   const terminals = AIRPORT_GEO[code]?.terminals ?? []
 
   // Directions: the whole itinerary (when layover times exist), or one venue from the arrival gate and on to departure.
-  const singleRoute = (a: Activity): RouteView => {
-    const z = a.access === 'Airside' ? 'airside' : a.access === 'Landside' ? 'landside' : 'unknown'
+  // A venue's default location is its catalogue one; another branch moves the stop to that terminal and area.
+  const defaultLoc = (a: Activity): VenueLocation | null => { const l = venueLocations(a); return l.find((x) => x.listed) ?? l[0] ?? null }
+  const atBranch = (a: Activity, id: string | null): { act: Activity; zone: 'airside' | 'landside' | 'unknown' } => {
+    const base = a.access === 'Airside' ? 'airside' as const : a.access === 'Landside' ? 'landside' as const : 'unknown' as const
+    const def = defaultLoc(a)
+    const loc = id && id !== def?.id ? venueLocations(a).find((l) => l.id === id) : (def && !def.listed ? def : null)
+    if (!loc) return { act: a, zone: base }
+    const ids = graph?.locations.filter((l) => mapKeyFor(code, l) === loc.terminal && l.zone === loc.zone).map((l) => l.id) ?? []
+    return { act: { ...a, id: loc === def ? a.id : `${a.id}#${loc.id}`, terminal: loc.terminalName, locationIds: ids }, zone: loc.zone }
+  }
+  const singleRoute = (a: Activity, br: string | null = null): RouteView => {
+    const { act, zone: z } = atBranch(a, br)
     const itin = planItinerary({ usable: b?.usable ?? 0, graph, arrivalLocation: draft?.arrivalLocation, departureLocation: draft?.departureLocation,
-      activities: [{ id: a.id, name: a.name, durationMin: a.durationMin, zone: z, locationIds: a.locationIds }] })
-    return buildRoute(code, graph, itin, [a], draft?.arrivalLocation, draft?.departureLocation)
+      activities: [{ id: act.id, name: act.name, durationMin: act.durationMin, zone: z, locationIds: act.locationIds }] })
+    return buildRoute(code, graph, itin, [act], draft?.arrivalLocation, draft?.departureLocation)
   }
   const planRoute: RouteView | null = useMemo(() => {
     if (!ready || !draft || !planned.length) return null
@@ -89,19 +105,19 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
     if (!routeFor) return null
     if (routeFor === 'plan') return planRoute
     const a = acts.find((x) => x.id === routeFor)
-    return a ? singleRoute(a) : null
+    return a ? singleRoute(a, branch) : null
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeFor, planRoute, acts, draft, b?.usable])
+  }, [routeFor, planRoute, acts, draft, b?.usable, branch])
   const sel: Leg | null = route && leg !== null ? route.legs[leg] ?? null : null
   // Selecting a venue previews its route: the leg arriving at it in the itinerary, else from the arrival gate.
-  const focusPlanLeg = focusId && planRoute ? planRoute.legs.find((l) => l.to.kind === 'activity' && draft?.activityIds[l.to.n - 1] === focusId) ?? null : null
+  const focusPlanLeg = focusId && planRoute && !branch ? planRoute.legs.find((l) => l.to.kind === 'activity' && draft?.activityIds[l.to.n - 1] === focusId) ?? null : null
   const preview: Leg | null = useMemo(() => {
     if (route || !focusId) return null
     if (focusPlanLeg) return focusPlanLeg
     const a = acts.find((x) => x.id === focusId)
-    return a ? singleRoute(a).legs[0] ?? null : null
+    return a ? singleRoute(a, branch).legs[0] ?? null : null
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route, focusId, focusPlanLeg, acts, draft])
+  }, [route, focusId, focusPlanLeg, acts, draft, branch])
   const wayfinding: Wayfinding | null = route ? {
     legs: route.legs.filter((l) => l.geometry).map((l) => ({ i: l.i, path: l.geometry!, active: sel ? l.i === sel.i : true })),
     stops: route.stops.filter((st) => st.point).map((st) => ({ n: st.n, kind: st.kind, label: st.label, point: st.point!,
@@ -112,8 +128,8 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
     stops: [preview.from, preview.to].filter((st) => st.point).map((st, k) => ({ n: st.n, kind: st.kind, label: st.label, point: st.point!, role: k === 0 ? 'origin' as const : 'dest' as const })),
     frame: preview.geometry,
   } : null
-  const openRouteFor = (a: Activity) => {
-    if (focusPlanLeg) { setRouteFor('plan'); setLeg(focusPlanLeg.i) } else { setRouteFor(a.id); setLeg(0) }
+  const openRouteFor = (a: Activity, br: string | null = branch) => {
+    if (focusPlanLeg && !br) { setRouteFor('plan'); setLeg(focusPlanLeg.i) } else { setRouteFor(a.id); setLeg(0) }
     setExpanded(false)
   }
   // Arriving from a venue's details: open its directions once.
@@ -122,13 +138,15 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
     if (opened.current || !openVenue) return
     opened.current = true
     const a = acts.find((x) => x.id === openVenue)
-    if (a) openRouteFor(a)
+    if (a) openRouteFor(a, openBranch ?? null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openVenue])
 
   const closeRoute = () => { setRouteFor(null); setLeg(null); setExpanded(window.innerHeight >= 720) }
   const canRoute = true
   const mode = route ? 'route' : focus ? 'venue' : 'browse'
+  const focusLocs = focus ? venueLocations(focus) : []
+  const focusLoc = focus ? (branch ? focusLocs.find((l) => l.id === branch) : null) ?? defaultLoc(focus) : null
 
   return (
     <div className="relative -mb-[var(--nav-h)] h-dvh overflow-hidden">
@@ -164,23 +182,30 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
                 <div className="min-w-0 flex-1">
                   <p className="text-card font-semibold leading-tight">{focus.name}</p>
                   <p className="text-sub text-muted-text">{fmtDur(focus.durationMin)} · {focus.costLabel} · {focus.category}</p>
-                  <p className="text-cap text-muted-text">{[focus.terminal, focus.access === 'Unverified' ? null : focus.access].filter(Boolean).join(' · ')}{focus.leavesAirport ? ' · leaves airport' : ''}</p>
+                  <p className="text-cap text-muted-text">{[focusLocs.length > 1 ? null : focusLoc ? `${focusLoc.terminalName} · ${focusLoc.area}` : focus.terminal, focus.access === 'Unverified' ? null : focus.access].filter(Boolean).join(' · ')}{focus.leavesAirport ? ' · leaves airport' : ''}</p>
                 </div>
                 <button type="button" onClick={() => setFocusId(null)} aria-label="Close preview" className="press grid size-11 shrink-0 place-items-center rounded-full bg-ink-tint"><X size={18} /></button>
               </div>
               {expanded && b && !planned.includes(focus.id) && focus.durationMin > b.remaining && (
                 <p role="alert" className="mt-2 text-sub font-medium text-error">Adds {fmtDur(focus.durationMin - Math.max(b.remaining, 0))} beyond your usable time.</p>)}
+              {focusLocs.length > 1 && (
+                <div role="group" aria-label={`${focus.name} locations`} className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4">
+                  {focusLocs.map((l) => (
+                    <button key={l.id} type="button" aria-pressed={focusLoc?.id === l.id} onClick={() => setBranch(l.id)}
+                      className={cx('press flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-3 text-cap font-semibold', focusLoc?.id === l.id ? 'bg-ink text-white' : 'bg-ink-tint text-ink')}>
+                      <MapPin size={14} aria-hidden="true" />{terminals.find((t) => t.key === l.terminal)?.short ?? l.terminal} · {shortArea(l.area)}</button>))}
+                </div>)}
               {preview && (
                 <p className="mt-3 flex items-center gap-2 text-sub">
                   <Footprints size={17} className="shrink-0 text-accent-dark" aria-hidden="true" />
                   <span><b className="font-semibold">{legTime(preview)}</b> · {fmtDist(preview.distanceM)} from {preview.from.label}{preview.from.place ? ` (${shortPlace(preview.from.place)})` : ''}</span>
                 </p>)}
               {/* One primary: Add when it is not in the plan yet, otherwise How to get there. */}
-              <div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+              <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-2">
                 <Button className="px-4" variant={planned.includes(focus.id) ? 'secondary' : 'primary'} icon={planned.includes(focus.id) ? Check : Plus} onClick={() => toggle(focus.id)}>
                   {planned.includes(focus.id) ? (ready ? 'Added' : 'Selected') : ready ? 'Add' : 'Select'}</Button>
                 <Button className="px-4" variant={planned.includes(focus.id) ? 'primary' : 'secondary'} icon={Navigation} onClick={() => openRouteFor(focus)}>How to get there</Button>
-                <Button variant="tertiary" size="sm" className="col-span-2" onClick={() => setDetails(focus.id)}>Details</Button>
+                <Button variant="tertiary" size="sm" className="col-span-full" onClick={() => setDetails(focus.id)}>Details</Button>
               </div>
             </div>
           ) : (
@@ -218,13 +243,15 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
         </div>
       </section>
       <ActivitySheet a={acts.find((a) => a.id === details) ?? null} onClose={() => setDetails(null)}
-        onDirections={() => { const a = acts.find((x) => x.id === details); if (a) { setFocusId(a.id); openRouteFor(a) } }} />
+        onDirections={(br) => { const a = acts.find((x) => x.id === details); if (a) { setFocus(a.id); setBranch(br ?? null); openRouteFor(a, br ?? null) } }} />
     </div>
   )
 }
 
 /** "Terminal 3 transit area" → "T3 transit", "Jewel (public area)" → "Jewel". */
 const shortPlace = (p: string) => p.replace(/^Terminal (\d)/, 'T$1').replace(/ area$/, '').replace(/\s*\(public area\)/, '')
+/** "Departures – after security" → "After security", "A gates – Transit" → "A gates". */
+const shortArea = (a: string) => a.replace(/ – (Transit|Departures)$/, '').replace(/^Departures – (.)/, (_, c: string) => c.toUpperCase())
 const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`)
 const legTime = (l: Leg) => (l.minutes && l.minutes.min !== l.minutes.max ? `${l.minutes.min}–${l.minutes.max} min` : `${l.minutes?.max ?? l.walkMin} min`)
 const stopBadge = (n: number, last: number) => (n === 0 ? 'A' : n === last ? 'D' : String(n))

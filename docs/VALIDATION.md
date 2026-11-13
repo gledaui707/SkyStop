@@ -250,3 +250,14 @@ Not done: real-device iPhone check, Safari backdrop-filter rendering, production
   layout 0 issues at 320/375/390/430 px; wayfinding captures at 320, 375, 390 px with no sideways scroll; build OK.
 - Fixed during checks: at 320 px the status pill squeezed the distance into a narrow column (moved onto the time line);
   modal sheets let page text show through (fade animation disables the backdrop blur) → solid white.
+
+### Venue locations (owner request, 13 Nov 2026)
+
+- Details sheet: Locations section grouped by terminal (pin tile + area), count varies by venue type; tapping a location
+  opens directions to it. Map venue sheet: location chips switch the route preview. Listed vs simulated kept apart in
+  `src/data/venueLocations.ts`; About & data says extra branches are illustrative.
+- Checks: unit 146 (145 passed, one hosted skip) incl. 5 new location tests (listed first, gate areas kept, variety,
+  zone-safe, deterministic grouping); e2e 157/157 incl. 4 new location checks; layout 0 issues; captures at 320 and
+  390 px (Dubai Duty Free 5 in 2 terminals, Aesop 2 in 1 terminal), no sideways scroll.
+- Fixed during checks: at 320 px "How to get there" wrapped to three lines in the map venue sheet (buttons now stack
+  when narrow); duplicated location text in the venue subtitle removed when chips are shown.

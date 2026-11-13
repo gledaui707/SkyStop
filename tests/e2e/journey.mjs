@@ -472,6 +472,22 @@ try {
     await P.locator('section[aria-label="Directions"]').getByText('To ANA Lounge', { exact: false }).waitFor();
     const lis = (await P.locator('section[aria-label="Directions"]').innerText()).replace(/\s+/g, ' ');
     check('wayfinding: Lisbon directions use the simulated route, labelled "Estimated route", with a line drawn', lis.includes('Estimated route') && (await P.locator('.leaflet-overlay-pane path').count()) >= 1, lis.slice(0, 160));
+    // Venue locations: a bakery chain has several, a lounge one; picking a location routes to it
+    await P.getByRole('button', { name: 'Back to the map' }).click();
+    await P.getByRole('button', { name: 'Close preview' }).click();
+    if (await P.getByRole('button', { name: 'Expand sheet' }).count()) await P.getByRole('button', { name: 'Expand sheet' }).click();
+    await P.locator('[aria-label="Venues"] button').filter({ hasText: 'Padaria Lisboa' }).first().click();
+    const chips = P.getByRole('group', { name: 'Padaria Lisboa locations' }).getByRole('button');
+    check('locations: a bakery chain offers several locations on the map (5 or more)', (await chips.count()) >= 5);
+    await chips.nth(2).click();
+    check('locations: choosing another location updates the selected chip and the route preview', (await chips.nth(2).getAttribute('aria-pressed')) === 'true' && /from Arrival/.test(await P.locator('section[aria-label="Padaria Lisboa"]').innerText()));
+    await P.getByRole('button', { name: 'Details', exact: true }).click();
+    const dlg = P.getByRole('dialog', { name: 'Padaria Lisboa' });
+    const locs = dlg.getByRole('region', { name: 'Locations' });
+    check('locations: details list every location grouped by terminal', (await locs.getByRole('heading', { name: 'Terminal 1' }).count()) === 1 && (await locs.getByRole('button', { name: /^Directions to Padaria Lisboa/ }).count()) >= 5);
+    await locs.getByRole('button', { name: /^Directions to Padaria Lisboa, Terminal 1, Arrivals/ }).first().click();
+    await P.locator('section[aria-label="Directions"]').getByText('To Padaria Lisboa', { exact: false }).waitFor();
+    check('locations: tapping a location opens directions to it', await P.locator('section[aria-label="Directions"]').isVisible());
     // Entry point 3: a saved plan
     await P.getByRole('button', { name: 'My Plans' }).click();
     await P.getByRole('heading', { name: 'My plans' }).waitFor();
