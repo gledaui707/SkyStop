@@ -28,6 +28,8 @@ export const AIRPORT_GEO: Record<string, AirportGeo> = {
     terminals: [
       { key: 'JEWEL', short: 'Jewel', name: 'Jewel', lat: dms(1, 21, 52), lng: dms(103, 59, 29), source: 'https://en.wikipedia.org/wiki/Jewel_Changi_Airport' },
       { key: 'T1', short: 'T1', name: 'Terminal 1', lat: 1.361858, lng: 103.990327, source: 'https://www.findlatitudeandlongitude.com/l/Changi+Airport+Terminal+1/5718110/', approx: true },
+      // T2: approximate, between T1 and T3 (no published coordinate; illustrative position for the demo map).
+      { key: 'T2', short: 'T2', name: 'Terminal 2', lat: 1.35535, lng: 103.98935, source: 'approximate (illustrative)', approx: true },
       { key: 'T3', short: 'T3', name: 'Terminal 3', lat: dms(1, 21, 22.4), lng: dms(103, 59, 11.7), source: 'https://www.wikidata.org/wiki/Q21974333' },
       { key: 'T4', short: 'T4', name: 'Terminal 4', lat: dms(1, 20, 18.8), lng: dms(103, 59, 1.6), source: 'https://www.wikidata.org/wiki/Q21044469' },
     ],

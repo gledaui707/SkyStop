@@ -430,10 +430,10 @@ try {
     await dir.getByRole('button', { name: 'Next step' }).click();
     check('wayfinding: Next step moves to step 2, flagged with arrival immigration (no waiting time given)', (await dir.innerText()).includes('Step 2 of 3') && /Arrival immigration/.test(await dir.innerText()));
     check('wayfinding: the selected leg\'s ends are highlighted on the map', await P.locator('.map-pin[data-state="to"]').count() >= 1);
-    check('wayfinding: no route line is drawn without documented path geometry', (await P.locator('.leaflet-overlay-pane path').count()) === 0);
+    check('wayfinding: the route is drawn on the map as a line between the stops', (await P.locator('.leaflet-overlay-pane path').count()) >= 2);
     await dir.getByRole('button', { name: 'All steps' }).click();
     const all = (await dir.innerText()).replace(/\s+/g, ' ');
-    check('wayfinding: all steps list arrival, both stops and departure, and say why no lines are drawn', /Arrival.*Butterfly Garden.*Jewel Rain Vortex.*Departure/.test(all) && all.includes('No route lines are drawn') && /departure immigration and security/i.test(all), all.slice(0, 160));
+    check('wayfinding: all steps list arrival, both stops and departure, with checkpoint flags and no disclaimer', /Arrival.*Butterfly Garden.*Jewel Rain Vortex.*Departure/.test(all) && !all.includes('No route lines') && /departure immigration and security/i.test(all), all.slice(0, 160));
     await P.waitForTimeout(600);
     const lay = await P.evaluate(() => {
       const sheet = document.querySelector('section[aria-label="Directions"]').getBoundingClientRect(), nav = document.querySelector('nav[aria-label="Primary"] > div').getBoundingClientRect();
@@ -449,7 +449,7 @@ try {
     await P.getByRole('button', { name: /Lisbon/ }).first().click(); await P.getByRole('tab', { name: 'map' }).click();
     await P.locator('.map-pin').first().click();
     await P.getByRole('button', { name: /ANA Lounge/ }).first().click();
-    const lisbonOk = (await P.getByRole('button', { name: 'How to get there' }).count()) === 0 && await visible(P, "Directions aren't available")
+    const lisbonOk = (await P.getByRole('button', { name: 'How to get there' }).count()) === 1
     // Entry point 3: a saved plan
     await P.getByRole('button', { name: 'My Plans' }).click();
     await P.getByRole('heading', { name: 'My plans' }).waitFor();
@@ -457,7 +457,7 @@ try {
     await P.getByRole('button', { name: 'See how to get there' }).click();
     await P.locator('section[aria-label="Directions"]').getByText('Step 1 of 3').waitFor();
     check('wayfinding: a saved plan has "See how to get there" and it opens the directions', await P.locator('section[aria-label="Directions"]').isVisible());
-    check('wayfinding: Lisbon venue shows no directions button and says why', lisbonOk);
+    check('wayfinding: Lisbon venues also get "How to get there"', lisbonOk);
     await wf.ctx.close();
   }
 

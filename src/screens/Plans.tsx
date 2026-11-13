@@ -1,7 +1,7 @@
 import { ChevronLeft, Map as MapIcon, MapPin, Pencil, Plane } from 'lucide-react'
 import { sized } from '../data/images'
 import { useApp } from '../store'
-import { ACTIVITIES, GRAPHS, getAirport } from '../data/mock'
+import { ACTIVITIES, getAirport } from '../data/mock'
 import { budget, fmtDur, isOvernight, layoverMinutesAt } from '../data/time'
 import type { Plan } from '../data/types'
 import { computeItinerary } from '../data/itinerary'
@@ -99,7 +99,7 @@ export function PlanDetail({ id }: { id: string }) {
           : <p className="text-body text-muted-text">No activities yet. Edit the plan to add some.</p>}
         <div className="mt-3 grid gap-2">
           {items.length > 0 && <Button variant="secondary" icon={MapIcon} onClick={() => { setDraft({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination, arrivalLocation: p.arrivalLocation, departureLocation: p.departureLocation }); go({ name: 'airport', code: p.airport, view: 'map', directions: true }) }}>
-            {GRAPHS[p.airport] ? 'See how to get there' : 'See on map'}</Button>}
+            See how to get there</Button>}
           <Button icon={Pencil} onClick={() => {
           setDraft({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination, arrivalLocation: p.arrivalLocation, departureLocation: p.departureLocation })
           go({ name: 'builder' })

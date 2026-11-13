@@ -1,15 +1,11 @@
 // Wayfinding view of an itinerary: ordered stops and the legs between them, ready for the map and the route sheet.
-// Pure; no UI. Built on the itinerary engine (src/domain/itinerary.ts), so the map shows exactly the minutes the
-// planner counts.
-//
-// Honesty rules (owner requirement, Nov 2026):
-//  * A leg's status says where its minutes come from: 'verified' (every step is an airport-published time),
-//    'estimate' (a labelled planning estimate is involved) or 'unavailable' (no recorded route: no minutes at all).
-//  * A route LINE is drawn only from PATH_GEOMETRY: geometry that represents a documented or explicitly modelled
-//    traversable path. Coordinates of two places are never joined with a straight line and shown as a route.
-//  * Floors are not modelled: no source used by SkyStop gives venue floor positions or indoor paths.
+// Pure; no UI. Where the airport has a transfer graph (Changi), legs use the planner's own minutes and checkpoints.
+// Everywhere else (and for legs the graph cannot route), SkyStop shows ILLUSTRATIVE directions (owner decision,
+// 13 Nov 2026: SkyStop is a demo and every itinerary gets directions): 5–10 min on foot within a terminal, 12–20 min
+// between terminals, and a curved line between the two terminal pins. These display-only legs never change the
+// planner's time calculation.
 import type { GraphLocation, Hop, Itinerary, TransferGraph } from '../../domain/itinerary'
-import { AIRPORT_GEO } from '../../data/airportGeo'
+import { AIRPORT_GEO, terminalKeysOf } from '../../data/airportGeo'
 
 export type LegStatus = 'verified' | 'estimate' | 'unavailable'
 export type StopKind = 'arrival' | 'activity' | 'departure'
@@ -48,9 +44,7 @@ export interface RouteView {
   legs: Leg[]
 }
 
-/** Documented traversable path geometry, keyed "fromLocation>toLocation". Empty on purpose: none of the supported
- *  airports publishes indoor or inter-terminal path geometry that SkyStop may use (see docs/WAYFINDING.md). Add an
- *  entry only with a source for the geometry itself, not for the two endpoints. */
+/** Path geometry for specific location pairs, keyed "fromLocation>toLocation"; takes precedence over the curve. */
 export const PATH_GEOMETRY: Record<string, [number, number][]> = {}
 
 /** The terminal pin a graph location belongs to ("SIN-T3-TRANSIT" → "T3", Jewel → "JEWEL"), or null when that
@@ -76,37 +70,61 @@ export function checkpointsOf(h: Hop): string[] {
   return out
 }
 
+/** Illustrative minutes for a leg the graph cannot route. */
+export const ILLUSTRATIVE = { sameTerminal: { min: 5, max: 10 }, otherTerminal: { min: 12, max: 20 } } as const
+
+/** A gentle curve between two terminal pins (quadratic Bézier, bowed to one side), as [lat, lng] points. */
+export function curveBetween(airport: string, fromKey: string, toKey: string, samples = 24): [number, number][] | null {
+  const ts = AIRPORT_GEO[airport]?.terminals ?? []
+  const a = ts.find((t) => t.key === fromKey), b = ts.find((t) => t.key === toKey)
+  if (!a || !b || fromKey === toKey) return null
+  const mx = (a.lat + b.lat) / 2, my = (a.lng + b.lng) / 2
+  const dx = b.lat - a.lat, dy = b.lng - a.lng
+  const cx = mx - dy * 0.22, cy = my + dx * 0.22 // control point off to one side
+  const pts: [number, number][] = []
+  for (let k = 0; k <= samples; k++) {
+    const t = k / samples, u = 1 - t
+    pts.push([u * u * a.lat + 2 * u * t * cx + t * t * b.lat, u * u * a.lng + 2 * u * t * cy + t * t * b.lng])
+  }
+  return pts
+}
+
+const terminalName = (airport: string, key: string | null) => (key ? AIRPORT_GEO[airport]?.terminals.find((t) => t.key === key)?.name ?? null : null)
+
 export function buildRoute(
   airport: string,
   graph: TransferGraph | null,
   itin: Itinerary,
-  activities: { id: string; name: string }[],
+  activities: { id: string; name: string; terminal?: string }[],
   arrivalLocation?: string | null,
   departureLocation?: string | null,
 ): RouteView {
   const loc = (id: string | null | undefined) => (id ? graph?.locations.find((l) => l.id === id) : undefined)
-  const stop = (n: number, kind: StopKind, label: string, id: string | null | undefined): Stop => {
+  const keyOfActivity = (a: { terminal?: string } | undefined) => (a ? terminalKeysOf(airport, a.terminal)[0] ?? null : null)
+  const stop = (n: number, kind: StopKind, label: string, id: string | null | undefined, fallbackKey: string | null): Stop => {
     const l = loc(id)
-    return { n, kind, label, location: id ?? null, mapKey: mapKeyFor(airport, l), place: l?.name ?? null }
+    const mapKey = mapKeyFor(airport, l) ?? fallbackKey
+    return { n, kind, label, location: id ?? null, mapKey, place: l?.name ?? terminalName(airport, mapKey) }
   }
+  const first = keyOfActivity(activities[0]), last = keyOfActivity(activities[activities.length - 1])
   const stops: Stop[] = [
-    stop(0, 'arrival', 'Arrival', arrivalLocation),
-    ...activities.map((a, i) => stop(i + 1, 'activity', a.name, itin.hops[i]?.toLocation ?? null)),
-    stop(activities.length + 1, 'departure', 'Departure', departureLocation),
+    stop(0, 'arrival', 'Arrival', arrivalLocation, first),
+    ...activities.map((a, i) => stop(i + 1, 'activity', a.name, itin.hops[i]?.toLocation ?? null, keyOfActivity(a))),
+    stop(activities.length + 1, 'departure', 'Departure', departureLocation, last),
   ]
-  if (!itin.routing) return { routing: false, stops, legs: [] }
-  const legs: Leg[] = itin.hops.map((h, i) => {
-    const status = statusOf(h)
-    const from = stops[i], to = stops[i + 1]
-    const key = h.fromLocation && h.toLocation ? `${h.fromLocation}>${h.toLocation}` : ''
-    return {
-      i, from, to, status,
-      minutes: status === 'unavailable' ? null : { min: h.min, max: h.max },
-      modes: h.modes, checkpoints: checkpointsOf(h), notes: h.notes, sources: h.sources,
-      geometry: (key && PATH_GEOMETRY[key]) || null,
+  const legs: Leg[] = stops.slice(1).map((to, i) => {
+    const from = stops[i], h: Hop | undefined = itin.routing ? itin.hops[i] : undefined
+    const routed = !!h && h.kind !== 'unknown'
+    const same = !!from.mapKey && from.mapKey === to.mapKey
+    const key = h?.fromLocation && h?.toLocation ? `${h.fromLocation}>${h.toLocation}` : ''
+    const geometry = (key && PATH_GEOMETRY[key]) || (from.mapKey && to.mapKey ? curveBetween(airport, from.mapKey, to.mapKey) : null)
+    if (routed) {
+      return { i, from, to, status: statusOf(h), minutes: { min: h.min, max: h.max }, modes: h.modes, checkpoints: checkpointsOf(h), notes: h.notes, sources: h.sources, geometry }
     }
+    return { i, from, to, status: 'estimate' as const, minutes: { ...(same ? ILLUSTRATIVE.sameTerminal : ILLUSTRATIVE.otherTerminal) },
+      modes: ['walk'], checkpoints: h ? checkpointsOf(h) : [], notes: [], sources: [], geometry }
   })
-  return { routing: true, stops, legs }
+  return { routing: itin.routing, stops, legs }
 }
 
 /** Terminal pins with their stop numbers, for numbered badges on the map ({ T3: [0, 2], JEWEL: [1] }). */

@@ -40,14 +40,13 @@ Each leg's status says where its minutes come from:
 Border and security steps (arrival immigration; check-in, departure immigration and security; through-check only) are
 listed on the leg **without a time**: none is published. They are the same flags the planner uses.
 
-## Routing integrity rules
-- A route **line** is drawn only from `PATH_GEOMETRY` in `src/features/wayfinding/route.ts`: geometry that represents a
-  documented or explicitly modelled traversable path, with a source for the geometry itself. It is empty, so no lines are
-  drawn. Two places' coordinates are never joined with a line and presented as a route (unit-tested).
-- Changi T2 has no published coordinate, so a T2 stop says "not on the map" instead of getting an invented pin.
-- Floors are not modelled; no floor control is shown.
-- Lisbon, Heathrow and Dubai have no transfer data: their venues show "Directions aren't available … follow airport
-  signs" and no directions button.
+## Illustrative directions (owner decision, 13 Nov 2026)
+SkyStop is a demo, so every itinerary gets directions at every airport. Where Changi's transfer graph has a route, the
+leg uses its published minutes, checkpoints and source. Otherwise the leg is illustrative: 5–10 min on foot within a
+terminal, 12–20 min between terminals, labelled *Estimate*. Every leg that changes terminal is drawn as a curved coral
+line between the two terminal pins (`curveBetween` in `route.ts`); these lines are illustrative, not surveyed paths.
+Changi T2 has an approximate, illustrative pin position. These display-only legs do not change the planner's time
+calculation. No disclaimer is shown in the app.
 
 ## Indoor map data: what was checked (13 Nov 2026)
 | Source | Result |

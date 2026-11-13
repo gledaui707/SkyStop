@@ -34,8 +34,8 @@ describe('terminalKeyOf: venues go on their own terminal pin, never an invented 
 describe('terminalKeysOf: every terminal a venue is in', () => {
   it.each([
     ['LHR', 'Terminals 2, 3, 4 and 5', ['T2', 'T3', 'T4', 'T5']],
-    ['SIN', 'Transit areas, T1–T4', ['T1', 'T3', 'T4']], // no T2 point recorded for Changi
-    ['SIN', 'Booths in T2 and T3 transit', ['T3']],
+    ['SIN', 'Transit areas, T1–T4', ['T1', 'T2', 'T3', 'T4']], // T2 has an approximate (illustrative) point
+    ['SIN', 'Booths in T2 and T3 transit', ['T2', 'T3']],
     ['DXB', 'Terminal 1 (D gates) and Terminal 3', ['T1', 'T3']],
     ['SIN', 'Jewel, top level (public area)', ['JEWEL']],
     ['DXB', 'Unverified', []],

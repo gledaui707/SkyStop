@@ -75,7 +75,7 @@ export function Builder() {
           : `Transfer times between activities are not available for ${ap.city}, so only activity time is counted.`}`} /></div>
         {items.length > 0 && (
           <Button variant="secondary" icon={MapIcon} className="mt-3 w-full" onClick={() => go({ name: 'airport', code: draft.airport, view: 'map', directions: true })}>
-            {itin.routing ? 'See how to get there' : 'See on map'}</Button>)}
+            See how to get there</Button>)}
 
         {/* access status, separate from time */}
         {items.length > 0 && (

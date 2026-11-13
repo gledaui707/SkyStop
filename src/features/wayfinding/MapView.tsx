@@ -42,7 +42,7 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
   const [zone, setZone] = useState<Zone>('all')
   const [terminal, setTerminal] = useState<string | null>(null)
   const [focusId, setFocusId] = useState<string | null>(null)
-  const startOnRoute = !!openDirections && !!graph && ready && planned.length > 0
+  const startOnRoute = !!openDirections && ready && planned.length > 0
   const [routeFor, setRouteFor] = useState<'plan' | string | null>(startOnRoute ? 'plan' : null)
   const [leg, setLeg] = useState<number | null>(startOnRoute ? 0 : null)
   // Short phones start with the sheet collapsed (title + main action) so the map stays visible.
@@ -73,7 +73,7 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
 
   // Directions: the whole itinerary (when layover times exist), or one venue from arrival and back to departure.
   const route: RouteView | null = useMemo(() => {
-    if (!graph || !routeFor) return null
+    if (!routeFor) return null
     if (routeFor === 'plan') {
       if (!ready || !draft) return null
       const { items, itin } = computeItinerary(draft)
@@ -92,7 +92,7 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
   const paths = (route?.legs ?? []).filter((l) => l.geometry).map((l) => ({ key: String(l.i), points: l.geometry!, active: leg === null || l.i === leg }))
 
   const closeRoute = () => { setRouteFor(null); setLeg(null); setExpanded(window.innerHeight >= 720) }
-  const canRoute = !!graph
+  const canRoute = true
   const mode = route ? 'route' : focus ? 'venue' : 'browse'
 
   return (
@@ -137,7 +137,6 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
               </div>
               {expanded && b && !planned.includes(focus.id) && focus.durationMin > b.remaining && (
                 <p role="alert" className="mt-2 text-sub font-medium text-error">Adds {fmtDur(focus.durationMin - Math.max(b.remaining, 0))} beyond your usable time.</p>)}
-              {expanded && !canRoute && <p className="mt-2 text-cap text-muted-text">Directions aren't available at {ap.name}: SkyStop has no transfer data here yet. The venue is listed in {focus.terminal ?? 'the terminal shown'}; follow airport signs.</p>}
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Button className={canRoute ? '' : 'col-span-2'} variant={planned.includes(focus.id) ? 'secondary' : 'primary'} icon={planned.includes(focus.id) ? Check : Plus} onClick={() => toggle(focus.id)}>
                   {planned.includes(focus.id) ? (ready ? 'Added' : 'Selected') : ready ? 'Add' : 'Select'}</Button>
@@ -225,9 +224,7 @@ function RouteSheet({ route, leg, onLeg, onClose, expanded, onExpand, airportNam
           <p>Choose your arrival and departure terminals to get directions from your gate and back.</p>
           {forPlan && <Button variant="secondary" size="sm" className="mt-2" onClick={onPlan}>Choose terminals</Button>}
         </div>)}
-      {expanded && (
-        <p className="mt-3 text-cap text-muted-text">
-          {route.legs.some((l) => l.geometry) ? 'Lines show documented paths only.' : `No route lines are drawn: SkyStop has no verified walking-path or floor data for ${airportName}.`} Minutes come from the airport's published transfer guidance or are labelled estimates; checkpoint queues are not included. Follow airport signs.</p>)}
+
     </div>
   )
 }

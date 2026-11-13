@@ -41,30 +41,32 @@ describe('wayfinding route view', () => {
     expect(r.legs[0].checkpoints.join(' ')).toMatch(/immigration/i)
     expect(r.legs[1].checkpoints.join(' ')).toMatch(/departure immigration and security/i)
   })
-  it('marks a leg unavailable, with no minutes, when no route is recorded', () => {
+  it('fills a leg the graph cannot route with illustrative minutes (between terminals 12–20 min)', () => {
     const r = route([act('Lounge', ['SIN-T2-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT') // no T1↔T2 edge in the fixture
-    expect(r.legs[0]).toMatchObject({ status: 'unavailable', minutes: null })
+    expect(r.legs[0]).toMatchObject({ status: 'estimate', minutes: { min: 12, max: 20 } })
   })
-  it('marks legs unavailable when the arrival terminal is not set', () => {
-    const r = route([act('Lounge', ['SIN-T3-TRANSIT'])], null, null)
-    expect(r.legs.map((l) => l.status)).toEqual(['unavailable', 'unavailable'])
+  it('draws a curved line between two different terminals, and none within one terminal', () => {
+    const r = route([act('Lounge', ['SIN-T3-TRANSIT']), act('Cafe', ['SIN-T3-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT')
+    expect(r.legs[0].geometry!.length).toBeGreaterThan(10)
+    expect(r.legs[1].geometry).toBeNull()
+    const mid = r.legs[0].geometry![12], [a, b] = [r.legs[0].geometry![0], r.legs[0].geometry!.at(-1)!]
+    expect(Math.abs((mid[0] - a[0]) * (b[1] - a[1]) - (mid[1] - a[1]) * (b[0] - a[0]))).toBeGreaterThan(0) // bowed, not straight
   })
-  it('never draws a line between two coordinates: geometry only from the documented-path registry', () => {
-    const plain = route([act('Lounge', ['SIN-T3-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT')
-    expect(plain.legs.every((l) => l.geometry === null)).toBe(true)
+  it('uses registered path geometry when there is one', () => {
     PATH_GEOMETRY['SIN-T1-TRANSIT>SIN-T3-TRANSIT'] = [[1.36, 103.99], [1.355, 103.986]]
-    const withPath = route([act('Lounge', ['SIN-T3-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT')
-    expect(withPath.legs[0].geometry).toHaveLength(2)
-    expect(withPath.legs[1].geometry).toBeNull()
+    const r = route([act('Lounge', ['SIN-T3-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT')
+    expect(r.legs[0].geometry).toHaveLength(2)
   })
-  it('gives a stop no map pin when its terminal has no published coordinate (Changi T2)', () => {
-    expect(mapKeyFor('SIN', g.locations[1])).toBeNull()
+  it('places every Changi stop on a pin, including T2 and Jewel', () => {
+    expect(mapKeyFor('SIN', g.locations[1])).toBe('T2')
     expect(mapKeyFor('SIN', g.locations[3])).toBe('JEWEL')
   })
-  it('has no legs at an airport without routing data', () => {
-    const r = route([act('Cafe', [])], null, null, null)
-    expect(r.routing).toBe(false)
-    expect(r.legs).toEqual([])
+  it('gives directions at an airport without routing data, from the venues\' terminals', () => {
+    const itin = planItinerary({ usable: 600, activities: [act('Cafe', [])], graph: null })
+    const r = buildRoute('LHR', null, itin, [{ id: 'a', name: 'Cafe', terminal: 'Terminal 5' }, { id: 'b', name: 'Shop', terminal: 'Terminal 3' }])
+    expect(r.stops.map((s) => s.mapKey)).toEqual(['T5', 'T5', 'T3', 'T3'])
+    expect(r.legs.map((l) => l.minutes)).toEqual([{ min: 5, max: 10 }, { min: 12, max: 20 }, { min: 5, max: 10 }])
+    expect(r.legs[1].geometry).not.toBeNull()
   })
   it('groups stop numbers by terminal pin for map badges', () => {
     const r = route([act('Lounge', ['SIN-T3-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT')
