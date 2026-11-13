@@ -76,10 +76,10 @@ export function Home() {
     <div className="relative pb-8">
       {/* Full-bleed photograph behind the header: the next stop's airport, or a wing above the clouds. It melts into
           the dusk canvas so the content below reads as one continuous surface. */}
-      <div aria-hidden="true" className="ph pointer-events-none absolute inset-x-0 top-0 h-[27rem] overflow-hidden">
+      <div aria-hidden="true" className="ph pointer-events-none absolute inset-x-0 top-0 h-[27rem] overflow-hidden rounded-b-tray">
         <img src={sized(heroImg, 900, 860)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-[70%] bg-gradient-to-t from-canvas via-canvas/75 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[70%] bg-gradient-to-t from-deep/80 via-deep/30 to-transparent" />
       </div>
       <div className="relative px-5 pt-[calc(var(--safe-top)+0.5rem)]">
         {/* profile (photo) and greeting on the left, notifications on the right; the big question below */}
@@ -108,7 +108,7 @@ export function Home() {
         {plans.length > 0 && (<>
         <div className="mb-3 flex items-end justify-between">
           <h2 className="text-h2 font-bold text-white [text-shadow:0_1px_12px_rgb(0_0_0/0.35)]">My flights</h2>
-          <button onClick={() => go({ name: 'flights' })} className="min-h-11 text-body font-medium text-accent-dark">See all{plans.length > 1 ? ` (${plans.length})` : ''}</button>
+          <button onClick={() => go({ name: 'flights' })} className="min-h-11 text-body font-semibold text-white [text-shadow:0_1px_10px_rgb(0_0_0/0.35)]">See all{plans.length > 1 ? ` (${plans.length})` : ''}</button>
         </div>
         {upcoming.length > 0 ? (
           <FlightStack flights={upcoming} onOpen={(p) => go({ name: 'plan', id: p.id })} />

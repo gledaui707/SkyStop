@@ -47,6 +47,10 @@
 .access__light {
   position: absolute;
   inset: 0;
+  /* Localized and subtle: the glow sits behind the logo rather than filling the screen. */
+  scale: 0.8;
+  transform-origin: 50% 42%;
+  opacity: 0.82;
   animation: access-light-in 1.8s ease-out both;
 }
 /* Wide windows: keep the glow's tall, portrait shape instead of stretching it across the window. */
@@ -94,7 +98,7 @@
 .access__orbit--flare { left: calc(50% - 30%); top: calc(52% - 16%); width: 60%; height: 32%; animation-name: access-travel-flare; animation-duration: 9s; }
 .access__blob--flare { background: radial-gradient(closest-side, rgb(250 64 18 / .9) 0%, rgb(255 84 30 / .55) 45%, rgb(255 110 60 / 0) 100%); animation-name: access-morph-a, access-pulse; animation-duration: 6s, 4.5s; }
 
-@keyframes access-light-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes access-light-in { from { opacity: 0; } to { opacity: 0.82; } }
 @keyframes access-travel-halo { from { transform: translate3d(-8%, -5%, 0); } to { transform: translate3d(8%, 6%, 0); } }
 @keyframes access-travel-a {
   0% { transform: translate3d(0, 0, 0); }

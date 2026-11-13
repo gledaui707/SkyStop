@@ -118,7 +118,7 @@ export function Chip({ active, children, ...p }: React.ButtonHTMLAttributes<HTML
   return (
     <button {...p} aria-pressed={active} className={cx(
       'press inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sub font-medium transition-colors',
-      active ? 'pill-on border-transparent' : 'border-line bg-ink-tint text-ink backdrop-blur-md', p.className)}>
+      active ? 'pill-on border-transparent' : 'border-line bg-white text-ink', p.className)}>
       {children}
     </button>
   )
@@ -186,7 +186,7 @@ export function Notice({ children, tone = 'info' }: { children: ReactNode; tone?
   const Icon = tone === 'warn' ? ShieldAlert : Info
   return (
     <div role={tone === 'warn' ? 'alert' : 'note'} className={cx('flex gap-3 rounded-card border p-3.5 text-sub',
-      tone === 'warn' ? 'border-error/30 bg-error-tint text-ink' : 'border-line bg-ink-tint text-muted-text backdrop-blur-md')}>
+      tone === 'warn' ? 'border-error/30 bg-error-tint text-ink' : 'border-line bg-white text-muted-text')}>
       <Icon size={20} className={cx('mt-px shrink-0', tone === 'warn' ? 'text-error' : 'text-accent-dark')} />
       <div className="min-w-0">{children}</div>
     </div>
@@ -256,10 +256,10 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   }, [open, onClose])
   if (!open) return null
   return (
-    <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-[rgb(0_0_0/0.5)] backdrop-blur-[4px]" onClick={onClose}>
+    <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-[rgb(31_26_23/0.32)]" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
         className="glass-medium anim-sheet max-h-[85dvh] w-full max-w-[480px] overflow-y-auto rounded-t-tray !border-b-0 pb-[calc(var(--safe-bottom)+1rem)] text-ink">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[rgb(46_31_27/0.82)] px-5 pb-3 pt-3 backdrop-blur-xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-white/95 px-5 pb-3 pt-3">
           <span className="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-ink/20" />
           <h2 className="mt-3 min-w-0 text-h2 font-bold">{title}</h2>
           <IconButton label="Close" icon={X} tone="plain" size="sm" iconSize={18} onClick={onClose} className="mt-3" />
@@ -323,7 +323,7 @@ export function InfoTip({ id, title, children, label = 'What is this?', icon }: 
         aria-label={icon ? label : undefined}
         className={icon ? 'press -m-2 grid size-9 place-items-center rounded-full' : 'press min-h-11 text-sub font-semibold text-accent-dark underline underline-offset-2'}>{icon ?? label}</button>
       <span id={id} role="tooltip" hidden={!open}
-        className={cx('anim-fade absolute right-0 z-50 w-[min(18.5rem,calc(100vw-2.5rem))] rounded-card bg-[#33231f] px-4 py-3.5 text-left shadow-[0_14px_34px_rgb(0_0_0/0.45)] ring-1 ring-line',
+        className={cx('anim-fade absolute right-0 z-50 w-[min(18.5rem,calc(100vw-2.5rem))] rounded-card bg-[#33231f] px-4 py-3.5 text-left shadow-[0_10px_28px_rgb(31_26_23/0.22)] ring-1 ring-line',
           above ? 'bottom-full mb-2.5' : 'top-full mt-2.5')}>
         <span aria-hidden="true" className={cx('absolute right-8 size-3.5 rotate-45 rounded-[3px] bg-[#33231f]', above ? '-bottom-1.5' : '-top-1.5')} />
         <span className="block text-body font-semibold text-white">{title}</span>

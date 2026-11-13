@@ -16,6 +16,8 @@ export function DeviceFrame() {
   const [mobile, setMobile] = useState(() => new URLSearchParams(window.location.search).get('frame') !== 'off')
   const [scale, setScale] = useState(1)
   const app = useRef<HTMLIFrameElement>(null)
+  // The page around the phone is a dark stage; the app inside the iframe keeps its own light theme.
+  useEffect(() => { document.documentElement.classList.add('device-stage'); return () => document.documentElement.classList.remove('device-stage') }, [])
   // The app reports whether the top of its screen is dark (photo) or light, so the clock is white or charcoal.
   const [barTone, setBarTone] = useState<'light' | 'dark'>('light')
   useEffect(() => {
@@ -42,10 +44,10 @@ export function DeviceFrame() {
   return (
     <div className="flex h-dvh flex-col">
       <div className="flex h-12 shrink-0 items-center justify-center px-4">
-        <div role="group" aria-label="Preview size" className="inline-flex gap-0.5 rounded-full glass p-0.5">
+        <div role="group" aria-label="Preview size" className="inline-flex gap-0.5 rounded-full border border-white/10 bg-white/[0.06] p-0.5">
           {[{ label: 'Mobile', value: true }, { label: 'Fullscreen', value: false }].map(({ label, value }) => (
             <button key={label} type="button" aria-pressed={mobile === value} onClick={() => setMobile(value)}
-              className={`min-h-8 rounded-full px-3 text-cap font-semibold ${mobile === value ? 'bg-accent-tint text-accent-dark' : 'text-muted-text hover:bg-ink-tint'}`}>
+              className={`min-h-8 rounded-full px-3 text-cap font-semibold ${mobile === value ? 'bg-white text-[#1f1a17]' : 'text-white/70 hover:bg-white/10'}`}>
               {label}
             </button>
           ))}
@@ -64,7 +66,7 @@ export function DeviceFrame() {
                 <>
                   <div aria-hidden="true" className={`pointer-events-none absolute left-8 top-3 text-[0.95rem] font-semibold transition-colors duration-300 ${barTone === 'dark' ? 'text-white' : 'text-[#231a17]'}`}>9:41</div>
                   <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[0.7rem] h-[2.1rem] w-[7.4rem] -translate-x-1/2 rounded-full bg-black" />
-                  <div aria-hidden="true" className="pointer-events-none absolute bottom-2 left-1/2 h-[5px] w-[8.5rem] -translate-x-1/2 rounded-full bg-ink/70" />
+                  <div aria-hidden="true" className="pointer-events-none absolute bottom-2 left-1/2 h-[5px] w-[8.5rem] -translate-x-1/2 rounded-full bg-[#1f1a17]/70" />
                 </>
               )}
             </div>

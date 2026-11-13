@@ -78,10 +78,10 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
   const templates = getTemplates(code)
   return (
     <div className="pb-[calc(var(--nav-h)+6.5rem)]">
-      <div className="ph relative h-[26rem] overflow-hidden">
+      <div className="ph relative h-[26rem] overflow-hidden rounded-b-tray">
         <img src={sized(ap.image, 900, 800)} alt={ap.image.alt} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-[66%] bg-gradient-to-t from-canvas via-canvas/60 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[66%] bg-gradient-to-t from-deep/85 via-deep/35 to-transparent" />
         {bar}
         <div className="absolute inset-x-5 bottom-5 text-white">
           <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold">{ap.code} · {ap.country}</p>

@@ -29,7 +29,7 @@ export function TripTicket({ plan, onView }: Props) {
   const caption = 'mt-1.5 block whitespace-nowrap text-tab leading-tight text-muted-text'
 
   return (
-    <article aria-label="Upcoming trip" className="glass-premium relative overflow-hidden rounded-surface text-ink">
+    <article aria-label="Upcoming trip" className="panel relative overflow-hidden rounded-surface text-ink shadow-e2">
       <section aria-label={hasRoute ? `Journey ${plan.origin} to ${plan.destination} via ${ap.code}` : `Connection at ${ap.code}`} className="px-5 pb-5 pt-5">
         {/* names at opposite ends */}
         <div className="flex justify-between gap-3">

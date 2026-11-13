@@ -14,8 +14,8 @@ import { buildRoute, stopsByPin, type Leg, type LegStatus, type RouteView } from
 const ZONES: Zone[] = ['all', 'Airside', 'Landside']
 const MODE_ICON: Record<string, LucideIcon> = { walk: Footprints, link_bridge_walk: Footprints, skytrain_or_walk: TrainFront, shuttle_bus: Bus }
 const STATUS: Record<LegStatus, { label: string; cls: string; hint: string }> = {
-  verified: { label: 'Published time', cls: 'bg-success/15 text-success', hint: 'Minutes published by the airport.' },
-  estimate: { label: 'Estimate', cls: 'bg-[#f6a04d]/20 text-[#f6a04d]', hint: 'Planning estimate: no published time for at least one step.' },
+  verified: { label: 'Published time', cls: 'bg-success-tint text-success', hint: 'Minutes published by the airport.' },
+  estimate: { label: 'Estimate', cls: 'bg-warning-tint text-warning', hint: 'Planning estimate: no published time for at least one step.' },
   unavailable: { label: 'No directions', cls: 'bg-ink-tint text-muted-text', hint: 'No recorded route between these places.' },
 }
 
@@ -255,7 +255,7 @@ function LegRow({ l, on, compact, onSelect }: { l: Leg; on: boolean; compact?: b
           {mins && <span className="text-sub tabular-nums text-muted-text">{mins}</span>}
           <span className={cx('rounded-full px-2 py-0.5 text-micro font-semibold', s.cls)} title={s.hint}>{s.label}</span>
         </span>
-        {l.checkpoints.map((c) => <span key={c} className="mt-1 flex items-start gap-1.5 text-cap text-[#f6a04d]"><ShieldAlert size={14} className="mt-px shrink-0" aria-hidden="true" />{c}</span>)}
+        {l.checkpoints.map((c) => <span key={c} className="mt-1 flex items-start gap-1.5 text-cap text-warning"><ShieldAlert size={14} className="mt-px shrink-0" aria-hidden="true" />{c}</span>)}
         {on && !compact && l.notes.map((n) => <span key={n} className="mt-1 block text-cap text-muted-text">{n}</span>)}
         {on && !compact && l.sources.length > 0 && <span className="mt-1 block text-cap text-muted-text">Source: {l.sources.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-accent-dark underline underline-offset-2">{new URL(u).hostname.replace(/^www\./, '')}</a>)}</span>}
       </span>
