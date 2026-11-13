@@ -1,0 +1,91 @@
+/* Airport map: a clean light map (CARTO light) with light, glossy floating controls in the SkyStop coral system.
+   Colours are explicit here because the map stays light whatever the app theme (the app's `ink` token is light text). */
+.map-glass {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.92) 0%, rgb(255 255 255 / 0.8) 100%);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  border: 1px solid rgb(255 255 255 / 0.95);
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgb(234 81 57 / 0.08), 0 1px 2px rgb(40 25 20 / 0.12), 0 8px 22px rgb(40 25 20 / 0.16);
+  color: #231a17;
+}
+.map-glass:active { background: rgb(255 255 255 / 0.75); }
+
+/* Pin: a capsule above its true point, a pointer down to it, and a small dot on the point itself. */
+.map-pin {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 40px;
+  padding: 0 0.5rem 0 0.75rem;
+  border-radius: 999px;
+  font-weight: 700;
+  transform: translate(-50%, calc(-100% - 8px));
+  transition: background-color var(--dur-fast, 160ms), color var(--dur-fast, 160ms), box-shadow var(--dur-fast, 160ms);
+}
+.map-pin::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: inherit;
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: 2px 2px 3px rgb(40 25 20 / 0.12);
+  z-index: -1;
+}
+.map-pin[data-state='selected'], .map-pin[data-state='to'] {
+  background: linear-gradient(180deg, #f2694b 0%, #e04a33 100%);
+  color: #fff;
+  border-color: rgb(255 255 255 / 0.9);
+}
+.map-pin[data-state='from'] { box-shadow: 0 0 0 3px #ea5139, 0 8px 22px rgb(40 25 20 / 0.2); }
+.map-pin[data-state='muted'] { opacity: 0.55; }
+.map-pin .count {
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: rgb(234 81 57 / 0.12);
+  color: #c23b24;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.map-pin[data-state='selected'] .count, .map-pin[data-state='to'] .count { background: rgb(255 255 255 / 0.25); color: #fff; }
+.map-dot {
+  position: absolute;
+  z-index: 9;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ea5139;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgb(40 25 20 / 0.3);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+/* Itinerary stop numbers on a pin (top right). */
+.map-stops { position: absolute; top: -10px; right: -8px; display: flex; gap: 2px; }
+.map-stops > span {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #231a17;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 2px solid #fff;
+}
+.leaflet-container { background: #f2f1ef; }
+/* Attribution stays visible: just above the bottom sheet, never under it or the tab bar. */
+.wayfinding-map .leaflet-bottom { bottom: var(--map-bottom, 0px); }
+.wayfinding-map .leaflet-control-attribution { border-radius: 0 0.5rem 0.5rem 0; }

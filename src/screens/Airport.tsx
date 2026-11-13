@@ -1,16 +1,14 @@
 import { useState } from 'react'
-import { ChevronLeft, Layers, ListChecks, LocateFixed, Plus, Check, Search, Sparkles, X } from 'lucide-react'
+import { ChevronLeft, ListChecks, Plus, Check, Search, Sparkles } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, getActivities, getAirport, getTemplates } from '../data/mock'
 import { sized } from '../data/images'
 import { budget, fmtDur, layoverMinutesAt, timeSpan } from '../data/time'
 import { ActionBar, ActivityRow, ActivitySheet, Button, CATEGORIES, Chip, ChipRow, Photo, cx, IconButton } from '../components/ui'
-import { AirportMap, zoneOf, type Zone } from '../components/AirportMap'
-import { AIRPORT_GEO, terminalKeysOf } from '../data/airportGeo'
+import { MapView } from '../features/wayfinding/MapView'
 import type { Category } from '../data/types'
 
 type View = 'map' | 'list'
-const ZONES: Zone[] = ['all', 'Airside', 'Landside']
 
 /** Discover a layover airport. List first (curated itineraries, then activities); the map shows the real airport
  *  with a pin per terminal behind a toggle. Planning state lives in the store, so switching views keeps everything. */
@@ -19,11 +17,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
   const ap = getAirport(code)
   const [view, setView] = useState<View>(initialView ?? 'list')
   const [cat, setCat] = useState<'All' | Category>('All')
-  const [zone, setZone] = useState<Zone>('all')
-  const [focusId, setFocusId] = useState<string | null>(null)
-  const [terminal, setTerminal] = useState<string | null>(null)
   const startTrip = (templateId?: string) => go({ name: 'trip', airport: code, templateId })
-  const [details, setDetails] = useState<string | null>(null)
 
   const acts = getActivities(code)
   const ready = !!draft && draft.airport === code
@@ -31,9 +25,6 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
   const planned = ready ? draft!.activityIds : picked?.airport === code ? picked.ids : []
   const items = planned.map((id) => ACTIVITIES.find((a) => a.id === id)!).filter(Boolean)
   const b = ready ? budget(layoverMinutesAt(draft!.arrival, draft!.departure, ap.timezone), draft!.bufferMin, items) : null
-  const focus = acts.find((a) => a.id === focusId) ?? null
-  const tSel = AIRPORT_GEO[code]?.terminals.find((t) => t.key === terminal) ?? null
-  const unpinned = acts.filter((a) => !terminalKeysOf(code, a.terminal).length).length
 
   const toggle = (id: string) => {
     if (!ready || !draft) { setPicked({ airport: code, ids: planned.includes(id) ? planned.filter((x) => x !== id) : [...planned, id] }); return }
@@ -67,80 +58,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
     </div>
   )
 
-  if (view === 'map') {
-    const showMapAction = ready ? items.length > 0 : !focus
-    return (
-      <div className="relative -mb-[var(--nav-h)] flex min-h-dvh flex-col">
-        {/* min height keeps every marker visible above the sheet on short phones; the page scrolls instead */}
-        <div className="relative min-h-[28rem] flex-1">
-          <AirportMap airport={code} activities={acts} planned={planned} terminal={terminal} onTerminal={(k) => { setTerminal(k); setFocusId(null) }} focusId={focusId} onFocus={setFocusId} cat={cat} zone={zone} />
-          {bar}
-          <div className="absolute right-3 top-[11.5rem] z-20 grid gap-2">
-            <button onClick={() => setZone(ZONES[(ZONES.indexOf(zone) + 1) % 3])} aria-label={`Map layers: ${zone === 'all' ? 'all zones' : zone}. Tap to change.`}
-              className={cx('grid size-12 place-items-center rounded-full', zone === 'all' ? 'glass-dark' : 'bg-white text-[#2a1b18]')}><Layers size={22} /></button>
-            <IconButton label="Reset map" icon={LocateFixed} tone="dark" onClick={() => { setFocusId(null); setTerminal(null); setCat('All'); setZone('all') }} />
-          </div>
-          {zone !== 'all' && <p className="glass-dark absolute right-[4.25rem] top-[11.75rem] z-20 rounded-full px-3 py-1.5 text-cap">{zone} only</p>}
-        </div>
-
-        {/* Floating preview / summary sheet */}
-        <div className={cx("glass-medium relative z-20 -mt-6 rounded-t-tray !border-b-0 px-4 pt-3", showMapAction ? "pb-[calc(var(--nav-h)+5.5rem)]" : "pb-[calc(var(--nav-h)+0.25rem)]")}>
-          <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-ink/20" />
-          {focus ? (
-            <div>
-              <div className="flex items-center gap-3">
-                <span className="ph relative size-[3.75rem] shrink-0 overflow-hidden rounded-control"><Photo img={focus.image} w={60} h={60} className="absolute inset-0 size-full" /></span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-card font-semibold leading-tight">{focus.name}</p>
-                  <p className="text-sub text-muted-text">{fmtDur(focus.durationMin)} · {focus.costLabel} · {focus.category}</p>
-                  <p className="text-cap text-muted-text">{[focus.terminal, focus.access === 'Unverified' ? null : focus.access].filter(Boolean).join(' · ')}{focus.leavesAirport ? ' · leaves airport' : ''}</p>
-                </div>
-                <IconButton label="Close preview" icon={X} tone="plain" size="sm" iconSize={18} onClick={() => setFocusId(null)} />
-              </div>
-              {b && !planned.includes(focus.id) && focus.durationMin > b.remaining && (
-                <p role="alert" className="mt-2 text-sub font-medium text-error">Adds {fmtDur(focus.durationMin - Math.max(b.remaining, 0))} beyond your usable time.</p>)}
-              <div className="mt-3 flex gap-2">
-                <Button variant={planned.includes(focus.id) ? 'secondary' : 'primary'} className="flex-1" icon={planned.includes(focus.id) ? Check : Plus} onClick={() => toggle(focus.id)}>
-                  {planned.includes(focus.id) ? (ready ? 'Added' : 'Selected') : ready ? 'Add to itinerary' : 'Select'}</Button>
-                <Button variant="secondary" onClick={() => setDetails(focus.id)}>Details</Button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              {(
-                <>
-                  <div className="flex items-center gap-2">
-                    <p className="min-w-0 flex-1 text-card font-semibold leading-tight">{tSel ? `${tSel.name} · ${ap.city}` : ap.name}</p>
-                    {tSel && <button onClick={() => setTerminal(null)} className="min-h-9 shrink-0 rounded-full bg-ink-tint px-3 text-cap font-semibold ring-1 ring-line">All terminals</button>}
-                  </div>
-                  <p className="mt-0.5 text-sub text-muted-text">
-                    {b ? `${fmtDur(b.usable)} usable · ${items.length} planned · ${b.over ? 'over by ' + fmtDur(-b.remaining) : fmtDur(b.remaining) + ' left'}` : `${items.length ? items.length + ' selected · ' : ''}Set your layover times to check what fits.`}</p>
-                  <ul className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Activities at this airport">
-                    {acts.filter((a) => (cat === 'All' || a.category === cat) && (zone === 'all' || zoneOf(a) === zone) && (!terminal || terminalKeysOf(code, a.terminal).includes(terminal))).map((a) => (
-                      <li key={a.id} className="shrink-0">
-                        <button onClick={() => setFocusId(a.id)} className={cx('press flex w-[13.5rem] items-center gap-2.5 rounded-control border p-2 text-left', planned.includes(a.id) ? 'border-accent/70 bg-accent-tint' : 'border-line bg-ink-tint')}>
-                          <span className="ph relative size-12 shrink-0 overflow-hidden rounded-xl"><Photo img={a.image} w={48} h={48} className="absolute inset-0 size-full" /></span>
-                          <span className="min-w-0"><span className="block truncate text-sub font-semibold">{a.name}</span>
-                            <span className="block text-cap text-muted-text">{fmtDur(a.durationMin)}{planned.includes(a.id) ? (ready ? ' · added' : ' · selected') : ''}</span></span>
-                        </button>
-                      </li>))}
-                  </ul>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-        {showMapAction && (
-          <ActionBar>
-            {ready
-              ? <Button className="w-full" onClick={() => go({ name: 'builder' })}>{focus ? 'Review' : 'Build'} itinerary ({items.length})</Button>
-              : <Button className="w-full" onClick={() => startTrip()}>{items.length ? `Set layover times (${items.length} selected)` : 'Set my layover times'}</Button>}
-          </ActionBar>
-        )}
-        <ActivitySheet a={acts.find((a) => a.id === details) ?? null} onClose={() => setDetails(null)} />
-      </div>
-    )
-  }
+  if (view === 'map') return <MapView {...{ code, bar, acts, planned, ready, b, cat, toggle, startTrip }} />
 
   return <List {...{ code, bar, ready, planned, b, toggle, applyItinerary, startTrip, cat, setCat }} />
 }

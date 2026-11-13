@@ -391,6 +391,60 @@ try {
   check('access: reduced motion shows a still composition', await rm.page.evaluate(() => [...document.querySelectorAll('.access__orbit, .access__blob, .access__strip')].every((e) => getComputedStyle(e).animationName === 'none')));
   await rm.ctx.close();
 
+  // ---- 4d. Map wayfinding (Changi pilot): clustering, directions, honesty, layout; Lisbon fallback
+  {
+    const wf = await newGuest();
+    const P = wf.page;
+    const toChangiMap = async () => {
+      await P.getByRole('button', { name: 'Airports', exact: true }).first().click();
+      await P.getByRole('button', { name: /Changi/ }).first().click(); await P.getByRole('tab', { name: 'map' }).click();
+      await P.locator('.map-pin').first().waitFor(); await P.waitForTimeout(700);
+    };
+    await P.goto(BASE);
+    await toChangiMap();
+    const pinsApart = await P.evaluate(() => { const r = [...document.querySelectorAll('.map-pin')].map((e) => e.getBoundingClientRect()); for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i], b = r[j]; if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) return false; } return r.length > 0; });
+    check('wayfinding: terminal pins never overlap (close terminals merge into a cluster)', pinsApart);
+    check('wayfinding: no floor control (no floor data)', (await P.getByRole('button', { name: /floor|level/i }).count()) === 0);
+    // Plan: two venues in different areas, arrival T1, departure T3
+    await P.getByRole('tab', { name: 'list' }).click();
+    await P.getByRole('button', { name: /^(Select|Add) Butterfly Garden/ }).click();
+    await P.getByRole('button', { name: /^(Select|Add) Jewel Rain Vortex/ }).click();
+    await P.getByRole('button', { name: /Set layover times/ }).first().click();
+    await P.getByLabel(/Arrival/).first().fill(`${day(7)}T08:00`); await P.getByLabel(/departure/i).first().fill(`${day(7)}T20:00`);
+    await P.getByRole('button', { name: 'Build my itinerary' }).click();
+    await P.getByRole('button', { name: /^Arriving at Terminal 1/ }).click();
+    await P.getByRole('button', { name: /^Departing from Terminal 3/ }).click();
+    await toChangiMap();
+    await P.getByRole('button', { name: 'How to get there' }).click();
+    const dir = P.locator('section[aria-label="Directions"]');
+    await dir.getByText('Step 1 of 3').waitFor();
+    check('wayfinding: "How to get there" opens step 1 of 3 (arrival T1 → Butterfly Garden T3) with its published time', (await dir.innerText()).includes('Arrival (T1 transit) → Butterfly Garden') && await dir.getByText('Published time').first().isVisible() && await dir.getByText(/5–10 min/).first().isVisible());
+    await dir.getByRole('button', { name: 'Next step' }).click();
+    check('wayfinding: Next step moves to step 2, flagged with arrival immigration (no waiting time given)', (await dir.innerText()).includes('Step 2 of 3') && /Arrival immigration/.test(await dir.innerText()));
+    check('wayfinding: the selected leg\'s ends are highlighted on the map', await P.locator('.map-pin[data-state="to"]').count() >= 1);
+    check('wayfinding: no route line is drawn without documented path geometry', (await P.locator('.leaflet-overlay-pane path').count()) === 0);
+    await dir.getByRole('button', { name: 'All steps' }).click();
+    const all = (await dir.innerText()).replace(/\s+/g, ' ');
+    check('wayfinding: all steps list arrival, both stops and departure, and say why no lines are drawn', /Arrival.*Butterfly Garden.*Jewel Rain Vortex.*Departure/.test(all) && all.includes('No route lines are drawn') && /departure immigration and security/i.test(all), all.slice(0, 160));
+    await P.waitForTimeout(600);
+    const lay = await P.evaluate(() => {
+      const sheet = document.querySelector('section[aria-label="Directions"]').getBoundingClientRect(), nav = document.querySelector('nav[aria-label="Primary"] > div').getBoundingClientRect();
+      const ctrl = Math.max(0, ...[...document.querySelectorAll('.map-glass.press')].filter((e) => getComputedStyle(e).visibility !== 'hidden').map((e) => e.getBoundingClientRect().bottom));
+      const attr = document.querySelector('.leaflet-control-attribution').getBoundingClientRect();
+      return { sheetAboveNav: sheet.bottom <= nav.top, ctrlAboveSheet: ctrl <= sheet.top, attributionVisible: attr.bottom <= sheet.top + 1 && attr.height > 0, sideways: document.documentElement.scrollWidth > innerWidth };
+    });
+    check('wayfinding: sheet above the tab bar, controls and map credit above the sheet, no sideways scroll', lay.sheetAboveNav && lay.ctrlAboveSheet && lay.attributionVisible && !lay.sideways, JSON.stringify(lay));
+    await dir.getByRole('button', { name: 'Back to the map' }).click();
+    check('wayfinding: back to the map keeps the itinerary', await visible(P, '2 planned'));
+    // Lisbon: no transfer data, so no directions button and an honest note
+    await P.getByRole('button', { name: 'Airports', exact: true }).first().click();
+    await P.getByRole('button', { name: /Lisbon/ }).first().click(); await P.getByRole('tab', { name: 'map' }).click();
+    await P.locator('.map-pin').first().click();
+    await P.getByRole('button', { name: /ANA Lounge/ }).first().click();
+    check('wayfinding: Lisbon venue shows no directions button and says why', (await P.getByRole('button', { name: 'How to get there' }).count()) === 0 && await visible(P, "Directions aren't available"));
+    await wf.ctx.close();
+  }
+
   // ---- 4c. Changi constraint-aware itinerary (scenarios A–F)
   {
     const c = await newGuest();

@@ -142,6 +142,11 @@ content scrolls clear of the floating tab bar and action bar; insets via `--safe
 On desktop-class browsers (fine pointer, ≥ 820 px) the app loads in an iframe at 390 × 844 inside a phone silhouette
 (`src/DeviceFrame.tsx`), scaled to the window; `?frame=off` opens it without the frame. Phones get the app full screen.
 
-## Airport map
-Leaflet + CARTO Voyager tiles (OSM fallback; attribution always visible). Zoomed out: one bubble per terminal; zoomed
-in: approximate venue pins inside their terminal, laid out without overlaps. Not for navigation.
+## Airport map and wayfinding
+A clean light map (CARTO light, OSM fallback) inside the app's theme. Map chrome uses `map-glass` (light, glossy, dark
+text whatever the app theme) from `src/features/wayfinding/map.css`: terminal pins (capsule above the true point with a
+pointer and dot; coral when selected or the leg's end; coral ring for the leg's start), cluster pins, numbered stop
+badges, and round map buttons. One bottom sheet (`glass-medium`) floats above the tab bar; controls and attribution sit
+above it. Route lines (coral over a white casing) are drawn only from documented path geometry, and none exists yet.
+Leg status labels: Published time (success), Estimate (amber), No directions (neutral). Full rules and data findings:
+`docs/WAYFINDING.md`.

@@ -31,6 +31,8 @@ export type HopKind = 'same-area' | 'route' | 'unknown'
 export interface Hop {
   kind: HopKind
   fromLabel: string; toLabel: string
+  /** location the move starts from, if known */
+  fromLocation?: string
   /** location chosen for the destination stop (for multi-location venues), if known */
   toLocation?: string
   min: number; max: number
@@ -88,19 +90,19 @@ const locName = (g: TransferGraph, id: string) => g.locations.find((l) => l.id =
 /** Best move from any of `froms` to any of `tos` (venues may exist in several terminals). */
 function hop(g: TransferGraph, froms: string[], tos: string[], fromLabel: string, toLabel: string, isReturn: boolean): Hop {
   const base = { fromLabel, toLabel, isReturn, immigration: false, departureChecks: false, throughCheck: false, notes: [] as string[], sources: [] as string[], modes: [] as string[] }
-  let best: { p: Path; to: string } | null = null
+  let best: { p: Path; to: string; from: string } | null = null
   for (const f of froms) for (const t of tos) {
     const p = shortestPath(g, f, t)
-    if (p && (!best || p.max < best.p.max)) best = { p, to: t }
+    if (p && (!best || p.max < best.p.max)) best = { p, to: t, from: f }
   }
   if (!best) return { ...base, kind: 'unknown', min: 0, max: 0, verification: 'none' }
   if (best.p.edges.length === 0) {
-    return { ...base, kind: 'same-area', toLocation: best.to, min: WITHIN_AREA.min, max: WITHIN_AREA.max, verification: 'planning_estimate',
+    return { ...base, kind: 'same-area', fromLocation: best.from, toLocation: best.to, min: WITHIN_AREA.min, max: WITHIN_AREA.max, verification: 'planning_estimate',
       modes: ['walk'], notes: [`Within the ${locName(g, best.to)}: no published walking time.`] }
   }
   const es = best.p.edges
   return {
-    ...base, kind: 'route', toLocation: best.to, min: best.p.min, max: best.p.max,
+    ...base, kind: 'route', fromLocation: best.from, toLocation: best.to, min: best.p.min, max: best.p.max,
     verification: es.every((e) => e.verification === 'official') ? 'official' : 'planning_estimate',
     modes: es.map((e) => e.mode), immigration: es.some((e) => e.immigration), departureChecks: es.some((e) => e.departureChecks),
     throughCheck: es.some((e) => e.throughCheck), notes: es.map((e) => e.note).filter(Boolean), sources: [...new Set(es.map((e) => e.source).filter((s): s is string => !!s))],
