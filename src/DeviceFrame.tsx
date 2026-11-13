@@ -42,10 +42,10 @@ export function DeviceFrame() {
   return (
     <div className="flex h-dvh flex-col">
       <div className="flex h-12 shrink-0 items-center justify-center px-4">
-        <div role="group" aria-label="Preview size" className="inline-flex gap-0.5 rounded-full border border-line bg-white p-0.5">
+        <div role="group" aria-label="Preview size" className="inline-flex gap-0.5 rounded-full glass p-0.5">
           {[{ label: 'Mobile', value: true }, { label: 'Fullscreen', value: false }].map(({ label, value }) => (
             <button key={label} type="button" aria-pressed={mobile === value} onClick={() => setMobile(value)}
-              className={`min-h-8 rounded-full px-3 text-cap font-semibold ${mobile === value ? 'bg-accent-tint text-accent-dark' : 'text-muted-text hover:bg-canvas'}`}>
+              className={`min-h-8 rounded-full px-3 text-cap font-semibold ${mobile === value ? 'bg-accent-tint text-accent-dark' : 'text-muted-text hover:bg-ink-tint'}`}>
               {label}
             </button>
           ))}
@@ -56,7 +56,7 @@ export function DeviceFrame() {
           <div className="absolute left-0 top-0 origin-top-left" style={mobile
             ? { width: outerWidth, height: outerHeight, transform: `scale(${scale})` }
             : { width: '100%', height: '100%' }}>
-            {mobile && <div aria-hidden="true" className="absolute inset-0 rounded-[3.6rem] bg-[#1b1514] shadow-[0_20px_55px_rgb(70_35_25/0.28)]" />}
+            {mobile && <div aria-hidden="true" className="absolute inset-0 rounded-[3.6rem] bg-[#0b0706] shadow-[0_30px_80px_rgb(0_0_0/0.6),0_0_120px_-20px_rgb(234_81_57/0.35)] ring-1 ring-white/12" />}
             <div className={mobile ? 'absolute overflow-hidden rounded-[2.85rem] bg-canvas' : 'absolute inset-0'}
               style={mobile ? { left: BEZEL, top: BEZEL, width: SCREEN_W, height: SCREEN_H } : undefined}>
               <iframe ref={app} title="SkyStop app" src={src} onLoad={syncInsets} className="block size-full border-0" />

@@ -124,7 +124,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-sub text-muted-text">Layover guides:</span>
               {AIRPORTS.map((a) => (
-                <button key={a.code} type="button" onClick={() => setConn(a.code)} className="press min-h-11 rounded-full border border-line bg-white px-4 text-sub font-medium">{a.city} {a.code}</button>))}
+                <button key={a.code} type="button" onClick={() => setConn(a.code)} className="press min-h-11 rounded-full border border-line bg-ink-tint px-4 text-sub font-medium">{a.city} {a.code}</button>))}
             </div>
           ) : !supported && <p className="mt-2 text-sub text-muted-text">No activity guide for this airport yet. You can still see your time budget.</p>}
 
@@ -154,7 +154,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           <div className="grid grid-cols-3 gap-1 rounded-full bg-ink-tint p-1 ring-1 ring-line">
             {BUFFERS.map((m) => (
               <button type="button" key={m} aria-pressed={buf === m} onClick={() => setBuf(m)}
-                className={cx('press min-h-12 rounded-full text-body font-semibold transition-colors', buf === m ? 'bg-white text-ink shadow-[0_4px_12px_rgb(70_35_25/0.14)]' : 'text-muted-text')}>{fmtDur(m)}</button>))}
+                className={cx('press min-h-12 rounded-full text-body font-semibold transition-colors', buf === m ? 'pill-on' : 'text-muted-text')}>{fmtDur(m)}</button>))}
           </div>
         </fieldset>
 

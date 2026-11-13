@@ -71,30 +71,43 @@ export function Home() {
     .sort((a, b) => a.durationMin - b.durationMin).slice(0, term || cat !== 'All' ? 8 : 6)
   const filtering = !!term || cat !== 'All'
 
+  const heroImg = trip ? getAirport(trip.airport).image : IMAGES.hero
   return (
-    <div className="pb-8">
-      <div className="px-5 pt-[calc(var(--safe-top)+0.5rem)]">
+    <div className="relative pb-8">
+      {/* Full-bleed photograph behind the header: the next stop's airport, or a wing above the clouds. It melts into
+          the dusk canvas so the content below reads as one continuous surface. */}
+      <div aria-hidden="true" className="ph pointer-events-none absolute inset-x-0 top-0 h-[27rem] overflow-hidden">
+        <img src={sized(heroImg, 900, 860)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[70%] bg-gradient-to-t from-canvas via-canvas/75 to-transparent" />
+      </div>
+      <div className="relative px-5 pt-[calc(var(--safe-top)+0.5rem)]">
         {/* profile (photo) and greeting on the left, notifications on the right; the big question below */}
         <div className="flex items-center justify-between gap-3">
           <button onClick={() => go({ name: 'profile' })} aria-label="Profile" className="press flex min-w-0 items-center gap-3 text-left">
             {photo
-              ? <img src={photo} alt="" className="size-12 shrink-0 rounded-full object-cover ring-2 ring-white shadow-md" />
+              ? <img src={photo} alt="" className="size-12 shrink-0 rounded-full object-cover ring-2 ring-white/80 shadow-md" />
               : <span className="btn-coral grid size-12 shrink-0 place-items-center rounded-full"><UserRound size={22} /></span>}
-            <span className="min-w-0 truncate text-body text-muted-text">{greeting()}{account.status === 'registered' && account.name ? <>, <b className="font-semibold text-ink">{account.name.split(' ')[0]}</b></> : ''}</span>
+            <span className="min-w-0 truncate text-body text-white/85 [text-shadow:0_1px_10px_rgb(0_0_0/0.4)]">{greeting()}{account.status === 'registered' && account.name ? <>, <b className="font-semibold text-white">{account.name.split(' ')[0]}</b></> : ''}</span>
           </button>
-          <button onClick={() => setNotice('No new notifications')} aria-label="Notifications" className="glass press relative grid size-12 shrink-0 place-items-center rounded-full">
+          <button onClick={() => setNotice('No new notifications')} aria-label="Notifications" className="glass-dark press relative grid size-12 shrink-0 place-items-center rounded-full">
             <Bell size={20} />
           </button>
         </div>
-        {plans.length === 0 && <h1 className="mt-5 text-title font-bold">Where’s your<br />next stop?</h1>}
+        {plans.length === 0 ? (
+          <div className="pt-[7.5rem]">
+            <p className="text-sub font-semibold uppercase tracking-[0.14em] text-aqua">Layover planner</p>
+            <h1 className="mt-2 text-display font-bold text-white [text-shadow:0_2px_18px_rgb(0_0_0/0.35)]">Where’s your<br />next stop?</h1>
+          </div>
+        ) : <div className="h-14" />}
       </div>
 
 
-      <div className="mt-6 px-5">
+      <div className="relative mt-6 px-5">
         {/* With no saved flights at all, Home goes straight to Add flight / Compare flights (no empty section). */}
         {plans.length > 0 && (<>
         <div className="mb-3 flex items-end justify-between">
-          <h2 className="text-h2 font-bold">My flights</h2>
+          <h2 className="text-h2 font-bold text-white [text-shadow:0_1px_12px_rgb(0_0_0/0.35)]">My flights</h2>
           <button onClick={() => go({ name: 'flights' })} className="min-h-11 text-body font-medium text-accent-dark">See all{plans.length > 1 ? ` (${plans.length})` : ''}</button>
         </div>
         {upcoming.length > 0 ? (
@@ -104,18 +117,18 @@ export function Home() {
         )}
         </>)}
         <div className={plans.length > 0 ? 'mt-4 grid grid-cols-2 gap-3' : 'grid grid-cols-2 gap-3'}>
-          <button onClick={() => go({ name: 'booking' })} className="btn-coral press flex min-h-[6.25rem] flex-col items-start justify-between gap-2 rounded-card p-3.5 text-left">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/20"><Plus size={19} /></span>
+          <button onClick={() => go({ name: 'booking' })} className="btn-coral press flex min-h-[7rem] flex-col items-start justify-between gap-2 rounded-surface p-4 text-left">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/22 ring-1 ring-white/30"><Plus size={20} /></span>
             <span className="min-w-0"><b className="block text-body font-semibold leading-tight">Add flight</b><span className="block text-cap text-white/85">Already booked</span></span>
           </button>
-          <button onClick={() => go({ name: 'find' })} className="panel press flex min-h-[6.25rem] flex-col items-start justify-between gap-2 rounded-card p-3.5 text-left">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><Compass size={19} /></span>
+          <button onClick={() => go({ name: 'find' })} className="glass press flex min-h-[7rem] flex-col items-start justify-between gap-2 rounded-surface p-4 text-left">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark ring-1 ring-accent/30"><Compass size={20} /></span>
             <span className="min-w-0"><b className="block text-body font-semibold leading-tight">Compare flights</b><span className="block text-cap text-muted-text">Not booked yet</span></span>
           </button>
         </div>
       </div>
 
-      <div className="px-5">
+      <div className="relative px-5">
         <Heading action={<button onClick={() => switchTab('airports')} className="min-h-11 text-body font-medium text-accent-dark">See all</button>}>Things to do</Heading>
         <div className="mb-3"><ChipRow>
           {CATEGORIES.map((c) => { const I = CAT_ICONS[c]; return <Chip key={c} active={cat === c} onClick={() => setCat(c)}><I size={16} />{c}</Chip> })}
@@ -209,17 +222,17 @@ export function FindFlight() {
       </div>
       <form id="find" className="mt-5 px-5" onSubmit={(e) => { e.preventDefault(); if (origin && dest && !same) go({ name: 'results', origin, destination: dest, date }) }}>
         <div className="panel-accent relative rounded-surface p-2">
-          <div className="rounded-card bg-white px-4 py-2.5 ring-1 ring-line">
+          <div className="field rounded-card px-4 py-2.5">
             <Field label="Flying from"><select className={sel} value={origin} onChange={(e) => setOrigin(e.target.value)}>{opts}</select></Field>
           </div>
           <div className="relative h-2">
-            <button type="button" onClick={swap} aria-label="Swap cities" className="press absolute right-5 top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-ink text-white shadow-[0_6px_16px_rgb(35_26_23/0.25)]">
+            <button type="button" onClick={swap} aria-label="Swap cities" className="pill-on press absolute right-5 top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full">
               <ArrowUpDown size={18} /></button>
           </div>
-          <div className="rounded-card bg-white px-4 py-2.5 ring-1 ring-line">
+          <div className="field rounded-card px-4 py-2.5">
             <Field label="Flying to"><select className={sel} value={dest} onChange={(e) => setDest(e.target.value)}>{opts}</select></Field>
           </div>
-          <div className="mt-2 rounded-card bg-white px-4 py-2.5 ring-1 ring-line">
+          <div className="field mt-2 rounded-card px-4 py-2.5">
             <Field label="Departure date"><input type="date" required className={sel} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
           </div>
         </div>

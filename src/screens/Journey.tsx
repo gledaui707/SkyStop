@@ -38,7 +38,7 @@ export function FindJourney() {
         <form className="panel grid grid-cols-[minmax(0,1fr)] gap-6 rounded-surface p-5" onSubmit={(e) => { e.preventDefault(); submit() }} noValidate>
           <div className="grid grid-cols-[minmax(0,1fr)] gap-2.5">
           <label htmlFor="booking-ref" className="text-sub font-semibold text-ink">Booking reference</label>
-          <div className={cx('flex min-h-16 items-center gap-3 rounded-control border bg-white px-4 transition-colors focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15', error ? 'border-error' : 'border-[rgb(35_26_23/0.16)]')}>
+          <div className={cx('field flex min-h-16 items-center gap-3 rounded-control px-4 transition-colors focus-within:!border-accent-dark focus-within:ring-4 focus-within:ring-accent/25', error && '!border-error')}>
             <Search size={22} className="shrink-0 text-muted" aria-hidden="true" />
             <input id="booking-ref" size={1} value={ref} maxLength={8} autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text"
               aria-invalid={!!error} aria-describedby={error ? 'ref-error' : 'ref-help'}
@@ -109,7 +109,7 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
   }
   const Stop = ({ code, label, at, strong }: { code: string; label: string; at: string; strong?: boolean }) => (
     <div className="relative pl-9">
-      <span className={cx('absolute left-0 top-1 grid size-6 place-items-center rounded-full ring-4 ring-canvas', strong ? 'btn-coral' : 'bg-ink text-white')}><Plane size={12} className="-rotate-45" /></span>
+      <span className={cx('absolute left-0 top-1 grid size-6 place-items-center rounded-full ring-4 ring-canvas', strong ? 'btn-coral' : 'pill-on')}><Plane size={12} className="-rotate-45" /></span>
       <p className="text-cap text-muted-text">{label} · {day(at)}</p>
       <p className="text-card font-bold"><span className="tabular-nums">{time(at)}</span> <span className="font-semibold">{code}</span> <span className="text-body font-normal text-muted-text">{city(code)}</span></p>
     </div>

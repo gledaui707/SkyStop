@@ -113,7 +113,7 @@ export function AirportMap({ airport, activities, planned, terminal, onTerminal,
         const { key, box } = it
         if (it.kind === 'tlabel') return (
           <span key={key} aria-hidden="true" style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
-            className="pointer-events-none absolute z-[6] grid place-items-center rounded-full bg-white/80 text-cap font-bold text-ink/70 ring-1 ring-ink/10">{it.t!.name}</span>)
+            className="pointer-events-none absolute z-[6] grid place-items-center rounded-full bg-white/80 text-cap font-bold text-deep/70 ring-1 ring-deep/10">{it.t!.name}</span>)
         const t = it.t!
         const list = activities.filter((a) => terminalKeysOf(airport, a.terminal).includes(t.key))
         const shown = list.filter(matches)
@@ -127,7 +127,7 @@ export function AirportMap({ airport, activities, planned, terminal, onTerminal,
             aria-label={`${t.name}: ${empty ? 'no listed venues' : `${shown.length} of ${list.length} venues`}${inPlan ? `, ${inPlan} in your itinerary` : ''}`}
             style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
             className={cx('absolute z-10 flex items-center justify-center gap-1.5 rounded-full border-2 shadow-lg transition-colors',
-              empty ? 'border-white bg-white/90 text-muted-text' : selected ? 'border-white bg-accent text-white' : 'border-white bg-ink text-white',
+              empty ? 'border-white bg-white/90 text-[#6b5f59]' : selected ? 'border-white bg-accent text-white' : 'border-white bg-deep text-white',
               !empty && shown.length === 0 && 'opacity-40')}>
             <span className="text-sub font-bold">{t.short}</span>
             {!empty && <span className="grid h-6 min-w-6 place-items-center rounded-full bg-white/20 px-1 text-cap font-semibold tabular-nums">{shown.length}</span>}

@@ -32,14 +32,14 @@ export function MyFlights() {
     const ap = getAirport(p.airport), n = p.activityIds.length
     const route = !!(p.origin && p.destination)
     return (
-      <li className="relative overflow-hidden rounded-card bg-white shadow-[0_6px_20px_rgb(70_35_25/0.07)] ring-1 ring-[rgb(35_26_23/0.06)]">
+      <li className="panel relative overflow-hidden rounded-card">
         <button onClick={() => go({ name: 'plan', id: p.id })} className="press block w-full px-4 pb-3.5 pt-4 pr-14 text-left"
           aria-label={`${route ? `${p.origin} to ${p.destination} via ${p.airport}` : `Connection at ${p.airport}`}, ${day(p.arrival)}`}>
           {route ? (
             <span className="flex items-center gap-2 text-h1 font-bold leading-none tracking-[-0.03em]">
               {p.origin}<span aria-hidden="true" className="flex min-w-6 flex-1 items-center gap-1 text-ink">
-                <span className="h-0 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.25)]" /><Plane size={16} fill="currentColor" className="rotate-45" />
-                <span className="h-0 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.25)]" /></span>{p.destination}
+                <span className="h-0 flex-1 border-t-[1.5px] border-dashed border-white/30" /><Plane size={16} fill="currentColor" className="rotate-45" />
+                <span className="h-0 flex-1 border-t-[1.5px] border-dashed border-white/30" /></span>{p.destination}
             </span>
           ) : <span className="block text-h1 font-bold leading-none tracking-[-0.03em]">{ap.code}</span>}
           <span className="mt-2 block text-sub text-ink">{route ? <>via <b className="font-semibold">{ap.code}</b> · {airportInfo(p.airport)?.city ?? ap.city}</> : <>Connection in {ap.city}</>}</span>

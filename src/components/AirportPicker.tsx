@@ -32,7 +32,7 @@ export function AirportPicker({ label, value, onChange, placeholder, exclude = [
   return (
     <div className="min-w-0" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false) }}>
       <label htmlFor={id} className="mb-1.5 block text-sub font-medium text-muted-text">{label}</label>
-      <div className={cx('flex min-h-[3.25rem] items-center gap-2 rounded-control border bg-white px-4 transition-colors focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15', sel ? 'border-accent/60' : 'border-[rgb(35_26_23/0.16)]')}>
+      <div className={cx('field flex min-h-[3.25rem] items-center gap-2 rounded-control px-4 transition-colors focus-within:!border-accent-dark focus-within:ring-4 focus-within:ring-accent/25', sel && '!border-accent-dark/60')}>
         {sel ? <span className="btn-coral grid size-6 shrink-0 place-items-center rounded-full"><Check size={14} strokeWidth={3} /></span> : <Search size={20} className="shrink-0 text-muted" />}
         <input id={id} role="combobox" aria-expanded={open} aria-controls={`${id}-list`} autoComplete="off" autoFocus={autoFocus}
           value={open || !sel ? query : `${sel.city} (${sel.code})`}
@@ -43,7 +43,7 @@ export function AirportPicker({ label, value, onChange, placeholder, exclude = [
           className="min-h-[3.25rem] min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-muted" />
       </div>
       {open && (
-        <ul id={`${id}-list`} role="listbox" aria-label={`${label} suggestions`} className="glass anim-fade mt-2 overflow-hidden rounded-control">
+        <ul id={`${id}-list`} role="listbox" aria-label={`${label} suggestions`} className="glass-medium anim-fade mt-2 overflow-hidden rounded-control">
           {matches.length === 0 && <li className="px-4 py-3 text-body text-muted-text">No match. Type a 3-letter airport code to enter it manually.</li>}
           {matches.map((a) => (
             <li key={a.code} role="option" aria-selected={value === a.code} aria-disabled={blocked(a)}>

@@ -29,7 +29,7 @@ export function TripTicket({ plan, onView }: Props) {
   const caption = 'mt-1.5 block whitespace-nowrap text-tab leading-tight text-muted-text'
 
   return (
-    <article aria-label="Upcoming trip" className="relative overflow-hidden rounded-surface bg-white text-ink shadow-[0_10px_30px_rgb(70_35_25/0.09)] ring-1 ring-[rgb(35_26_23/0.06)]">
+    <article aria-label="Upcoming trip" className="glass-premium relative overflow-hidden rounded-surface text-ink">
       <section aria-label={hasRoute ? `Journey ${plan.origin} to ${plan.destination} via ${ap.code}` : `Connection at ${ap.code}`} className="px-5 pb-5 pt-5">
         {/* names at opposite ends */}
         <div className="flex justify-between gap-3">
@@ -43,9 +43,9 @@ export function TripTicket({ plan, onView }: Props) {
           <span className="flex min-w-0 flex-col items-center" aria-label={`Transit ${ap.code}, ${fmtDur(total)} layover`}>
             <span className="btn-coral rounded-lg px-2 py-0.5 text-cap font-bold leading-tight tracking-[0.02em]">{ap.code}</span>
             <span aria-hidden="true" className="mt-1 flex w-full min-w-0 items-center gap-1.5 text-ink/75">
-              <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.5)]" />
+              <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-white/40" />
               <Plane size={24} strokeWidth={1} fill="currentColor" className="shrink-0 rotate-45" />
-              <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.5)]" />
+              <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-white/40" />
             </span>
             <span className="mt-0.5 whitespace-nowrap text-cap font-medium tabular-nums text-ink/60">{fmtDur(total)}</span>
           </span>
@@ -64,9 +64,9 @@ export function TripTicket({ plan, onView }: Props) {
 
       {/* boarding-pass tear line */}
       <div aria-hidden="true" className="relative h-0">
-        <span className="absolute -left-3 -top-3 size-6 rounded-full bg-canvas ring-1 ring-[rgb(35_26_23/0.06)]" />
-        <span className="absolute -right-3 -top-3 size-6 rounded-full bg-canvas ring-1 ring-[rgb(35_26_23/0.06)]" />
-        <span className="absolute inset-x-5 top-0 border-t-[1.5px] border-dashed border-[rgb(35_26_23/0.14)]" />
+        <span className="absolute -left-3 -top-3 size-6 rounded-full bg-canvas ring-1 ring-line" />
+        <span className="absolute -right-3 -top-3 size-6 rounded-full bg-canvas ring-1 ring-line" />
+        <span className="absolute inset-x-5 top-0 border-t-[1.5px] border-dashed border-white/20" />
       </div>
 
       <section aria-label="Layover" className="px-5 pb-5 pt-4">

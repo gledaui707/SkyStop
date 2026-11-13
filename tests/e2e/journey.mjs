@@ -20,9 +20,13 @@ for (let i = 0; i < 50; i++) { try { if ((await fetch(BASE)).ok) break; } catch 
 
 const fake = createFakeSupabase();
 const browser = await chromium.launch();
+// Screen changes are animated with the View Transitions API, which commits the new screen a frame after the click.
+// These checks read the screen straight after clicking, so they run with reduced motion (instant navigation, the same
+// state logic). MOTION=no-preference runs them with animation; `npm run test:layout` always navigates with motion on.
+const MOTION = process.env.MOTION || 'reduce';
 // Returning visitors (onboarding already seen) unless `firstVisit` is set.
-const newGuest = async (viewport, { firstVisit = false, reducedMotion } = {}) => {
-  const ctx = await browser.newContext({ ...devices['iPhone 13'], ...(viewport ? { viewport } : {}), ...(reducedMotion ? { reducedMotion } : {}) });
+const newGuest = async (viewport, { firstVisit = false, reducedMotion = MOTION } = {}) => {
+  const ctx = await browser.newContext({ ...devices['iPhone 13'], ...(viewport ? { viewport } : {}), reducedMotion });
   if (!firstVisit) await ctx.addInitScript(() => { try { localStorage.setItem('skystop.onboarded.v2', '1'); } catch { /* ignore */ } });
   await ctx.route('**://*.supabase.co/**', fake.handler);
   await ctx.route('**://images.unsplash.com/**', (r) => r.abort());
@@ -55,6 +59,7 @@ try {
   await page.getByRole('heading', { name: 'Find your journey' }).waitFor();
   check('"Add flight" opens booking-reference entry first', await page.getByLabel('Booking reference').isVisible() && await page.getByRole('button', { name: "I can't find my flight" }).isVisible());
   await page.getByRole('button', { name: "I can't find my flight" }).click();
+  await page.getByLabel('Connecting airport', { exact: true }).waitFor(); // screen changes commit after the view transition starts
   check('setup is one screen with no numbered steps or tips', !(await visible(page, 'Step 1 of')) && !(await visible(page, 'Tip 1 of')));
   check('connecting airport, arrival, departure and buffer are the primary inputs', await page.getByLabel('Connecting airport', { exact: true }).isVisible() && await page.getByLabel('Arrival at the connecting airport (local time)').isVisible() && await page.getByRole('button', { name: '2h' }).isVisible());
   check('manual setup: origin and destination are optional fields', await page.getByLabel('Flying from (optional)').isVisible() && await page.getByLabel('Final destination (optional)').isVisible());
@@ -179,6 +184,7 @@ try {
   check('booking: journey carried into discovery (usable time shown)', await visible(k.page, '10h 20m'));
   await k.page.getByRole('button', { name: /^Add / }).first().click();
   await k.page.getByRole('button', { name: /Build itinerary \(1\)/ }).click();
+  await k.page.locator('main header', { hasText: 'CGK to CDG' }).waitFor({ timeout: 5000 }).catch(() => {});
   const kbar = await barText(k.page);
   check('booking: builder uses the journey (SIN layover, CGK to CDG)', (await k.page.locator('main header').innerText()).includes('CGK to CDG') && kbar.includes('left'), kbar);
   const before = fake.plans.size;
@@ -233,6 +239,7 @@ try {
   await d.page.getByRole('button', { name: 'Airports', exact: true }).click();
   await d.page.getByRole('button', { name: /Lisbon Airport/ }).first().click();
   await d.page.getByRole('button', { name: 'Use this itinerary' }).click();
+  await d.page.getByText('Itinerary: Market lunch and lounge').waitFor({ timeout: 5000 }).catch(() => {});
   check('itinerary-first: setup names the itinerary', await visible(d.page, 'Itinerary: Market lunch and lounge') && await visible(d.page, 'It will be added to your plan'));
   await setTimes(d.page);
   await d.page.getByRole('button', { name: 'Build my itinerary' }).click();
@@ -274,7 +281,7 @@ try {
 
   // ---- 4b. Onboarding: first visit only, three screens, Next/Back/swipe/keys, Skip, replay, reduced motion
   const signupsBefore = fake.calls.filter((c) => c.includes('/auth/v1/signup')).length;
-  const o = await newGuest(undefined, { firstVisit: true });
+  const o = await newGuest(undefined, { firstVisit: true, reducedMotion: 'no-preference' });
   await o.page.goto(BASE);
   await o.page.getByText('Your layover, reimagined.').waitFor();
   check('onboarding: first visit shows screen 1 with Skip and 3 progress dots', await o.page.getByRole('button', { name: 'Skip' }).isVisible() && (await o.page.getByRole('tab', { name: /Screen \d of 3/ }).count()) === 3);
@@ -344,7 +351,7 @@ try {
     // A visitor who left Account Access without choosing, but has a session by the next launch (e.g. an email link) skips it.
     const guestId = '00000000-0000-4000-8000-0000000acc55';
     fake.accounts.set(guestId, { id: guestId, aud: 'authenticated', role: 'authenticated', is_anonymous: true, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() });
-    const s = await browser.newContext({ ...devices['iPhone 13'] });
+    const s = await browser.newContext({ ...devices['iPhone 13'], reducedMotion: MOTION });
     await s.addInitScript((t) => { localStorage.setItem('skystop.onboarded.v2', '1'); localStorage.setItem('skystop.access.v1', 'pending'); localStorage.setItem('sb-sgwbtgwccskqamzttczz-auth-token', t) }, JSON.stringify(fake.sessionFor(guestId)));
     await s.route('**://*.supabase.co/**', fake.handler);
     const P = await s.newPage(); await P.goto(BASE);
@@ -516,6 +523,7 @@ try {
     // Profile: optional nationality, owner-only
     await G.getByRole('button', { name: 'Home' }).click();
     await G.getByRole('button', { name: 'Profile' }).click();
+    await G.getByRole('button', { name: 'Create account' }).waitFor({ timeout: 5000 }).catch(() => {});
     check('profile: guest status with optional account', await visible(G, 'Guest') && await G.getByRole('button', { name: 'Create account' }).isVisible() && await G.getByRole('button', { name: 'Sign in' }).isVisible());
     await G.getByRole('button', { name: 'What is this?' }).click();
     check('profile: travel-documents help opens from the heading row', await visible(G, 'never decides whether you may enter a country'));
@@ -556,7 +564,7 @@ try {
     check('home: greeting uses the signed-in name', /^Good (night|morning|afternoon|evening), Glenda$/.test((await G.getByText(/^Good (night|morning|afternoon|evening)/).first().innerText()).trim()));
     await G.getByRole('button', { name: 'Profile' }).click();
     // Another device: sign in to the same account
-    const other = await browser.newContext({ ...devices['iPhone 13'] });
+    const other = await browser.newContext({ ...devices['iPhone 13'], reducedMotion: MOTION });
     await other.addInitScript((s) => { localStorage.setItem('skystop.onboarded.v2', '1'); localStorage.setItem('sb-sgwbtgwccskqamzttczz-auth-token', s) }, JSON.stringify(fake.sessionFor(uid)));
     await other.route('**://*.supabase.co/**', fake.handler);
     const O = await other.newPage(); await O.goto(BASE);

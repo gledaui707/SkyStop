@@ -104,7 +104,7 @@ export function Profile() {
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => fileRef.current?.click()} disabled={photoBusy} aria-label={photo ? 'Change profile picture' : 'Add profile picture'} className="press relative shrink-0">
               <Avatar src={photo} size="size-[4.5rem]" />
-              <span className="absolute -bottom-0.5 -right-0.5 grid size-7 place-items-center rounded-full bg-ink text-white ring-2 ring-white"><Camera size={14} /></span>
+              <span className="absolute -bottom-0.5 -right-0.5 grid size-7 place-items-center pill-on rounded-full ring-2 ring-canvas"><Camera size={14} /></span>
             </button>
             <div className="grid min-w-0 gap-0.5">
               <button type="button" onClick={() => fileRef.current?.click()} disabled={photoBusy} className="min-h-9 text-left text-sub font-semibold text-accent-dark">{photoBusy ? 'Uploading…' : photo ? 'Change photo' : 'Add photo'}</button>

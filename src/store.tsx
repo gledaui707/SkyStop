@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom'
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import type { Draft, Plan } from './data/types'
 import { guestStore } from './data/mock'
@@ -106,6 +107,20 @@ function init() {
   return { hint, welcomed, access: resumeAccessOnLaunch(welcomed, accessStore.get()) }
 }
 
+/** Screen-to-screen motion with the View Transitions API: pushes slide in from the trailing edge, back slides out,
+ *  tab switches crossfade. The tab bar and toasts keep their own names so they stay put. Falls back to an instant
+ *  update (plus the CSS fade) where unsupported or when reduced motion is preferred. */
+type NavKind = 'push' | 'pop' | 'tab'
+function transition(kind: NavKind, update: () => void) {
+  const doc = document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } }
+  const reduce = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (!doc.startViewTransition || reduce) { update(); return }
+  const root = document.documentElement
+  root.dataset.nav = kind
+  const t = doc.startViewTransition(() => flushSync(update))
+  void t.finished.catch(() => {}).finally(() => { if (root.dataset.nav === kind) delete root.dataset.nav })
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const refreshAccountRef = useRef<(() => Promise<void>) | null>(null)
   const [boot] = useState(init)
@@ -121,14 +136,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<string | null>(null)
   const [hint, setHintState] = useState<HintStage>(boot.hint)
   const setHint = (h: HintStage) => { setHintState(h); try { sessionStorage.setItem(HINT_KEY, String(h)) } catch { /* ignore */ } }
-  const go = useCallback((r: Route) => { setNotice(null); setStack((s) => [...s, r]); window.scrollTo(0, 0) }, [])
-  const replace = useCallback((r: Route) => { setStack((s) => [...s.slice(0, -1), r]); window.scrollTo(0, 0) }, [])
-  const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), [])
-  const switchTab = useCallback((t: Tab) => {
-    setNotice(null)
+  const go = useCallback((r: Route) => { setNotice(null); transition('push', () => { setStack((s) => [...s, r]); window.scrollTo(0, 0) }) }, [])
+  const replace = useCallback((r: Route) => transition('push', () => { setStack((s) => [...s.slice(0, -1), r]); window.scrollTo(0, 0) }), [])
+  const back = useCallback(() => transition('pop', () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s))), [])
+  // The notice is cleared now, not inside the deferred transition, so a confirmation set right after still shows.
+  const switchTab = useCallback((t: Tab) => { setNotice(null); transition('tab', () => {
     setStack([{ name: t === 'home' ? 'discover' : t }])
     window.scrollTo(0, 0)
-  }, [])
+  }) }, [])
   const reload = useCallback(() => {
     void (async () => {
       setCatalogue({ status: 'loading' }); setPlansState({ status: 'loading' })

@@ -90,7 +90,7 @@ export function Builder() {
                   {[...terminals, { id: '', short: 'Not sure', name: 'Not sure' }].map((t) => {
                     const on = (draft[key] ?? '') === t.id
                     return <button key={t.id || 'none'} aria-pressed={on} aria-label={`${label} ${t.name}`} onClick={() => update({ [key]: t.id || null })}
-                      className={cx('min-h-9 rounded-full px-3 text-sub font-semibold ring-1', on ? 'bg-ink text-white ring-ink' : 'bg-white text-ink ring-line')}>{t.short}</button>
+                      className={cx('min-h-9 rounded-full px-3 text-sub font-semibold ring-1', on ? 'pill-on ring-transparent' : 'bg-ink-tint text-ink ring-line')}>{t.short}</button>
                   })}
                 </div>
               </div>))}
@@ -108,13 +108,13 @@ export function Builder() {
         <SectionHeader className="mb-4 mt-8" action={items.length > 1 && <Chip active={reorder} onClick={() => setReorder(!reorder)}>{reorder ? 'Done' : 'Reorder'}</Chip>}>Your plan</SectionHeader>
 
         <ol aria-label="Itinerary" className="relative ml-[1.1rem] pl-6 before:absolute before:bottom-3 before:left-[-1px] before:top-4 before:w-0.5 before:rounded-full before:bg-gradient-to-b before:from-ink/20 before:via-accent/60 before:to-ink/20">
-          <li className="relative pb-3"><span aria-hidden="true" className="absolute -left-[2.15rem] top-0.5 grid size-7 place-items-center rounded-full bg-ink text-white ring-4 ring-canvas"><Plane size={14} className="rotate-45" /></span>
+          <li className="relative pb-3"><span aria-hidden="true" className="absolute -left-[2.15rem] top-0.5 pill-on grid size-7 place-items-center rounded-full ring-4 ring-canvas"><Plane size={14} className="rotate-45" /></span>
             <p className="text-card font-bold tabular-nums">{fmtTime(arrival)}<span className="text-sub font-normal text-muted-text">{dayTag(arrival)}</span></p>
             <p className="text-sub text-muted-text">Arrive at {ap.code}{draft.arrivalLocation ? ` · ${terminals.find((t) => t.id === draft.arrivalLocation)?.name ?? ''}` : ''}. Allow time to leave the aircraft first.</p></li>
 
           {rows.length === 0 && (
             <li className="relative pb-4"><Dot cls="bg-line" />
-              <div className="grid gap-3 rounded-card border border-dashed border-[rgb(35_26_23/0.2)] bg-white/60 p-4 text-body text-muted-text">No activities yet.
+              <div className="grid gap-3 rounded-card border border-dashed border-white/20 bg-ink-tint p-4 text-body text-muted-text">No activities yet.
                 {isSupported(draft.airport) && <button type="button" onClick={() => go({ name: 'airport', code: draft.airport, view: 'list' })} className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-accent-dark bg-transparent text-body font-semibold text-accent-dark"><Plus size={18} />Add activities</button>}</div></li>)}
 
           {rows.map(({ a, used, hop }, i) => {
@@ -148,7 +148,7 @@ export function Builder() {
 
           {returnHop && <li className="relative pb-1"><HopRow h={returnHop} /></li>}
           <li className="relative pb-5 pt-1"><Dot cls="bg-muted/60" />
-            <div className="rounded-card border border-dashed border-[rgb(35_26_23/0.18)] bg-[repeating-linear-gradient(135deg,rgb(35_26_23/0.035)_0_8px,transparent_8px_16px)] p-3.5">
+            <div className="rounded-card border border-dashed border-white/18 bg-[repeating-linear-gradient(135deg,rgb(255_255_255/0.045)_0_8px,transparent_8px_16px)] p-3.5">
               <p className="text-sub font-semibold">Departure preparation · {fmtDur(hero.buffer)} buffer</p>
               <p className="text-sub text-muted-text">Kept free for airport procedures, the walk to your gate and boarding.</p></div></li>
           <li className="relative"><span aria-hidden="true" className="btn-coral absolute -left-[2.15rem] top-0.5 grid size-7 place-items-center rounded-full ring-4 ring-canvas"><Plane size={14} className="-rotate-45" /></span>
@@ -226,7 +226,7 @@ function EntryCheck({ names, country, url, onRemove }: { names: string[]; countr
   const authority = country === 'Singapore' ? 'Immigration & Checkpoints Authority (ICA)' : country === 'United Kingdom' ? 'GOV.UK'
     : country === 'Portugal' ? 'the Portuguese visa portal' : country === 'United Arab Emirates' ? 'the UAE government portal' : 'the official immigration authority'
   return (
-    <section aria-label="Entry check" className="mt-3 rounded-card border border-accent/30 bg-white p-4">
+    <section aria-label="Entry check" className="panel-accent mt-3 rounded-card p-4">
       <p className="flex items-center gap-2 text-sub font-bold text-accent-dark"><ShieldAlert size={18} />Entry verification required · Landside activity</p>
       <p className="mt-1.5 text-body text-ink">{names.join(' and ')} {names.length > 1 ? 'are' : 'is'} outside the transit area. You may need permission to enter {country || 'the country'}.</p>
       <p className="mt-1 text-sub text-muted-text">To reach {names.length > 1 ? 'them' : 'it'} you leave the transit area through arrival immigration, then return through check-in, departure immigration and security. Waiting times are not published, so they are not included in your time budget.</p>
@@ -234,13 +234,13 @@ function EntryCheck({ names, country, url, onRemove }: { names: string[]; countr
         <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-3">
           <label className="grid gap-1 text-sub font-medium text-muted-text">Passport nationality (optional)
             <input value={nationality} onChange={(e) => setNationality(e.target.value)} autoComplete="off" placeholder="e.g. Indonesian"
-              className="min-h-11 min-w-0 rounded-xl border border-[rgb(35_26_23/0.16)] bg-white px-3 text-body text-ink focus:border-accent focus:outline-none" /></label>
+              className="field min-h-11 min-w-0 rounded-xl px-3 text-body focus:!border-accent-dark focus:outline-none" /></label>
           <div role="group" aria-label={`Do you already have permission to enter ${country}?`}>
             <p className="text-sub font-medium text-muted-text">Do you already have permission to enter {country}?</p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {([['yes', 'Yes'], ['no', 'No'], ['unsure', "I'm not sure"]] as const).map(([v, l]) => (
                 <button key={v} aria-pressed={permission === v} onClick={() => setPermission(v)}
-                  className={cx('min-h-10 rounded-full px-3.5 text-sub font-semibold ring-1', permission === v ? 'bg-ink text-white ring-ink' : 'bg-white text-ink ring-line')}>{l}</button>))}
+                  className={cx('min-h-10 rounded-full px-3.5 text-sub font-semibold ring-1', permission === v ? 'pill-on ring-transparent' : 'bg-ink-tint text-ink ring-line')}>{l}</button>))}
             </div>
           </div>
           {permission && (

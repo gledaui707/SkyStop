@@ -84,7 +84,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
         </div>
 
         {/* Floating preview / summary sheet */}
-        <div className={cx("glass relative z-20 -mt-6 rounded-t-tray !border-b-0 px-4 pt-3", showMapAction ? "pb-[calc(var(--nav-h)+5.5rem)]" : "pb-[calc(var(--nav-h)+0.25rem)]")}>
+        <div className={cx("glass-medium relative z-20 -mt-6 rounded-t-tray !border-b-0 px-4 pt-3", showMapAction ? "pb-[calc(var(--nav-h)+5.5rem)]" : "pb-[calc(var(--nav-h)+0.25rem)]")}>
           <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-ink/20" />
           {focus ? (
             <div>
@@ -118,7 +118,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
                   <ul className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Activities at this airport">
                     {acts.filter((a) => (cat === 'All' || a.category === cat) && (zone === 'all' || zoneOf(a) === zone) && (!terminal || terminalKeysOf(code, a.terminal).includes(terminal))).map((a) => (
                       <li key={a.id} className="shrink-0">
-                        <button onClick={() => setFocusId(a.id)} className={cx('press flex w-[13.5rem] items-center gap-2.5 rounded-control border p-2 text-left', planned.includes(a.id) ? 'border-accent/70 bg-accent-tint' : 'border-line bg-white')}>
+                        <button onClick={() => setFocusId(a.id)} className={cx('press flex w-[13.5rem] items-center gap-2.5 rounded-control border p-2 text-left', planned.includes(a.id) ? 'border-accent/70 bg-accent-tint' : 'border-line bg-ink-tint')}>
                           <span className="ph relative size-12 shrink-0 overflow-hidden rounded-xl"><Photo img={a.image} w={48} h={48} className="absolute inset-0 size-full" /></span>
                           <span className="min-w-0"><span className="block truncate text-sub font-semibold">{a.name}</span>
                             <span className="block text-cap text-muted-text">{fmtDur(a.durationMin)}{planned.includes(a.id) ? (ready ? ' · added' : ' · selected') : ''}</span></span>
@@ -160,10 +160,10 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
   const templates = getTemplates(code)
   return (
     <div className="pb-[calc(var(--nav-h)+6.5rem)]">
-      <div className="ph relative h-[25rem] overflow-hidden rounded-b-tray">
+      <div className="ph relative h-[26rem] overflow-hidden">
         <img src={sized(ap.image, 900, 800)} alt={ap.image.alt} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-deep/90 via-deep/45 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[66%] bg-gradient-to-t from-canvas via-canvas/60 to-transparent" />
         {bar}
         <div className="absolute inset-x-5 bottom-5 text-white">
           <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold">{ap.code} · {ap.country}</p>
@@ -215,7 +215,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
         <label className="relative block">
           <span className="sr-only">Search activities</span>
           <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search activities" type="search" className="min-h-12 w-full rounded-full border border-[rgb(35_26_23/0.14)] bg-white pl-11 pr-4 text-body backdrop-blur-md focus:border-accent-dark/70 focus:outline-none" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search activities" type="search" className="field min-h-12 w-full rounded-full pl-11 pr-4 text-body focus:!border-accent-dark/70 focus:outline-none" />
         </label>
         <div className="mt-3"><ChipRow>{CATEGORIES.map((c) => <Chip key={c} active={cat === c} onClick={() => setCat(c)}>{c}</Chip>)}</ChipRow></div>
         <ul className="mt-3 grid gap-3">

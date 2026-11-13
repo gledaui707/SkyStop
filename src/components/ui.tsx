@@ -118,7 +118,7 @@ export function Chip({ active, children, ...p }: React.ButtonHTMLAttributes<HTML
   return (
     <button {...p} aria-pressed={active} className={cx(
       'press inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sub font-medium transition-colors',
-      active ? 'border-transparent bg-ink text-white shadow-[0_6px_16px_rgb(35_26_23/0.22)]' : 'border-line bg-white text-ink', p.className)}>
+      active ? 'pill-on border-transparent' : 'border-line bg-ink-tint text-ink backdrop-blur-md', p.className)}>
       {children}
     </button>
   )
@@ -135,7 +135,7 @@ export function Segmented<T extends string>({ value, onChange, options }:
     <div role="tablist" className="grid rounded-full bg-ink-tint p-1 ring-1 ring-line" style={{ gridTemplateColumns: `repeat(${options.length},1fr)` }}>
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={value === o.value} onClick={() => onChange(o.value)}
-          className={cx('min-h-11 rounded-full text-sub font-semibold transition-colors', value === o.value ? 'bg-white text-ink shadow-sm' : 'text-muted-text')}>
+          className={cx('min-h-11 rounded-full text-sub font-semibold transition-colors', value === o.value ? 'pill-on' : 'text-muted-text')}>
           {o.label}
         </button>
       ))}
@@ -161,7 +161,7 @@ export const SectionTitle = ({ children, action }: { children: ReactNode; action
 /** Nothing here yet: an icon, one line of title, an optional sentence and an optional action. */
 export function EmptyState({ icon: Icon = Plane, title, children, action, className }: { icon?: LucideIcon; title: string; children?: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <div className={cx('rounded-surface border border-dashed border-[rgb(35_26_23/0.18)] bg-white/70 px-5 py-6 text-center', className)}>
+    <div className={cx('rounded-surface panel border-dashed !border-[rgb(255_236_226/0.2)] px-5 py-6 text-center', className)}>
       <span aria-hidden="true" className="mx-auto grid size-12 place-items-center rounded-full bg-accent-tint text-accent-dark"><Icon size={22} /></span>
       <p className="mt-3 text-card font-semibold">{title}</p>
       {children && <div className="mt-1 text-sub text-muted-text">{children}</div>}
@@ -186,7 +186,7 @@ export function Notice({ children, tone = 'info' }: { children: ReactNode; tone?
   const Icon = tone === 'warn' ? ShieldAlert : Info
   return (
     <div role={tone === 'warn' ? 'alert' : 'note'} className={cx('flex gap-3 rounded-card border p-3.5 text-sub',
-      tone === 'warn' ? 'border-error/30 bg-error-tint text-ink' : 'border-line bg-white/80 text-muted-text')}>
+      tone === 'warn' ? 'border-error/30 bg-error-tint text-ink' : 'border-line bg-ink-tint text-muted-text backdrop-blur-md')}>
       <Icon size={20} className={cx('mt-px shrink-0', tone === 'warn' ? 'text-error' : 'text-accent-dark')} />
       <div className="min-w-0">{children}</div>
     </div>
@@ -207,7 +207,7 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   return <label className="grid min-w-0 gap-1.5 text-sub font-medium text-muted-text">{label}{children}</label>
 }
 // min-w-0: date/time inputs have a large intrinsic width and otherwise push narrow (320 px) screens sideways.
-export const inputCls = 'block min-h-[3.25rem] w-full min-w-0 max-w-full rounded-control border border-[rgb(35_26_23/0.16)] bg-white px-4 text-body font-medium text-ink shadow-[inset_0_1px_2px_rgb(35_26_23/0.04)] transition-colors focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15'
+export const inputCls = 'field block min-h-[3.25rem] w-full min-w-0 max-w-full rounded-control px-4 text-body font-medium transition-colors focus:border-accent-dark focus:outline-none focus:ring-4 focus:ring-accent/25'
 
 /** Labelled text input with optional leading icon, hint and error. Extra props go to the <input>. */
 export function TextField({ label, hint, error, icon: Icon, className, id, ...input }:
@@ -256,10 +256,10 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   }, [open, onClose])
   if (!open) return null
   return (
-    <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-[rgb(35_26_23/0.38)] backdrop-blur-[3px]" onClick={onClose}>
+    <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-[rgb(0_0_0/0.5)] backdrop-blur-[4px]" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
         className="glass-medium anim-sheet max-h-[85dvh] w-full max-w-[480px] overflow-y-auto rounded-t-tray !border-b-0 pb-[calc(var(--safe-bottom)+1rem)] text-ink">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-white/90 px-5 pb-3 pt-3 backdrop-blur-xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[rgb(46_31_27/0.82)] px-5 pb-3 pt-3 backdrop-blur-xl">
           <span className="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-ink/20" />
           <h2 className="mt-3 min-w-0 text-h2 font-bold">{title}</h2>
           <IconButton label="Close" icon={X} tone="plain" size="sm" iconSize={18} onClick={onClose} className="mt-3" />
@@ -323,9 +323,9 @@ export function InfoTip({ id, title, children, label = 'What is this?', icon }: 
         aria-label={icon ? label : undefined}
         className={icon ? 'press -m-2 grid size-9 place-items-center rounded-full' : 'press min-h-11 text-sub font-semibold text-accent-dark underline underline-offset-2'}>{icon ?? label}</button>
       <span id={id} role="tooltip" hidden={!open}
-        className={cx('anim-fade absolute right-0 z-50 w-[min(18.5rem,calc(100vw-2.5rem))] rounded-card bg-[#141414] px-4 py-3.5 text-left shadow-[0_14px_34px_rgb(0_0_0/0.28)]',
+        className={cx('anim-fade absolute right-0 z-50 w-[min(18.5rem,calc(100vw-2.5rem))] rounded-card bg-[#33231f] px-4 py-3.5 text-left shadow-[0_14px_34px_rgb(0_0_0/0.45)] ring-1 ring-line',
           above ? 'bottom-full mb-2.5' : 'top-full mt-2.5')}>
-        <span aria-hidden="true" className={cx('absolute right-8 size-3.5 rotate-45 rounded-[3px] bg-[#141414]', above ? '-bottom-1.5' : '-top-1.5')} />
+        <span aria-hidden="true" className={cx('absolute right-8 size-3.5 rotate-45 rounded-[3px] bg-[#33231f]', above ? '-bottom-1.5' : '-top-1.5')} />
         <span className="block text-body font-semibold text-white">{title}</span>
         <span className="mt-1.5 block text-sub font-normal normal-case leading-relaxed tracking-normal text-white/80">{children}</span>
       </span>

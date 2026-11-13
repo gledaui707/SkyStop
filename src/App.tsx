@@ -66,10 +66,10 @@ function Toast() {
   }, [notice, setNotice])
   if (!notice) return null
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] mx-auto flex max-w-[480px] justify-center px-4 pt-[calc(var(--safe-top)+0.5rem)]">
+    <div className="vt-toast pointer-events-none fixed inset-x-0 top-0 z-[60] mx-auto flex max-w-[480px] justify-center px-4 pt-[calc(var(--safe-top)+0.5rem)]">
       <div role="status" aria-live="polite" onClick={() => setNotice(null)}
-        className="anim-toast pointer-events-auto flex max-w-full items-center gap-2.5 rounded-card bg-[#141414] py-3 pl-3.5 pr-4 text-sub font-medium text-white shadow-[0_14px_34px_rgb(0_0_0/0.28)]">
-        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-white/15"><Check size={14} strokeWidth={3} /></span>
+        className="glass-medium anim-toast pointer-events-auto flex max-w-full items-center gap-2.5 rounded-card py-3 pl-3.5 pr-4 text-sub font-medium text-ink">
+        <span className="btn-coral grid size-6 shrink-0 place-items-center rounded-full"><Check size={14} strokeWidth={3} /></span>
         <span className="min-w-0">{notice}</span>
       </div>
     </div>
@@ -89,7 +89,7 @@ function toneAtTop(): Tone {
   }
   return 'light'
 }
-const THEME: Record<Tone, string> = { light: '#faf6f2', dark: '#1a1412' }
+const THEME: Record<Tone, string> = { light: '#f3e6de', dark: '#150e0c' }
 
 /** Revolut-style progressive blur under the status bar and header, shown only once the page is scrolled: content
  *  scrolling up blurs and fades instead
@@ -118,8 +118,8 @@ function TopBlur() {
         <div key={px} className="absolute inset-0" style={{ backdropFilter: `blur(${px}px)`, WebkitBackdropFilter: `blur(${px}px)`,
           maskImage: `linear-gradient(to bottom, black ${solid}%, transparent ${end}%)`, WebkitMaskImage: `linear-gradient(to bottom, black ${solid}%, transparent ${end}%)` }} />))}
       <div className="absolute inset-0 transition-colors duration-300" style={{ background: tone === 'dark'
-        ? 'linear-gradient(to bottom, rgb(20 14 12 / 0.55), rgb(20 14 12 / 0.25) 55%, transparent)'
-        : 'linear-gradient(to bottom, rgb(250 246 242 / 0.85), rgb(250 246 242 / 0.5) 55%, transparent)' }} />
+        ? 'linear-gradient(to bottom, rgb(21 14 12 / 0.78), rgb(21 14 12 / 0.4) 55%, transparent)'
+        : 'linear-gradient(to bottom, rgb(243 230 222 / 0.85), rgb(243 230 222 / 0.5) 55%, transparent)' }} />
     </div>
   )
 }
@@ -146,17 +146,20 @@ function Shell() {
   if (route.name === 'welcome' || route.name === 'access') return <div className="mx-auto max-w-[480px]"><main key={key} className="anim-fade"><Screen /></main></div>
   return (
     <div className="mx-auto min-h-dvh max-w-[480px] pb-[var(--nav-h)]">
-      <main key={key} className="anim-screen"><TopBlur /><Screen /></main>
+      <main key={key} className="vt-screen anim-screen"><TopBlur /><Screen /></main>
       <Toast />
-      <nav aria-label="Primary" className="glass fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] border-x-0 border-b-0 border-t border-white/80 pb-[var(--safe-bottom)] shadow-none">
-        <div className="grid h-16 grid-cols-3">
+      {/* Floating capsule tab bar: lifted off the edge, the active tab is a coral-lit pill that glides between tabs. */}
+      <nav aria-label="Primary" className="vt-tabbar pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] px-4 pb-[var(--nav-lift)]">
+        <div className="glass-medium pointer-events-auto relative mx-auto grid h-16 max-w-[24rem] grid-cols-3 rounded-full p-1.5">
+          <span aria-hidden="true" className="btn-coral absolute inset-y-1.5 left-1.5 w-[calc((100%-0.75rem)/3)] rounded-full transition-transform duration-500 ease-ios motion-reduce:transition-none"
+            style={{ transform: `translateX(${Math.max(0, TABS.findIndex((t) => t.id === active)) * 100}%)`, opacity: active ? 1 : 0 }} />
         {TABS.map(({ id, label, icon: Icon }) => {
           const on = active === id
           return (
             <button key={id} onClick={() => switchTab(id)} aria-current={on ? 'page' : undefined}
-              className={cx('press flex flex-col items-center justify-center gap-1 text-tab font-semibold transition-colors duration-300',
-                on ? 'text-accent-dark' : 'text-muted-text hover:text-ink')}>
-              <Icon size={22} strokeWidth={on ? 2.4 : 1.9} aria-hidden="true" />{label}
+              className={cx('press relative flex flex-col items-center justify-center gap-0.5 rounded-full text-tab font-semibold transition-colors duration-300',
+                on ? 'text-white' : 'text-muted-text hover:text-ink')}>
+              <Icon size={21} strokeWidth={on ? 2.4 : 1.9} aria-hidden="true" />{label}
             </button>
           )
         })}
@@ -167,5 +170,5 @@ function Shell() {
 }
 
 export default function App() {
-  return <AppProvider><Shell /></AppProvider>
+  return <AppProvider><div aria-hidden="true" className="ambient" /><Shell /></AppProvider>
 }

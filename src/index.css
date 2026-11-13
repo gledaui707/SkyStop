@@ -1,35 +1,35 @@
 @import 'tailwindcss';
 
-/* ───────────────────────── SkyStop design system ─────────────────────────
-   "Daylight & dusk": light, airy functional screens (warm off-white, charcoal text, white frosted glass) with
-   cinematic dark sections only where photography leads (onboarding, heroes, destination imagery).
-   Primary coral #EA5139 with soft coral #FFB5A5, peach and amber accents. Token names are unchanged so every
-   screen follows the system; dark-on-photo treatments use the explicit glass-dark / photo-fade materials. */
+/* ───────────────────────── SkyStop design system: "Dusk" ─────────────────────────
+   An evening-terminal palette: deep warm charcoal lit by coral, amber and plum light, with photography carrying the
+   colour. Content sits on layered frosted glass (real backdrop blur over the ambient light), text is warm white.
+   Primary coral #EA5139. Token names are kept from the earlier light system so every screen follows the tokens:
+   `ink` is the main text colour (now warm white), `canvas` the page, `accent-dark` coral for text and icons. */
 @theme {
   --font-sans: system-ui, -apple-system, 'SF Pro Text', 'SF Pro Display', BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
 
-  --color-deep: #1c1412;          /* dark photographic surface (heroes, onboarding) */
+  --color-deep: #0e0908;          /* darkest photographic surface; also dark text on light pills */
   --color-accent: #ea5139;        /* primary coral */
-  --color-accent-dark: #c23b24;   /* coral for text/icons on light surfaces (AA on canvas) */
-  --color-accent-tint: #ffe4dc;   /* soft coral wash */
+  --color-accent-dark: #ff8a70;   /* coral for text and icons on dark surfaces (AA on canvas and glass) */
+  --color-accent-tint: rgb(234 81 57 / 0.2);   /* coral wash */
   --color-amber: #f6a04d;
   --color-rose: #f0738a;
   --color-plum: #4a2335;
   --color-aqua: #ffb5a5;          /* soft coral */
   --color-peach: #ffd9c7;
-  --color-canvas: #faf6f2;        /* warm off-white */
-  --color-surface: #ffffff;
-  --color-ink: #231a17;           /* charcoal text */
-  --color-muted-text: #6b5f59;
-  --color-muted: #a1958f;
-  --color-line: rgb(35 26 23 / 0.1);
-  --color-ink-tint: rgb(35 26 23 / 0.05);
-  --color-error: #c4321f;
-  --color-error-tint: #fde7e3;
-  --color-success: #1d7f45;
-  --color-success-tint: #e3f3e8;
-  --color-warning: #9a5a00;        /* amber text, AA on canvas */
-  --color-warning-tint: #fff1dc;
+  --color-canvas: #150e0c;        /* warm charcoal page */
+  --color-surface: #221816;       /* raised solid surface */
+  --color-ink: #fbf2ec;           /* primary text: warm white */
+  --color-muted-text: #c8b6ad;    /* secondary text, 9:1 on canvas */
+  --color-muted: #8e7c74;         /* placeholders, decorative icons */
+  --color-line: rgb(255 236 226 / 0.12);
+  --color-ink-tint: rgb(255 236 226 / 0.07);
+  --color-error: #ff7f6b;
+  --color-error-tint: rgb(255 92 72 / 0.16);
+  --color-success: #6fd99a;
+  --color-success-tint: rgb(70 200 120 / 0.15);
+  --color-warning: #ffbf6e;
+  --color-warning-tint: rgb(255 170 60 / 0.15);
 
   /* iOS type scale in rem so it follows system/browser text size */
   --text-title: 2.125rem;
@@ -71,41 +71,44 @@
   --radius-tray: 2rem;        /* action trays, sheets */
 
   /* Elevation: rest (on the canvas), raised (cards that lift), floating (bars, trays, sheets), glow (coral). */
-  --shadow-e1: 0 1px 2px rgb(70 35 25 / 0.05), 0 6px 18px rgb(70 35 25 / 0.06);
-  --shadow-e2: 0 2px 6px rgb(70 35 25 / 0.06), 0 12px 30px rgb(70 35 25 / 0.1);
-  --shadow-e3: 0 4px 12px rgb(70 35 25 / 0.08), 0 24px 48px -10px rgb(70 35 25 / 0.2);
-  --shadow-glow: 0 12px 28px -6px rgb(234 81 57 / 0.42);
+  --shadow-e1: 0 1px 2px rgb(0 0 0 / 0.2), 0 8px 22px rgb(0 0 0 / 0.18);
+  --shadow-e2: 0 2px 6px rgb(0 0 0 / 0.22), 0 14px 34px rgb(0 0 0 / 0.28);
+  --shadow-e3: 0 4px 12px rgb(0 0 0 / 0.25), 0 28px 56px -12px rgb(0 0 0 / 0.55);
+  --shadow-glow: 0 12px 30px -6px rgb(234 81 57 / 0.55);
 
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-glide: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 :root {
-  /* Space kept clear under the floating tab bar (bar 4.25rem + gap + home indicator). */
+  /* Floating tab bar: a 4rem capsule lifted off the bottom edge (at least 0.75rem, or the home indicator inset). */
   --safe-bottom: env(safe-area-inset-bottom);
-  --nav-h: calc(4rem + 1px + var(--safe-bottom));
+  --nav-lift: max(var(--safe-bottom), 0.75rem);
+  --nav-h: calc(4rem + 0.5rem + var(--nav-lift));
   /* Real devices: the status bar inset (or a small margin in a browser tab). The desktop device frame overrides it. */
   --safe-top: max(env(safe-area-inset-top), 0.75rem);
-  --coral-grad: linear-gradient(135deg, #f26a4b 0%, #ea5139 45%, #d63c3f 100%);
-  --sunset-grad: linear-gradient(135deg, #ff9a6b 0%, #ea5139 55%, #c8364a 100%);
+  --coral-grad: linear-gradient(135deg, #ff7a55 0%, #ea5139 48%, #d23a44 100%);
+  --sunset-grad: linear-gradient(135deg, #ffa071 0%, #ea5139 52%, #b8304f 100%);
+  --dusk-grad: linear-gradient(160deg, #3a1d22 0%, #1e1210 55%, #150e0c 100%);
   /* Motion: durations for microinteractions, component transitions and screen-level moves. */
   --dur-fast: 160ms;
   --dur-base: 280ms;
   --dur-slow: 560ms;
-  /* Glass optics shared by the materials below (one warm light source, top left; an orange bounce from below). */
-  --glass-edge-top: inset 0 1px 0 rgb(255 255 255 / 0.95);
-  --glass-bevel: inset 0 10px 14px -12px rgb(255 255 255 / 0.95);
-  --glass-edge-warm: inset 0 -1px 0 rgb(255 190 160 / 0.6);
-  --glass-thickness: inset 0 -10px 18px -12px rgb(234 110 70 / 0.22);
-  --glass-specular: radial-gradient(115% 75% at 8% -18%, rgb(255 255 255 / 0.85) 0%, rgb(255 255 255 / 0) 55%);
-  --glass-streak: linear-gradient(112deg, rgb(255 255 255 / 0) 0 33%, rgb(255 255 255 / 0.34) 40%, rgb(255 255 255 / 0) 47% 100%);
+  /* Glass optics: one warm light source top left, coral bounce from below. On a dark page the rim and specular are
+     what make a slab read as glass, so they stay crisp while the body stays low-opacity. */
+  --glass-edge-top: inset 0 1px 0 rgb(255 255 255 / 0.2);
+  --glass-bevel: inset 0 12px 18px -14px rgb(255 255 255 / 0.22);
+  --glass-edge-warm: inset 0 -1px 0 rgb(255 160 120 / 0.16);
+  --glass-thickness: inset 0 -14px 22px -16px rgb(234 81 57 / 0.32);
+  --glass-specular: radial-gradient(120% 80% at 6% -20%, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0) 55%);
+  --glass-streak: linear-gradient(112deg, rgb(255 255 255 / 0) 0 33%, rgb(255 255 255 / 0.1) 40%, rgb(255 255 255 / 0) 47% 100%);
 }
 /* Inside the desktop device frame: room for the drawn status bar / Dynamic Island and home indicator. */
 html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
 
 @layer base {
   html, body, #root { min-height: 100dvh; }
-  :root { color-scheme: light; }
+  :root { color-scheme: dark; }
   html { background: var(--color-canvas); }
   body {
     background: var(--color-canvas);
@@ -117,146 +120,153 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
     -webkit-font-smoothing: antialiased;
     -webkit-text-size-adjust: 100%;
   }
-  /* Ambient light (one warm source top right, an orange bounce bottom right) on warm off-white. Fixed, so glass
-     surfaces pick up colour as content scrolls under them. */
-  body::before {
-    content: '';
+  /* Ambient light (rendered once by App as div.ambient; fixed, so glass picks up shifting colour as content scrolls): a coral sun low on the right, plum dusk on the left, an amber bounce at the bottom, over warm
+     charcoal. Fixed, so glass picks up shifting colour as content scrolls over it. */
+  .ambient {
     position: fixed;
     inset: 0;
     z-index: -1;
     pointer-events: none;
     background:
-      radial-gradient(75% 40% at 100% 0%, rgb(255 168 128 / 0.55) 0%, transparent 70%),
-      radial-gradient(60% 34% at 0% 32%, rgb(255 217 199 / 0.6) 0%, transparent 70%),
-      radial-gradient(80% 44% at 92% 100%, rgb(246 128 70 / 0.26) 0%, transparent 70%),
-      radial-gradient(60% 32% at 0% 96%, rgb(255 181 165 / 0.3) 0%, transparent 70%),
-      linear-gradient(180deg, #fff8f3 0%, #faf6f2 55%, #f7f1ec 100%);
+      radial-gradient(70% 38% at 105% 4%, rgb(234 81 57 / 0.42) 0%, transparent 70%),
+      radial-gradient(60% 40% at -8% 34%, rgb(112 40 70 / 0.5) 0%, transparent 72%),
+      radial-gradient(70% 40% at 100% 62%, rgb(246 128 70 / 0.16) 0%, transparent 70%),
+      radial-gradient(80% 36% at 10% 104%, rgb(234 81 57 / 0.26) 0%, transparent 70%),
+      linear-gradient(180deg, #1d1210 0%, #150e0c 50%, #120b0a 100%);
   }
   h1, h2, h3 { letter-spacing: -0.022em; }
   button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
   input, select { font-size: 1.0625rem; }
   input::placeholder { color: var(--color-muted); }
+  select option { background: #221816; color: var(--color-ink); }
   /* iOS Safari gives native date/time inputs an intrinsic min-width and centred text; let them fit their container. */
   input[type='date'], input[type='time'], input[type='datetime-local'] {
     -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; width: 100%;
   }
   input::-webkit-date-and-time-value { text-align: left; min-height: 1.35em; }
-  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  input::-webkit-calendar-picker-indicator { filter: invert(0.85) sepia(0.3); opacity: 0.8; }
+  :focus-visible { outline: 2px solid var(--color-accent-dark); outline-offset: 2px; }
 }
 
 /* ───────────── Materials ─────────────
-   Glass here is a physical slab, not a blurred white rectangle: a tinted body whose translucency varies (clearer
-   through the middle, milkier at the rim), a specular highlight where the light lands, a bright top edge and bevel, a
-   warm-lit bottom edge that reads as thickness, and a contact shadow. Blur supports the effect; it is not the effect.
-   Use the lightest material that does the job; dense information and forms sit on solid panels.
+   Glass is a physical slab: a low-opacity warm body, real backdrop blur over the ambient light and photography, a
+   crisp lit top rim, a specular bloom top left and a coral-lit bottom edge that reads as thickness.
+   Use the lightest material that does the job; dense information sits on `panel` (frosted, calmer).
 
    glass-subtle   navigation and small controls (tab bar, header buttons). `glass` is the same material.
-   glass-medium   floating interactive surfaces (action trays, sheets); opaque enough that text scrolling under it
+   glass-medium   floating interactive surfaces (action trays, sheets); dense enough that text scrolling under it
                   never competes with the text on it
    glass-premium  hero slabs, at most one per screen (sits over warm light or photography)
    glass-dark     controls and labels over photography
-   panel          solid content surface (forms, lists, dense information); no blur
-   panel-accent   the one highlighted solid surface on a screen
-   sunset         coral glass slab for the time budget (premium optics on the brand gradient)
+   glass-light    a brighter frost for labels over photography
+   panel          frosted content surface (forms, lists, dense information)
+   panel-accent   the one highlighted surface on a screen (coral-lit glass)
+   sunset         coral glass slab for the time budget
    ph             photo placeholder while (or if) a photo is unavailable */
 @layer components {
   .glass, .glass-subtle {
-    background: var(--glass-specular), linear-gradient(180deg, rgb(255 255 255 / 0.82) 0%, rgb(255 250 246 / 0.68) 100%);
-    -webkit-backdrop-filter: blur(20px) saturate(1.7);
-    backdrop-filter: blur(20px) saturate(1.7);
-    border: 1px solid rgb(255 255 255 / 0.8);
-    box-shadow: var(--glass-edge-top), inset 0 -1px 0 rgb(200 140 110 / 0.12), var(--shadow-e2);
+    background: var(--glass-specular), linear-gradient(180deg, rgb(70 48 42 / 0.5) 0%, rgb(40 27 24 / 0.55) 100%);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+    border: 1px solid rgb(255 236 226 / 0.14);
+    box-shadow: var(--glass-edge-top), var(--glass-edge-warm), var(--shadow-e2);
     color: var(--color-ink);
   }
   .glass-medium {
     background:
       var(--glass-specular),
-      linear-gradient(180deg, rgb(255 255 255 / 0.84) 0%, rgb(255 252 249 / 0.7) 45%, rgb(255 246 240 / 0.8) 100%);
-    -webkit-backdrop-filter: blur(26px) saturate(1.8) contrast(1.04);
-    backdrop-filter: blur(26px) saturate(1.8) contrast(1.04);
-    border: 1px solid rgb(255 255 255 / 0.85);
-    box-shadow: var(--glass-edge-top), var(--glass-bevel), inset 0 0 0 1px rgb(255 255 255 / 0.35), var(--glass-edge-warm), var(--glass-thickness), var(--shadow-e3);
+      linear-gradient(180deg, rgb(62 42 37 / 0.78) 0%, rgb(36 24 21 / 0.82) 100%);
+    -webkit-backdrop-filter: blur(30px) saturate(1.7);
+    backdrop-filter: blur(30px) saturate(1.7);
+    border: 1px solid rgb(255 236 226 / 0.14);
+    box-shadow: var(--glass-edge-top), var(--glass-bevel), var(--glass-edge-warm), var(--glass-thickness), var(--shadow-e3);
     color: var(--color-ink);
   }
-  /* Less blur and a lighter tint than glass-medium: what is behind stays readable as shapes and colour (high gloss). */
   .glass-premium {
     background:
       var(--glass-streak),
-      radial-gradient(70% 55% at 6% -12%, rgb(255 255 255 / 0.75) 0%, rgb(255 255 255 / 0) 60%),
-      radial-gradient(90% 60% at 100% 110%, rgb(255 170 120 / 0.28) 0%, rgb(255 170 120 / 0) 60%),
-      linear-gradient(180deg, rgb(255 255 255 / 0.3) 0%, rgb(255 255 255 / 0.06) 48%, rgb(255 244 236 / 0.24) 100%);
-    -webkit-backdrop-filter: blur(8px) saturate(1.7) contrast(1.04);
-    backdrop-filter: blur(8px) saturate(1.7) contrast(1.04);
-    border: 1px solid rgb(255 255 255 / 0.9);
-    box-shadow:
-      var(--glass-edge-top), inset 0 2px 1px -1px #fff, var(--glass-bevel), inset 0 0 0 1px rgb(255 255 255 / 0.4),
-      inset 1px 0 0 rgb(255 255 255 / 0.6), inset -1px 0 0 rgb(255 205 180 / 0.7),
-      inset 0 -2px 0 rgb(255 190 160 / 0.85), inset 0 -16px 24px -14px rgb(234 100 60 / 0.4),
-      0 0 0 0.5px rgb(255 200 170 / 0.6), 0 1px 1px rgb(120 50 30 / 0.08), 0 24px 50px -16px rgb(234 81 57 / 0.38);
+      radial-gradient(70% 55% at 6% -12%, rgb(255 255 255 / 0.22) 0%, rgb(255 255 255 / 0) 60%),
+      radial-gradient(90% 60% at 100% 110%, rgb(234 81 57 / 0.3) 0%, rgb(234 81 57 / 0) 60%),
+      linear-gradient(180deg, rgb(255 240 232 / 0.14) 0%, rgb(255 240 232 / 0.05) 100%);
+    -webkit-backdrop-filter: blur(18px) saturate(1.8);
+    backdrop-filter: blur(18px) saturate(1.8);
+    border: 1px solid rgb(255 236 226 / 0.24);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), var(--glass-bevel), var(--glass-thickness), 0 24px 50px -16px rgb(234 81 57 / 0.4);
     color: var(--color-ink);
   }
   .glass-dark {
-    background: radial-gradient(110% 70% at 10% -20%, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0) 55%), rgb(22 15 13 / 0.42);
+    background: radial-gradient(110% 70% at 10% -20%, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0) 55%), rgb(18 11 10 / 0.42);
     -webkit-backdrop-filter: blur(18px) saturate(1.5);
     backdrop-filter: blur(18px) saturate(1.5);
-    border: 1px solid rgb(255 255 255 / 0.22);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), inset 0 -1px 0 rgb(255 180 150 / 0.14), 0 8px 24px rgb(0 0 0 / 0.24);
+    border: 1px solid rgb(255 255 255 / 0.2);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), inset 0 -1px 0 rgb(255 180 150 / 0.12), 0 8px 24px rgb(0 0 0 / 0.28);
     color: #fff;
   }
   .glass-light {
-    background: rgb(255 255 255 / 0.2);
+    background: rgb(255 255 255 / 0.18);
     -webkit-backdrop-filter: blur(18px) saturate(1.6);
     backdrop-filter: blur(18px) saturate(1.6);
-    border: 1px solid rgb(255 255 255 / 0.36);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4);
+    border: 1px solid rgb(255 255 255 / 0.3);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.36);
     color: #fff;
   }
-  /* Solid: legible over anything, no blur cost. A hairline, a white top edge and a resting shadow. */
+  /* Frosted content surface: calmer than glass (no streak, softer rim), still blurred so the ambient light shows. */
   .panel {
-    background: rgb(255 255 255 / 0.94);
-    border: 1px solid rgb(35 26 23 / 0.06);
-    box-shadow: inset 0 1px 0 #fff, var(--shadow-e1);
+    background: linear-gradient(180deg, rgb(255 240 232 / 0.085) 0%, rgb(255 240 232 / 0.05) 100%), rgb(28 19 17 / 0.45);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgb(255 236 226 / 0.1);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), var(--shadow-e1);
   }
   .panel-accent {
     background:
-      radial-gradient(120% 120% at 100% 0%, rgb(255 181 165 / 0.65) 0%, transparent 62%),
-      linear-gradient(160deg, #fff6f1 0%, #ffffff 100%);
-    border: 1px solid rgb(234 81 57 / 0.22);
-    box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgb(120 40 25 / 0.06), 0 12px 32px rgb(234 81 57 / 0.12);
+      radial-gradient(120% 120% at 100% 0%, rgb(234 81 57 / 0.38) 0%, transparent 62%),
+      radial-gradient(90% 90% at 0% 100%, rgb(246 160 77 / 0.12) 0%, transparent 60%),
+      linear-gradient(160deg, rgb(70 34 28 / 0.75) 0%, rgb(36 22 19 / 0.75) 100%);
+    -webkit-backdrop-filter: blur(22px) saturate(1.5);
+    backdrop-filter: blur(22px) saturate(1.5);
+    border: 1px solid rgb(255 138 112 / 0.28);
+    box-shadow: inset 0 1px 0 rgb(255 200 180 / 0.2), 0 1px 2px rgb(0 0 0 / 0.2), 0 16px 36px -10px rgb(234 81 57 / 0.3);
   }
   .sunset {
     background:
       linear-gradient(112deg, rgb(255 255 255 / 0) 0 30%, rgb(255 255 255 / 0.16) 38%, rgb(255 255 255 / 0) 46% 100%),
-      radial-gradient(90% 80% at 100% 0%, rgb(255 210 170 / 0.55) 0%, transparent 60%),
+      radial-gradient(90% 80% at 100% 0%, rgb(255 210 170 / 0.5) 0%, transparent 60%),
       var(--sunset-grad);
     color: #fff;
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.5), inset 0 10px 16px -12px rgb(255 255 255 / 0.55),
       inset 0 -2px 0 rgb(150 30 30 / 0.22), inset 0 -16px 24px -16px rgb(120 20 30 / 0.3),
-      0 1px 1px rgb(120 40 30 / 0.1), 0 22px 44px -14px rgb(234 81 57 / 0.5);
+      0 1px 1px rgb(0 0 0 / 0.2), 0 24px 48px -14px rgb(234 81 57 / 0.55);
   }
   .ph {
     background:
-      radial-gradient(90% 70% at 20% 10%, rgb(255 205 170 / 0.9) 0%, transparent 60%),
-      radial-gradient(80% 80% at 90% 90%, rgb(234 81 57 / 0.55) 0%, transparent 70%),
-      linear-gradient(150deg, #ffcfb8 0%, #f08a6c 55%, #b54a45 100%);
+      radial-gradient(90% 70% at 20% 10%, rgb(255 170 130 / 0.5) 0%, transparent 60%),
+      radial-gradient(80% 80% at 90% 90%, rgb(234 81 57 / 0.45) 0%, transparent 70%),
+      linear-gradient(150deg, #5a2a26 0%, #3a1c1c 55%, #1e1210 100%);
   }
   .btn-coral {
-    background: linear-gradient(180deg, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0) 52%), var(--coral-grad);
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.18) 0%, rgb(255 255 255 / 0) 52%), var(--coral-grad);
     color: #fff;
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 -2px 0 rgb(150 30 20 / 0.16), var(--shadow-glow);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), inset 0 -2px 0 rgb(120 20 20 / 0.2), var(--shadow-glow);
   }
   .btn-coral:active { filter: brightness(0.92); }
-  /* Secondary action: a white pill with a hairline, a lit top edge and a little frost so it holds up on glass or photos. */
+  /* Secondary action: a frosted pill with a lit rim, quieter than coral, readable on glass and photography. */
   .btn-secondary {
-    background: linear-gradient(180deg, #fff 0%, rgb(255 255 255 / 0.86) 100%);
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0.08) 100%);
     -webkit-backdrop-filter: blur(16px) saturate(1.5);
     backdrop-filter: blur(16px) saturate(1.5);
-    border: 1px solid rgb(35 26 23 / 0.08);
-    box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgb(70 35 25 / 0.06);
+    border: 1px solid rgb(255 236 226 / 0.18);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 2px rgb(0 0 0 / 0.2);
     color: var(--color-ink);
   }
-  .btn-secondary:active { background: rgb(255 255 255 / 0.7); }
+  .btn-secondary:active { background: rgb(255 255 255 / 0.06); }
+  /* Light pill (selected chips and segments): warm white with dark text, like iOS selected states on dark. */
+  .pill-on {
+    background: linear-gradient(180deg, #fffaf6 0%, #f3e6de 100%);
+    color: var(--color-deep);
+    box-shadow: inset 0 1px 0 #fff, 0 6px 16px rgb(0 0 0 / 0.3);
+  }
   .scrim {
     background: rgb(20 14 13 / 0.2);
     -webkit-backdrop-filter: blur(6px);
@@ -266,16 +276,16 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
   /* Progressive blur: the photo softens toward the bottom, tinted dark so white text stays readable. */
   .photo-fade {
     pointer-events: none;
-    background: linear-gradient(to top, rgb(18 12 11 / 0.82) 0%, rgb(18 12 11 / 0.42) 50%, rgb(18 12 11 / 0) 100%);
+    background: linear-gradient(to top, rgb(14 9 8 / 0.86) 0%, rgb(14 9 8 / 0.45) 50%, rgb(14 9 8 / 0) 100%);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
     -webkit-mask-image: linear-gradient(to top, #000 45%, transparent 100%);
     mask-image: linear-gradient(to top, #000 45%, transparent 100%);
   }
-  /* Bottom of a full-bleed hero melts into the light canvas. */
+  /* Bottom of a full-bleed hero melts into the canvas. */
   .hero-melt {
     pointer-events: none;
-    background: linear-gradient(to bottom, rgb(250 246 242 / 0) 0%, rgb(250 246 242 / 0.7) 62%, var(--color-canvas) 100%);
+    background: linear-gradient(to bottom, rgb(21 14 12 / 0) 0%, rgb(21 14 12 / 0.7) 62%, var(--color-canvas) 100%);
   }
   /* Horizontal scrollers: hidden scrollbar, but the edges fade so partially visible items signal "scroll". */
   .no-scrollbar { scrollbar-width: none; }
@@ -284,12 +294,20 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
     -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.25rem, #000 calc(100% - 2rem), transparent 100%);
     mask-image: linear-gradient(to right, transparent 0, #000 1.25rem, #000 calc(100% - 2rem), transparent 100%);
   }
+  /* Form control on glass: recessed, darker than the panel it sits in, with a lit focus ring. */
+  .field {
+    background: rgb(10 6 5 / 0.32);
+    border: 1px solid rgb(255 236 226 / 0.14);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.3);
+    color: var(--color-ink);
+  }
 
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .glass, .glass-subtle, .glass-medium, .glass-premium { background: rgb(255 255 255 / 0.96); }
+    .glass, .glass-subtle, .glass-medium, .glass-premium, .btn-secondary { background: rgb(42 29 26 / 0.97); }
     .glass-dark { background: rgb(20 14 13 / 0.88); }
     .glass-light { background: rgb(60 44 40 / 0.92); }
-    .panel { background: #fff; }
+    .panel { background: #241917; }
+    .panel-accent { background: #3a201b; }
   }
 }
 
@@ -311,6 +329,29 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
   .press:active { transform: scale(0.97); }
 }
 
+/* Screen transitions (View Transitions API, started in the store). The tab bar and toasts are named so they stay
+   still while the screen moves; pushes slide in from the right with a little depth, back reverses, tabs crossfade. */
+@keyframes vt-in-right { from { opacity: 0; transform: translateX(28%); } to { opacity: 1; transform: none; } }
+@keyframes vt-out-left { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(-12%) scale(0.98); filter: brightness(0.7); } }
+@keyframes vt-in-left { from { opacity: 0; transform: translateX(-12%) scale(0.98); filter: brightness(0.7); } to { opacity: 1; transform: none; } }
+@keyframes vt-out-right { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(28%); } }
+@keyframes vt-fade-in { from { opacity: 0; transform: scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes vt-fade-out { from { opacity: 1; } to { opacity: 0; } }
+::view-transition-old(screen), ::view-transition-new(screen) { animation-duration: 380ms; animation-timing-function: var(--ease-ios); }
+html[data-nav='push']::view-transition-old(screen) { animation-name: vt-out-left; }
+html[data-nav='push']::view-transition-new(screen) { animation-name: vt-in-right; }
+html[data-nav='pop']::view-transition-old(screen) { animation-name: vt-out-right; z-index: 1; }
+html[data-nav='pop']::view-transition-new(screen) { animation-name: vt-in-left; }
+html[data-nav='tab']::view-transition-old(screen) { animation: vt-fade-out 200ms ease-out both; }
+html[data-nav='tab']::view-transition-new(screen) { animation: vt-fade-in 320ms var(--ease-glide) both; }
+/* Names exist only while a transition runs (html[data-nav]), so they never change stacking at rest. */
+html[data-nav] .vt-tabbar { view-transition-name: tabbar; }
+html[data-nav] .vt-toast { view-transition-name: toast; }
+::view-transition-group(tabbar), ::view-transition-group(toast) { animation: none; }
+html[data-nav] .vt-screen { view-transition-name: screen; }
+/* With view transitions the screen-level CSS fade would double up. */
+@supports (view-transition-name: none) { .anim-screen { animation: none; } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -318,10 +359,11 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
 
 /* Real airport map (Leaflet): keep the attribution above the overlapping bottom sheet, in the app's type. */
-.leaflet-container { font: inherit; background: #eef0ee; }
+.leaflet-container { font: inherit; background: #e9e6e2; }
 .leaflet-bottom { bottom: 1.75rem; }
 .leaflet-control-attribution { font-size: 0.625rem; background: rgb(255 255 255 / 0.85) !important; border-radius: 0.5rem 0 0 0.5rem; }
 

@@ -24,9 +24,9 @@ export function FlightStack({ flights, onOpen }: { flights: Plan[]; onOpen: (p: 
           <button key={f.id} onClick={() => setFrontId(f.id)} aria-label={`Show flight ${f.origin && f.destination ? `${f.origin} to ${f.destination} via ${f.airport}` : `connecting at ${f.airport}`}, ${shortDay(f.arrival)}`}
             style={{ zIndex: i, transform: `scale(${1 - level * 0.035})` }}
             className={cx('press relative -mb-[1.65rem] flex h-[4.4rem] w-full origin-bottom items-start justify-between gap-3 rounded-t-card rounded-b-xl px-5 pt-3 text-left',
-              'ring-1 ring-[rgb(234_81_57/0.1)] transition-transform duration-300 motion-reduce:transition-none',
-              // near-white cards; the coral comes through as a glow that grows further back in the stack
-              level === 1 ? 'bg-[#fffaf7] shadow-[0_-6px_18px_rgb(234_81_57/0.14)]' : level === 2 ? 'bg-[#fff6f1] shadow-[0_-8px_22px_rgb(234_81_57/0.22)]' : 'bg-[#fff2eb] shadow-[0_-10px_26px_rgb(234_81_57/0.3)]')}>
+              'ring-1 ring-white/12 backdrop-blur-xl transition-transform duration-300 motion-reduce:transition-none',
+              // smoked-glass strips; the coral comes through as a glow that grows further back in the stack
+              level === 1 ? 'bg-[rgb(78_44_38/0.85)] shadow-[0_-6px_18px_rgb(234_81_57/0.22)]' : level === 2 ? 'bg-[rgb(62_34_30/0.85)] shadow-[0_-8px_22px_rgb(234_81_57/0.3)]' : 'bg-[rgb(48_27_24/0.85)] shadow-[0_-10px_26px_rgb(234_81_57/0.38)]')}>
             <span className="min-w-0 truncate text-code font-bold text-ink">{route}</span>
             <span className="shrink-0 text-right text-micro leading-tight text-ink/70">via <b className="font-semibold text-ink">{f.airport}</b><br />{shortDay(f.arrival)}</span>
           </button>

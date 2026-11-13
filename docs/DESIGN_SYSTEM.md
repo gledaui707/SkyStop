@@ -1,40 +1,40 @@
-# SkyStop design system ("Daylight & dusk")
+# SkyStop design system ("Dusk")
 
 Everything below exists in code. Tokens and materials live in `src/index.css` (`@theme`, `:root`, `@layer components`);
-shared components live in `src/components/ui.tsx`. Inspiration: `design-references/` plus the owner's three references
-(Nov 2026): floating layered surfaces (composition), warm orange illumination (lighting), high-gloss glass at about
-"0.8 glossiness" (material). They inform the look; they are not features.
+shared components live in `src/components/ui.tsx`. Inspiration: the screenshots in `design-references/` (composition:
+full-bleed travel photography, floating capsule navigation, layered frosted glass, one coral action per screen). They
+inform the look; their typography and features are not copied.
 
 ## Principles
-- **Light and warm first.** Functional screens sit on a warm off-white canvas lit by soft peach and orange light. Dark
-  surfaces appear only where photography leads (onboarding, photo heroes). No dark mode.
-- **One main action per screen**, in coral. Everything else is quieter.
-- **Glass is a material, used sparingly.** Physical, glossy slabs for floating chrome and hero moments; solid panels for
-  forms and dense information. Never glass on glass for content.
-- **Consistency from shared parts, not identical screens.** Screens keep their own composition; they share type,
-  materials, radii, spacing, components and motion.
-- **Accessible by default.** 44 px minimum touch targets, AA text on light surfaces, visible focus, reduced motion.
+- **Dusk, not white.** Screens sit on a warm charcoal canvas lit by fixed ambient light (coral sun top right, plum on the
+  left, coral/amber bounce at the bottom; `div.ambient`, rendered once in `App`). Text is warm white. Photography carries
+  colour: Home, Airport and Plan heroes are full-bleed photos that melt into the canvas.
+- **One main action per screen**, in coral. Everything else is quieter (frosted secondary pills, text links).
+- **Glass with a job.** Content sits on frosted `panel` surfaces (real backdrop blur over the ambient light); floating
+  chrome (tab bar, action tray, sheets, toasts) uses denser `glass-medium`; at most one `glass-premium` hero slab (the
+  boarding pass). Text never sits on glass over busy photography without a scrim.
+- **Consistency from shared parts, not identical screens.**
+- **Accessible by default.** 44 px minimum touch targets, AA text on the dark canvas and glass, visible focus, reduced
+  motion, iOS safe areas.
 
 ## Colour (`@theme` → Tailwind `bg-*`, `text-*`, `border-*`)
+Token names are kept from the earlier light system, so `ink` means "primary text" (now warm white).
 | Token | Value | Use |
 |---|---|---|
-| `accent` | `#EA5139` | primary coral (fills, `btn-coral` gradient) |
-| `accent-dark` | `#C23B24` | coral text and icons on light surfaces (AA) |
-| `accent-tint` | `#FFE4DC` | soft coral wash (icon wells, selected rows) |
-| `aqua` | `#FFB5A5` | secondary coral (historic name kept) |
+| `accent` | `#EA5139` | primary coral (fills, `btn-coral` gradient, active tab) |
+| `accent-dark` | `#FF8A70` | coral text and icons on dark surfaces (AA) |
+| `accent-tint` | coral 20 % | coral wash (icon wells, selected rows) |
+| `aqua` | `#FFB5A5` | soft coral (eyebrow labels) |
 | `peach` / `amber` / `rose` / `plum` | `#FFD9C7` / `#F6A04D` / `#F0738A` / `#4A2335` | accents |
-| `canvas` | `#FAF6F2` | warm off-white background |
-| `surface` | `#FFFFFF` | solid surfaces |
-| `ink` | `#231A17` | charcoal text |
-| `muted-text` / `muted` | `#6B5F59` / `#A1958F` | secondary text / placeholders |
-| `line` / `ink-tint` | 10 % / 5 % ink | hairlines / neutral fills |
-| `success` (+`-tint`) | `#1D7F45` / `#E3F3E8` | positive status |
-| `warning` (+`-tint`) | `#9A5A00` / `#FFF1DC` | caution status |
-| `error` (+`-tint`) | `#C4321F` / `#FDE7E3` | errors, destructive |
-| `deep` | `#1C1412` | dark photographic surface |
+| `canvas` | `#150E0C` | warm charcoal page |
+| `surface` | `#221816` | raised solid surface |
+| `ink` | `#FBF2EC` | primary text (warm white) |
+| `muted-text` / `muted` | `#C8B6AD` / `#8E7C74` | secondary text (9:1 on canvas) / placeholders |
+| `line` / `ink-tint` | warm white 12 % / 7 % | hairlines / neutral fills |
+| `success` / `warning` / `error` (+`-tint`) | `#6FD99A` / `#FFBF6E` / `#FF7F6B`, tints 15–16 % | status |
+| `deep` | `#0E0908` | darkest photographic surface; dark text on light pills |
 
-Gradients (`:root`): `--coral-grad` (buttons), `--sunset-grad` (time budget). Ambient light (`body::before`, fixed):
-peach from the top right, a softer peach on the left, an orange bounce bottom right, on a warm vertical gradient.
+Gradients (`:root`): `--coral-grad` (buttons), `--sunset-grad` (time budget), `--dusk-grad`.
 
 ## Typography (`text-*`; system font stack, SF Pro on Apple devices; rem so it follows text-size settings)
 | Token | Size / line height | Use |
@@ -55,38 +55,29 @@ peach from the top right, a softer peach on the left, an orange bounce bottom ri
 Headings use −0.022em tracking; numbers that change use `tabular-nums`. Weights: 400 body, 500–600 labels, 700 titles.
 
 ## Spacing, radii, borders, elevation
-- **Spacing**: Tailwind's 4 px scale. Screen gutter `px-gutter` = 1.25 rem (same value as `px-5`, used on screen edges and
-  the header). Groups inside a card `gap-3`; sections `gap-6`/`mt-6`.
-- **Safe areas**: `--safe-top`, `--safe-bottom`, `--nav-h` (tab bar + home indicator). Screens pad their bottom by
-  `--nav-h` (plus the action bar where present). The desktop device frame sets its own insets.
-- **Radii**: `rounded-control` 1 rem (inputs, thumbnails, small tiles) · `rounded-card` 1.5 rem (cards, panels, rows,
-  tooltips) · `rounded-surface` 1.75 rem (photo heroes, large cards, empty states) · `rounded-tray` 2 rem (action trays,
-  sheets) · `rounded-full` (buttons, pills, icon buttons).
-- **Borders**: 1 px. Hairline `line` on solid surfaces, white rims on glass.
-- **Elevation**: `shadow-e1` rest (panels) · `shadow-e2` raised (subtle glass) · `shadow-e3` floating (trays, sheets) ·
-  `shadow-glow` coral (primary buttons).
+- **Spacing**: Tailwind's 4 px scale. Screen gutter `px-gutter` = 1.25 rem. Groups inside a card `gap-3`; sections `gap-6`/`mt-6`.
+- **Safe areas**: `--safe-top`, `--safe-bottom`, `--nav-lift` (gap under the floating tab bar: the home-indicator inset
+  or 0.75 rem), `--nav-h` (tab bar + lift). Screens pad their bottom by `--nav-h` (plus the action bar where present).
+- **Radii**: `rounded-control` 1 rem · `rounded-card` 1.5 rem · `rounded-surface` 1.75 rem · `rounded-tray` 2 rem · `rounded-full`.
+- **Borders**: 1 px warm-white hairlines (`line`); lit top rims on glass.
+- **Elevation**: `shadow-e1`–`e3` are deep black shadows for the dark canvas; `shadow-glow` is the coral bloom under primary buttons.
 
 ## Materials (`@layer components`)
-Glass is a physical slab, not a blurred white rectangle: a tinted body whose translucency varies (clearer through the
-middle, milkier at the rim), a specular highlight where the light lands (top left), a bright top edge and bevel, a
-warm-lit bottom edge that reads as thickness, and a contact shadow. Blur supports it. Shared optics are `:root`
-variables (`--glass-edge-top`, `--glass-bevel`, `--glass-edge-warm`, `--glass-thickness`, `--glass-specular`,
-`--glass-streak`).
-
 | Class | Look | Use |
 |---|---|---|
-| `glass-subtle` (= `glass`) | light frost, specular, top edge, e2 | tab bar, header and map buttons, small chrome |
-| `glass-medium` | thicker frost, bevel, warm bottom edge, e3 | `ActionBar` tray, `Sheet`, floating toolbars |
-| `glass-premium` | high gloss: light tint, 8 px blur, diagonal streak, bright rim, warm thickness, coral shadow | at most one hero slab per screen, over warm light or photos (Account Access tray) |
-| `glass-dark` | dark tint with a specular and rim | controls and labels over photography |
-| `sunset` | coral glass slab: brand gradient with streak, bevel and thickness | the time budget (`BudgetHero`) |
-| `panel` | solid white, hairline, white top edge, e1, **no blur** | forms, lists, dense information |
-| `panel-accent` | peach-washed solid | the one highlighted solid surface on a screen |
-| `btn-coral` / `btn-secondary` | coral gradient with gloss and glow / white pill with hairline and lit edge | buttons |
-| `ph`, `photo-fade`, `hero-melt`, `scroll-fade`, `scrim` | placeholders and photo treatments | as named |
+| `glass-subtle` (= `glass`) | warm smoked glass, 24 px blur, lit rim | small chrome, secondary tiles |
+| `glass-medium` | denser smoked glass, 30 px blur, bevel, coral-lit bottom edge, e3 | floating tab bar, `ActionBar`, `Sheet`, toast, map sheet, picker list |
+| `glass-premium` | luminous glass with streak, bright rim, coral bloom | one hero slab per screen (boarding pass) |
+| `glass-dark` / `glass-light` | dark / bright frost with rim | controls and labels over photography |
+| `sunset` | coral glass slab | the time budget (`BudgetHero`) |
+| `panel` | frosted content surface (20 px blur, soft rim, e1) | forms, lists, dense information |
+| `panel-accent` | coral-lit glass | the one highlighted surface on a screen |
+| `field` | recessed dark well with inner shadow | text inputs, selects, pickers (`inputCls` uses it) |
+| `pill-on` | warm-white pill, dark text | selected chips, segments, terminal and buffer choices |
+| `btn-coral` / `btn-secondary` | coral gradient with gloss and glow / frosted pill with lit rim | buttons |
+| `ph`, `photo-fade`, `hero-melt`, `scroll-fade`, `scrim` | photo placeholder and photo treatments | as named |
 
-Without `backdrop-filter` every glass class falls back to a near-opaque fill. Not implemented: true refraction
-(displacement) — browsers outside Chromium cannot filter the backdrop with SVG; the optics above are layered light.
+Without `backdrop-filter` every glass class falls back to a near-opaque warm fill.
 
 ## Components (`src/components/ui.tsx`)
 | Component | API | Notes |
@@ -113,13 +104,18 @@ Domain components reuse these: `BudgetHero` (time budget, `sunset`), `TripTicket
 ## Motion
 - Tokens: `--dur-fast` 160 ms (press feedback), `--dur-base` 280 ms (component changes), `--dur-slow` 560 ms (screen-level);
   easings `--ease-ios` (`ease-ios`) and `--ease-glide` (`ease-glide`).
-- Patterns: press-scale (`press`), screen fade (`anim-screen`), sheet slide (`anim-sheet`), rise (`anim-rise`), Ken Burns.
+- Screen transitions: the View Transitions API (`transition()` in `src/store.tsx`). Push slides the new screen in from the
+  right while the old one recedes; back reverses; tab switches crossfade. Only `main` animates (`view-transition-name`
+  is set only while a transition runs); the ambient light, floating tab bar and toast stay still. Unsupported browsers
+  fall back to the CSS screen fade.
+- Patterns: press-scale (`press`), sheet slide (`anim-sheet`), rise (`anim-rise`), Ken Burns on heroes, the coral tab
+  indicator gliding between tabs.
   Onboarding uses Motion springs (≈0.75 s) for its card morph; Account Access animates its light with CSS transforms.
-- Reduced motion: global CSS rule plus `useReducedMotion` in onboarding; everything becomes instant or still.
+- Reduced motion: no view transitions, global CSS rule plus `useReducedMotion` in onboarding; everything becomes instant or still.
 
 ## Accessibility rules
-Touch targets ≥ 44 px (`IconButton sm`, `Button sm`, chips `min-h-11`). Icon-only buttons need `label`. Coral text on
-light uses `accent-dark`. Small text never sits on the moving glow (Account Access tagline is an owner-approved
+Touch targets ≥ 44 px (`IconButton sm`, `Button sm`, chips `min-h-11`). Icon-only buttons need `label`. Coral text uses
+`accent-dark`. Small text never sits on the moving glow (Account Access tagline is an owner-approved
 exception, 1.4:1). Focus: 2 px coral outline. Status changes use `role="status"` / `alert`.
 
 ## Layout rules (enforced by `npm run test:layout`, 320/375/390/430 px)
