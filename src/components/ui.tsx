@@ -1,4 +1,4 @@
-import { ChevronLeft, Info, Plane, ShieldAlert, X, type LucideIcon } from 'lucide-react'
+import { ChevronLeft, Info, MapPin, Navigation, Plane, ShieldAlert, X, type LucideIcon } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useApp } from '../store'
 import type { Activity, Category } from '../data/types'
@@ -258,7 +258,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   return (
     <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-[rgb(31_26_23/0.32)]" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
-        className="glass-medium anim-sheet max-h-[85dvh] w-full max-w-[480px] overflow-y-auto rounded-t-tray !border-b-0 pb-[calc(var(--safe-bottom)+1rem)] text-ink">
+        className="anim-sheet bg-white shadow-e3 max-h-[85dvh] w-full max-w-[480px] overflow-y-auto rounded-t-tray !border-b-0 pb-[calc(var(--safe-bottom)+1rem)] text-ink">
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-white/95 px-5 pb-3 pt-3">
           <span className="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-ink/20" />
           <h2 className="mt-3 min-w-0 text-h2 font-bold">{title}</h2>
@@ -270,7 +270,11 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   )
 }
 
-export function ActivitySheet({ a, onClose, action }: { a: Activity | null; onClose: () => void; action?: ReactNode }) {
+/** Venue details: where it is, how long it takes, how to get there, and the plan action. Sources and data notes live
+ *  in Profile → About & data, not here. `onDirections` overrides the default (open the airport map with its route). */
+export function ActivitySheet({ a, onClose, action, onDirections }: { a: Activity | null; onClose: () => void; action?: ReactNode; onDirections?: () => void }) {
+  const { go } = useApp()
+  const directions = () => { if (!a) return; onClose(); if (onDirections) onDirections(); else go({ name: 'airport', code: a.airport, view: 'map', venue: a.id }) }
   return (
     <Sheet open={!!a} onClose={onClose} title={a?.name ?? ''}>
       {a && (
@@ -283,11 +287,13 @@ export function ActivitySheet({ a, onClose, action }: { a: Activity | null; onCl
             {[['Est. time', fmtDur(a.durationMin)], ['Price', a.costLabel.replace(' (illustrative)', '')], ['Access', a.access === 'Unverified' ? 'Not confirmed' : a.access]].map(([k, v]) => (
               <div key={k} className="panel min-w-0 rounded-control px-1 py-2.5"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
           </dl>
-          {a.terminal && <p className="text-sub font-semibold text-ink">Where: <span className="font-normal text-muted-text">{a.terminal}</span></p>}
+          {a.terminal && <p className="flex items-start gap-2 text-sub text-ink"><MapPin size={17} className="mt-px shrink-0 text-accent-dark" aria-hidden="true" /><span>{a.terminal}</span></p>}
+          {a.access === 'Landside' && <p className="flex items-start gap-2 text-sub font-medium text-warning"><ShieldAlert size={17} className="mt-px shrink-0" aria-hidden="true" />Outside the transit area: immigration required.</p>}
           <p className="text-body text-ink/85">{a.note}</p>
-          <p className="text-cap text-muted-text">Time is a planning estimate. Opening hours and prices change; check before you go.
-            {a.sourceUrl && <> Source: <a href={a.sourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-accent-dark underline underline-offset-2">{new URL(a.sourceUrl).hostname.replace(/^www\./, '')}</a></>}</p>
-          {action}
+          <div className="grid gap-2">
+            <Button variant="secondary" icon={Navigation} onClick={directions}>How to get there</Button>
+            {action}
+          </div>
         </div>
       )}
     </Sheet>

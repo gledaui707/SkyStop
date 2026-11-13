@@ -50,7 +50,7 @@ export function BudgetHero({ n, overnight, bufferInfo }: { n: HeroNumbers; overn
               <dd className="text-body font-semibold tabular-nums">{v}</dd></div>))}
         </dl>
         {(n.unknownTransfers > 0 || n.proceduresUnknown) && (
-          <p className="mt-1 text-cap text-white/80">{n.proceduresUnknown ? 'Immigration and re-entry checks are not included: no waiting times are published. ' : ''}{n.unknownTransfers > 0 ? `${n.unknownTransfers} transfer${n.unknownTransfers > 1 ? 's are' : ' is'} not verified and not counted.` : ''}</p>)}
+          <p className="mt-1 text-cap text-white/80">{[n.proceduresUnknown && 'Immigration queues not included', n.unknownTransfers > 0 && `${n.unknownTransfers} transfer${n.unknownTransfers > 1 ? 's' : ''} not counted`].filter(Boolean).join(' · ')}</p>)}
         {n.time === 'exceeds' && (
           <p role="alert" className="mt-3 flex gap-2 rounded-control bg-[rgb(20_8_8/0.38)] p-3 text-sub font-medium text-white ring-1 ring-white/20">
             <AlertTriangle size={20} className="mt-0.5 shrink-0 text-[#fff1c2]" />

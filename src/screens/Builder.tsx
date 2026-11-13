@@ -70,9 +70,7 @@ export function Builder() {
           <input value={draft.name} onChange={(e) => update({ name: e.target.value })}
             className="min-h-12 w-full rounded-none  bg-transparent text-h1 font-bold focus:border-accent-dark focus:outline-none" />
         </label>
-        <div className="mt-4"><BudgetHero n={hero} overnight={night} bufferInfo={`The ${fmtDur(hero.buffer)} planning buffer covers leaving the aircraft, transfer screening, the final walk to your gate and boarding. ${itin.routing
-          ? 'Moving between terminals and venues is counted separately as transfers. Leaving and re-entering the transit area is not covered.'
-          : `Transfer times between activities are not available for ${ap.city}, so only activity time is counted.`}`} /></div>
+        <div className="mt-4"><BudgetHero n={hero} overnight={night} bufferInfo={`Time kept back for leaving the aircraft, transfer screening, the walk to your gate and boarding.${itin.routing ? ' Transfers between stops are counted separately.' : ''}`}/></div>
         {items.length > 0 && (
           <Button variant="secondary" icon={MapIcon} className="mt-3 w-full" onClick={() => go({ name: 'airport', code: draft.airport, view: 'map', directions: true })}>
             See how to get there</Button>)}
@@ -203,15 +201,13 @@ function HopRow({ h }: { h: Hop }) {
       <ArrowDown size={16} className="mt-0.5 shrink-0 text-muted" />
       <div className="min-w-0">
         {h.kind === 'unknown' ? (
-          <p className="font-semibold text-error">{h.fromLabel.includes('not set') || h.toLabel.includes('not set') ? `${h.isReturn ? 'Return transfer' : 'Transfer'}: choose your terminal to estimate` : 'Transfer time not verified'}</p>
+          <p className="font-semibold text-error">{h.fromLabel.includes('not set') || h.toLabel.includes('not set') ? `Choose a terminal to estimate this ${h.isReturn ? 'return ' : ''}transfer` : 'Transfer time unknown · not counted'}</p>
         ) : (
-          <p className="text-ink"><b>{h.isReturn ? 'Return transfer' : 'Estimated transfer'}: {range}</b>
+          <p className="text-ink"><b>{h.isReturn ? 'Return' : 'Transfer'}: {range}</b>
             <span className="text-muted-text"> · {h.kind === 'same-area' ? 'within the same area' : [...new Set(h.modes.map((m) => MODE_LABEL[m] ?? m))].join(', then ')}</span></p>
         )}
-        {h.kind === 'unknown' && <p className="text-cap text-muted-text">
-          {h.fromLabel.includes('not set') || h.toLabel.includes('not set') ? 'Not counted until a terminal is chosen.' : 'Access between these locations has not been verified. Not counted.'}</p>}
-        {h.immigration && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-tab font-semibold text-accent-dark">Immigration required · time not included</p>}
-        {h.departureChecks && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-tab font-semibold text-accent-dark">Check-in, departure immigration and security · time not included</p>}
+        {h.immigration && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-tab font-semibold text-accent-dark">Immigration required</p>}
+        {h.departureChecks && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-tab font-semibold text-accent-dark">Re-enter via check-in, immigration and security</p>}
         {h.throughCheck && <p className="mt-1 inline-flex rounded-full bg-ink-tint px-2 py-0.5 text-tab font-semibold text-ink">Through-checked passengers only</p>}
       </div>
     </div>

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, Globe, LogOut, PenLine, Mail, RotateCcw, ShieldCheck, Trash2, UserRound } from 'lucide-react'
+import { Camera, ChevronRight, Database, Globe, LogOut, PenLine, Mail, RotateCcw, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { useApp } from '../store'
 import { getSupabase } from '../api/client'
 import { avatarUrl, createAccount, removeAvatar, signIn, signOut, updateName, uploadAvatar } from '../api/account'
 import { ensureGuestSession } from '../api/session'
 import { deleteProfile, saveProfile } from '../api/repositories'
-import { Button, Header, InfoTip, Notice, cx, inputCls, SectionHeader, Surface } from '../components/ui'
+import { Button, Header, InfoTip, Notice, cx, inputCls, SectionHeader, Sheet, Surface } from '../components/ui'
+import { AboutData } from '../components/AboutData'
 
 /** Country names for the optional nationality / residence fields (ISO 3166 regions known to the browser). */
 function countryNames(): string[] {
@@ -48,6 +49,7 @@ export function Profile() {
   const [name, setName] = useState(account.name ?? '')
   const [photo, setPhoto] = useState<string | null>(null)
   const [photoBusy, setPhotoBusy] = useState(false)
+  const [about, setAbout] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   useEffect(() => { setName(account.name ?? '') }, [account.name])
   // A different person (sign-out, sign-in) means different travel details: never keep the previous ones on screen.
@@ -177,11 +179,14 @@ export function Profile() {
 
         <Section title="Settings">
           <button onClick={replayOnboarding} className="press flex min-h-12 items-center gap-3 text-left text-body font-medium"><RotateCcw size={19} className="text-accent-dark" />Replay introduction</button>
+          <button onClick={() => setAbout(true)} className="press flex min-h-12 items-center gap-3 text-left text-body font-medium"><Database size={19} className="text-accent-dark" />
+            <span className="min-w-0 flex-1">About & data<span className="block text-cap font-normal text-muted-text">Sample data, sources and limitations</span></span><ChevronRight size={18} className="text-muted-text" /></button>
           {account.status !== 'none' && (
             <button onClick={() => void logOut()}
               className="press flex min-h-12 items-center gap-3  pt-3 text-left text-body font-medium text-error"><LogOut size={19} />Log out</button>)}
         </Section>
       </div>
+      <Sheet open={about} onClose={() => setAbout(false)} title="About & data"><AboutData /></Sheet>
     </div>
   )
 }

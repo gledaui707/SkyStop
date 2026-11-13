@@ -231,3 +231,22 @@ Not done: real-device iPhone check, Safari backdrop-filter rendering, production
 - Audit: the gloss came from shared foundations: dark Dusk tokens and ambient layer; every glass material layered specular blooms, diagonal streaks, white rims, bevels and coral "thickness"; content panels were frosted glass (20 px blur); buttons and the time budget had inner highlights and strong coral glows; Home's flight stack used smoked glass; heroes melted into the dark canvas.
 - Corrected in `src/index.css` (same token names and components): light warm-neutral tokens; materials without highlights, rims, bevels or glows; `panel` solid white; glass only for floating chrome (subtle blur, hairline, soft shadow); flat coral buttons and a matte coral time budget; soft shadows. Desktop stage kept dark (`html.device-stage`). One-offs: photo heroes end with rounded corners and a dark scrim under white text (Home, Airport); Wallet stack strips solid white; boarding pass a solid panel; chips, notices and sheet header without blur; map status labels on light tokens; Account Access glow scaled to 80 % and 82 % opacity around the logo.
 - Checks: `tsc` clean; unit 135 passed (one hosted skip); e2e 146/146; layout 0 issues at 320/375/390/430 px; before/after screenshots compared at 375 and 390 px for Home, flight stack, Add flight, booking samples, Airport list and map, Builder, setup, Journey, My flights, My plans, plan detail, Profile, onboarding and Account Access, plus the desktop frame. Not tested on Safari/iPhone.
+
+### Wayfinding, demo data and disclaimers (owner brief, 13 Nov 2026)
+
+- Wayfinding: tapping a venue previews its simulated route from the arrival gate (time, distance, line); How to get there
+  in the map and in every activity details sheet; leg-by-leg directions with time, distance, one status pill, generic
+  steps, Next stop / Done, All stops; route follows reorder/removal; works at LIS, SIN, LHR, DXB. Simulated data kept in
+  `src/features/wayfinding/mock.ts`, never stored as verified coordinates.
+- Disclaimers: removed from activity details ("Time is a planning estimate… Source: …"), transfer rows ("· time not
+  included", "Access between these locations has not been verified. Not counted."), the time card (two-sentence
+  footnote → "Immigration queues not included · 1 transfer not counted") and the buffer info. Safety labels kept:
+  immigration required, re-entry via check-in/immigration/security, landside entry check, over time, unknown transfer.
+  Sources, sample data, simulated routing, the time model and limitations: Profile → Settings → About & data.
+- Checks: `tsc` clean; unit 141 (140 passed, one hosted skip), incl. new route tests (simulated leg minutes match
+  distance, lines join stop points, never straight, generic steps with nothing invented, immigration and departure
+  checks only from data, deterministic, reorder); e2e 153/153 incl. new checks (venue preview, Lisbon estimated route,
+  origin/destination markers, step 3 re-entry checks, single status label, reorder updates route, About & data);
+  layout 0 issues at 320/375/390/430 px; wayfinding captures at 320, 375, 390 px with no sideways scroll; build OK.
+- Fixed during checks: at 320 px the status pill squeezed the distance into a narrow column (moved onto the time line);
+  modal sheets let page text show through (fade animation disables the backdrop blur) → solid white.

@@ -35,7 +35,14 @@ interface Props {
   paths?: MapPath[]
   /** Terminal pins the camera should frame (the selected leg's ends, or all stops of a route). */
   focusKeys?: string[]
+  /** Wayfinding overlay: route legs (the active one solid, others dotted) and stop markers. While shown, terminal
+   *  capsules shrink to quiet labels so the route reads first. */
+  wayfinding?: Wayfinding | null
 }
+
+export type LatLngT = [number, number]
+export interface WayStop { n: number; kind: 'arrival' | 'activity' | 'departure'; label: string; point: LatLngT; role?: 'origin' | 'dest' | null }
+export interface Wayfinding { legs: { i: number; path: LatLngT[]; active: boolean }[]; stops: WayStop[]; frame: LatLngT[] }
 
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 // Basemap: CARTO's light style (OpenStreetMap data) when a CARTO key is configured at build time (VITE_CARTO_KEY, set
@@ -58,10 +65,11 @@ const pinWidth = (airport: string) => (keys: string[]) => {
  *  match the filters; pins that would overlap merge into a cluster (tap to zoom in). Venues are NOT pinned
  *  individually and no indoor floors are shown: the sources give a venue's terminal, not its indoor position. Route
  *  lines are drawn only from documented path geometry (`paths`). Not for navigation. */
-export function AirportMap({ airport, activities, planned, terminal, onTerminal, cat, zone, insets, stops = {}, lastStop = -1, highlight, paths = [], focusKeys = [] }: Props) {
+export function AirportMap({ airport, activities, planned, terminal, onTerminal, cat, zone, insets, stops = {}, lastStop = -1, highlight, paths = [], focusKeys = [], wayfinding = null }: Props) {
   const el = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const lines = useRef<L.LayerGroup | null>(null)
+  const way = useRef<L.LayerGroup | null>(null)
   const [, setTick] = useState(0) // re-render pins when the map moves
   const terminals = useMemo(() => AIRPORT_GEO[airport]?.terminals ?? [], [airport])
   const matches = (a: Activity) => (cat === 'All' || a.category === cat) && (zone === 'all' || zoneOf(a) === zone)
@@ -74,13 +82,14 @@ export function AirportMap({ airport, activities, planned, terminal, onTerminal,
     L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(m)
     L.tileLayer(BASEMAP.url, { attribution: BASEMAP.attribution, maxZoom: 19 }).addTo(m)
     lines.current = L.layerGroup().addTo(m)
+    way.current = L.layerGroup().addTo(m)
     m.invalidateSize()
     m.fitBounds(L.latLngBounds(terminals.map((t) => L.latLng(t.lat, t.lng))), padding())
     const tick = () => setTick((n) => n + 1)
     m.on('move zoom resize', tick)
     const ro = new ResizeObserver(() => m.invalidateSize()); ro.observe(el.current)
     map.current = m; tick()
-    return () => { ro.disconnect(); m.remove(); map.current = null; lines.current = null }
+    return () => { ro.disconnect(); m.remove(); map.current = null; lines.current = null; way.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terminals])
 
@@ -112,6 +121,44 @@ export function AirportMap({ airport, activities, planned, terminal, onTerminal,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusSig, terminals, insets.bottom])
 
+  // Wayfinding: route legs and stop markers as map layers (they pan and zoom with the map).
+  const waySig = JSON.stringify(wayfinding)
+  useEffect(() => {
+    const g = way.current
+    if (!g) return
+    g.clearLayers()
+    if (!wayfinding) return
+    // Schematic terminal zones under the route: soft shapes, not floor plans, so the line reads as a diagram.
+    for (const t of terminals) {
+      L.circle([t.lat, t.lng], { radius: 230, color: '#ea5139', weight: 1, opacity: 0.35, dashArray: '4 6', fillColor: '#ea5139', fillOpacity: 0.05, interactive: false }).addTo(g)
+    }
+    for (const l of [...wayfinding.legs].sort((a, b) => Number(a.active) - Number(b.active))) {
+      if (l.active) {
+        L.polyline(l.path, { color: '#fff', weight: 11, opacity: 1, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(g)
+        L.polyline(l.path, { color: '#ea5139', weight: 6, opacity: 1, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(g)
+      } else {
+        L.polyline(l.path, { color: '#ea5139', weight: 4, opacity: 0.45, dashArray: '1 9', lineCap: 'round', interactive: false }).addTo(g)
+      }
+    }
+    for (const st of wayfinding.stops) {
+      const text = st.kind === 'arrival' ? 'A' : st.kind === 'departure' ? 'D' : String(st.n)
+      const html = st.role === 'dest'
+        ? `<span class="wf-pin"><span>${text}</span></span>`
+        : `<span class="wf-stop${st.role === 'origin' ? ' wf-stop--origin' : ''}">${text}</span>`
+      const icon = L.divIcon({ html, className: 'wf-icon', iconSize: st.role === 'dest' ? [34, 44] : [26, 26], iconAnchor: st.role === 'dest' ? [17, 42] : [13, 13] })
+      L.marker(st.point, { icon, interactive: false, keyboard: false, zIndexOffset: st.role === 'dest' ? 1000 : st.role === 'origin' ? 900 : 0 }).addTo(g)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waySig])
+  // Frame the active leg (or the whole route) inside the visible band.
+  const frameSig = JSON.stringify(wayfinding?.frame ?? null)
+  useEffect(() => {
+    const m = map.current, pts = wayfinding?.frame
+    if (!m || !pts?.length) return
+    m.flyToBounds(L.latLngBounds(pts), { ...padding(), maxZoom: 17.5, animate: !reduced(), duration: 0.6 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frameSig, insets.bottom])
+
   // Documented route geometry only: a white casing under a coral line; the active leg is solid, others faint.
   useEffect(() => {
     const g = lines.current
@@ -141,7 +188,10 @@ export function AirportMap({ airport, activities, planned, terminal, onTerminal,
   return (
     <div className="wayfinding-map absolute inset-0 overflow-hidden bg-[#f2f1ef]" style={{ ['--map-bottom' as string]: `${insets.bottom}px` }} onClick={() => onTerminal(null)}>
       <div ref={el} className="absolute inset-0 z-0" aria-label={`Map of ${airport} airport`} role="region" />
-      {clusters.map((c) => {
+      {wayfinding ? clusters.map((c) => (
+        <span key={c.keys.join('+')} aria-hidden="true" className="map-glass pointer-events-none absolute z-[8] -translate-x-1/2 -translate-y-1/2 rounded-full px-2 py-0.5 text-micro font-semibold"
+          style={{ left: c.x, top: c.y }}>{c.keys.length > 2 ? `${c.keys.length} terminals` : c.keys.map((k) => short(airport, k)).join(' · ')}</span>
+      )) : clusters.map((c) => {
         const list = venuesIn(c.keys), shown = list.filter(matches)
         const inPlan = list.filter((a) => planned.includes(a.id)).length
         const nums = c.keys.flatMap((k) => stops[k] ?? []).sort((a, b) => a - b)

@@ -12,41 +12,57 @@ view, styles) and `src/components/AirportMap.tsx` (Leaflet map).
 - **Clusters**: pins whose capsules would touch at the current zoom merge into one ("Jewel · T1", "3 terminals"); tapping
   zooms in. Pins never overlap (unit- and browser-tested). Pins under the top controls are not drawn (pan to see them).
 - **Itinerary stops**: numbered badges on the stop's terminal pin (arrival and departure as plane icons).
-- **No venue pins and no floors**: the catalogue gives a venue's terminal, not its indoor position or floor.
+- **Route layer** (when a venue is selected or directions are open): a dashed, faint coral circle around each involved
+  terminal (a *schematic zone*, not a floor plan), numbered stop markers, the active leg in coral over a white casing,
+  other legs as faint dotted coral lines, the leg's start as a filled coral dot and its destination as a coral pin.
+  The map frames the active leg. Terminal clusters become small labels so they never cover the route.
+- **No floors**: no floor data exists for these airports, so there is no floor control.
 
 ## Controls and the sheet
 Top: back, List/Map, category chips. Right, above the sheet: zone filter (all / airside / landside) and "whole airport".
-One bottom sheet floats above the tab bar: **browse** (terminal filter, venues, main action, *Route*), **venue**
-(Add, *How to get there*, Details) or **directions**. Short phones (< 720 px tall) start with the sheet collapsed; the
-handle expands it; tapping a terminal expands it. Controls hide when an expanded sheet leaves no room for them.
-Nothing overlaps: sheet above the tab bar, controls and attribution above the sheet (browser-tested).
+One bottom sheet floats above the tab bar: **browse** (terminal filter, venues, main action, *Directions*), **venue**
+(preview line "5–10 min · 1.1 km from Arrival", Add, *How to get there*, Details) or **directions**. Short phones
+(< 720 px tall) start with the sheet collapsed; the handle expands it. Nothing overlaps: sheet above the tab bar,
+controls and attribution above the sheet (browser-tested at 320, 375 and 390 px).
 
 ## Directions ("How to get there")
-Where to find it: **See how to get there** under the time card on your itinerary (Builder), the same button on a saved
-plan (My Plans → a plan), and on the map itself (*Directions* in the sheet, or *How to get there* on a venue). Elsewhere
-the button reads **See on map**.
-Available where SkyStop has a transfer graph (Changi pilot; see `CONSTRAINT_AWARE_PLANNING.md`). For the whole
-itinerary or a single venue (from the arrival terminal and back to the departure terminal). Opens as a step card
-(Step n of N, from → to, mode, minutes, status, checkpoints) with previous/next; *All steps* lists every stop and leg
-with notes and sources. The map frames the current leg's two terminals (start: coral ring; end: coral fill).
+Entry points: **See how to get there** under the time card on the itinerary (Builder) and on a saved plan; *Directions*
+in the map sheet; *How to get there* on a venue in the map and in every activity details sheet (opens the map focused
+on that venue). Works at every airport (LIS, SIN, LHR, DXB).
 
-Each leg's status says where its minutes come from:
-| Status | Meaning |
+One leg at a time, like a maps app: Step n of N, To / From (with terminal), a summary (time, distance, mode, one status
+pill), 2–5 short numbered steps (collapsed: the first two plus every border/security step), *Next stop* or *Done*, and,
+expanded, *All stops* (each with time and distance). Back returns to discovery with the plan intact. The route follows
+the plan's order, so reordering or removing an activity updates it.
+
+| Status pill | Meaning |
 |---|---|
-| Published time | every step is an airport-published time (`verification = official`) |
-| Estimate | at least one step is a labelled planning estimate |
-| No directions | no recorded route between the two places: no minutes are shown or counted |
+| Airport transfer time | the minutes are Changi's published transfer times (`verification = official`); the line is still simulated |
+| Estimated route | simulated walking estimate, or a Changi planning estimate |
+| No directions | no recorded route between two Changi locations |
 
-Border and security steps (arrival immigration; check-in, departure immigration and security; through-check only) are
-listed on the leg **without a time**: none is published. They are the same flags the planner uses.
+The pill appears once per leg; steps carry no per-step disclaimer.
 
-## Illustrative directions (owner decision, 13 Nov 2026)
-SkyStop is a demo, so every itinerary gets directions at every airport. Where Changi's transfer graph has a route, the
-leg uses its published minutes, checkpoints and source. Otherwise the leg is illustrative: 5–10 min on foot within a
-terminal, 12–20 min between terminals, labelled *Estimate*. Every leg that changes terminal is drawn as a curved coral
-line between the two terminal pins (`curveBetween` in `route.ts`); these lines are illustrative, not surveyed paths.
-Changi T2 has an approximate, illustrative pin position. These display-only legs do not change the planner's time
-calculation. No disclaimer is shown in the app.
+## Data model: verified vs simulated (owner decision, 13 Nov 2026)
+| Data | Status | Where |
+|---|---|---|
+| Venues, categories, terminals, airside/landside | real, from each airport's website (database catalogue) | Supabase `activities` |
+| Terminal coordinates | real, published (Wikipedia/Wikidata), `approx` flagged; Changi T2 approximate | `src/data/airportGeo.ts` |
+| Changi transfer minutes, modes, immigration and re-entry flags | real (published) or labelled planning estimate | Supabase transfer graph |
+| Venue spot inside a terminal (70–190 m from the terminal point, stable hash angle) | **simulated** | `mock.ts` `venuePoint` |
+| Arrival / departure gate areas (210 m from the terminal point) | **simulated** | `mock.ts` `gatePoint` |
+| Route lines: a smooth path bowing through the terminal hub; between terminals hub → curved connector → hub | **simulated**, never straight | `mock.ts` `mockPath` |
+| Distance (length of that line, to 10 m) and walking time (70 m/min, min. 2 min) | **simulated** | `mock.ts` |
+| Step text | **simulated**, generic | `mock.ts` `mockSteps` |
+
+Simulated points live only in `Stop.point` / `Leg.geometry` and are never written to the database or to `airportGeo`.
+Step rules: start ("Start at your arrival gate area in Terminal 1" or "Start at X"); a named crossing only from the
+airport's transfer mode (Skytrain or travellator, transit shuttle bus, link bridge), else "Follow the signs to Terminal
+N"; "Clear arrival immigration" and "Check in, then clear departure immigration and security" only when the airport's
+data flags them; "Follow the main concourse toward the dining area / lounges / …"; "Continue to X". No gate numbers,
+escalators, turns or checkpoints are invented (unit-tested). Everything is deterministic: the same plan always gives the
+same route. None of it changes the planner's time calculation (`planItinerary`). The full explanation for users lives in
+Profile → Settings → **About & data**.
 
 ## Indoor map data: what was checked (13 Nov 2026)
 | Source | Result |
@@ -64,5 +80,5 @@ Sources: [Mapbox indoor airport maps](https://www.mapbox.com/indoor-maps),
 [Changi transfers between terminals](https://www.changiairport.com/en/at-changi/transport-and-directions/transferring-between-terminals-jewel.html).
 
 ## Not supported yet
-Indoor floor plans and positioning; walking paths inside terminals; floor changes; checkpoint queue times; directions at
-LIS, LHR and DXB; separating close terminals on very short screens (they stay in one highlighted cluster).
+Real indoor floor plans, positioning and surveyed walking paths; floor changes; checkpoint queue times; live gate
+assignments; separating close terminals on very short screens (they stay in one cluster).

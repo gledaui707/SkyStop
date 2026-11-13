@@ -142,10 +142,11 @@ On desktop-class browsers (fine pointer, ≥ 820 px) the app loads in an iframe 
 coral light). The app inside stays light. `?frame=off` opens it without the frame. Phones get the app full screen.
 
 ## Airport map and wayfinding
-A clean light map (CARTO light, OSM fallback) inside the app's theme. Map chrome uses `map-glass` (light, glossy, dark
-text whatever the app theme) from `src/features/wayfinding/map.css`: terminal pins (capsule above the true point with a
-pointer and dot; coral when selected or the leg's end; coral ring for the leg's start), cluster pins, numbered stop
-badges, and round map buttons. One bottom sheet (`glass-medium`) floats above the tab bar; controls and attribution sit
-above it. Route lines (coral over a white casing) are drawn only from documented path geometry, and none exists yet.
-Leg status labels: Published time (success), Estimate (amber), No directions (neutral). Full rules and data findings:
-`docs/WAYFINDING.md`.
+A clean light map (CARTO light, OSM fallback). Map chrome uses `map-glass` (light, dark text) from
+`src/features/wayfinding/map.css`: terminal pins, clusters and round map buttons. One bottom sheet (`glass-medium`)
+floats above the tab bar; controls and attribution sit above it. Coral is used only for meaning: the active route (coral
+over a white casing), the destination pin (`.wf-pin`), the leg's start (`.wf-stop--origin`) and numbered stop rings
+(`.wf-stop`); inactive legs are faint dotted coral; terminal zones are dashed, 5% coral circles (schematic). One status
+pill per leg: Airport transfer time (success tint), Estimated route (neutral), No directions (neutral). Border and
+security steps use `text-warning`. Modal sheets (`Sheet`) are solid white so content behind never shows through.
+Full rules and the verified/simulated data model: `docs/WAYFINDING.md`.

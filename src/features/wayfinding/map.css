@@ -89,3 +89,17 @@
 /* Attribution stays visible: just above the bottom sheet, never under it or the tab bar. */
 .wayfinding-map .leaflet-bottom { bottom: var(--map-bottom, 0px); }
 .wayfinding-map .leaflet-control-attribution { border-radius: 0 0.5rem 0.5rem 0; }
+
+/* Wayfinding markers (Leaflet divIcons): numbered stops, the leg's start (ring) and its destination (coral pin). */
+.wf-icon { background: none; border: 0; }
+.wf-stop {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 999px;
+  background: #fff; color: #1f1a17; font: 700 12px/1 system-ui, -apple-system, sans-serif;
+  border: 2px solid #ea5139; box-shadow: 0 1px 4px rgb(31 26 23 / 0.25);
+}
+.wf-stop--origin { background: #ea5139; color: #fff; border-color: #fff; box-shadow: 0 0 0 4px rgb(234 81 57 / 0.25), 0 1px 4px rgb(31 26 23 / 0.3); }
+.wf-pin {
+  position: relative; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50% 50% 50% 0;
+  background: #ea5139; transform: rotate(-45deg); border: 2px solid #fff; box-shadow: 0 3px 8px rgb(31 26 23 / 0.3);
+}
+.wf-pin > span { transform: rotate(45deg); color: #fff; font: 800 13px/1 system-ui, -apple-system, sans-serif; }

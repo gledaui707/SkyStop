@@ -1,11 +1,11 @@
-// Wayfinding view of an itinerary: ordered stops and the legs between them, ready for the map and the route sheet.
-// Pure; no UI. Where the airport has a transfer graph (Changi), legs use the planner's own minutes and checkpoints.
-// Everywhere else (and for legs the graph cannot route), SkyStop shows ILLUSTRATIVE directions (owner decision,
-// 13 Nov 2026: SkyStop is a demo and every itinerary gets directions): 5–10 min on foot within a terminal, 12–20 min
-// between terminals, and a curved line between the two terminal pins. These display-only legs never change the
-// planner's time calculation.
+// Wayfinding view of an itinerary: ordered stops and the legs between them, ready for the map and the directions
+// sheet. Pure; no UI. Prototype (owner decision, 13 Nov 2026): every stop has an illustrative point (venue spot inside
+// its terminal, gate areas), every leg an illustrative corridor path, a distance, a walking time and step-by-step
+// directions (src/features/wayfinding/mock.ts). Where Changi's transfer graph routes a leg, its published minutes,
+// mode and checkpoints are used. None of this changes the planner's time calculation.
 import type { GraphLocation, Hop, Itinerary, TransferGraph } from '../../domain/itinerary'
 import { AIRPORT_GEO, terminalKeysOf } from '../../data/airportGeo'
+import { gatePoint, mockPath, mockSteps, pathLength, venuePoint, walkMinutes, type LatLng } from './mock'
 
 export type LegStatus = 'verified' | 'estimate' | 'unavailable'
 export type StopKind = 'arrival' | 'activity' | 'departure'
@@ -20,6 +20,8 @@ export interface Stop {
   mapKey: string | null
   /** Where the stop is, in words ("Terminal 2 transit area"), even without a map pin. */
   place: string | null
+  /** SIMULATED map point (venue spot or gate area, from mock.ts); never a verified coordinate. */
+  point: LatLng | null
 }
 
 export interface Leg {
@@ -34,8 +36,13 @@ export interface Leg {
   checkpoints: string[]
   notes: string[]
   sources: string[]
-  /** Documented path geometry ([lat, lng] points), or null: then no line is drawn for this leg. */
+  /** The route line ([lat, lng] points): registered geometry, else the illustrative path. */
   geometry: [number, number][] | null
+  /** Length of the route line in metres, and the walking time it implies. */
+  distanceM: number
+  walkMin: number
+  /** Step-by-step directions (illustrative). */
+  steps: string[]
 }
 
 export interface RouteView {
@@ -95,21 +102,24 @@ export function buildRoute(
   airport: string,
   graph: TransferGraph | null,
   itin: Itinerary,
-  activities: { id: string; name: string; terminal?: string }[],
+  activities: { id: string; name: string; terminal?: string; category?: string; locationIds?: string[] }[],
   arrivalLocation?: string | null,
   departureLocation?: string | null,
 ): RouteView {
   const loc = (id: string | null | undefined) => (id ? graph?.locations.find((l) => l.id === id) : undefined)
-  const keyOfActivity = (a: { terminal?: string } | undefined) => (a ? terminalKeysOf(airport, a.terminal)[0] ?? null : null)
-  const stop = (n: number, kind: StopKind, label: string, id: string | null | undefined, fallbackKey: string | null): Stop => {
+  // A venue's terminal: from its terminal text, else from its own transfer-graph location.
+  const keyOfActivity = (a: { terminal?: string; locationIds?: string[] } | undefined) =>
+    (a ? terminalKeysOf(airport, a.terminal)[0] ?? mapKeyFor(airport, loc(a.locationIds?.[0])) ?? null : null)
+  const stop = (n: number, kind: StopKind, label: string, id: string | null | undefined, fallbackKey: string | null, venueId?: string): Stop => {
     const l = loc(id)
     const mapKey = mapKeyFor(airport, l) ?? fallbackKey
-    return { n, kind, label, location: id ?? null, mapKey, place: l?.name ?? terminalName(airport, mapKey) }
+    const point = kind === 'activity' ? venuePoint(airport, venueId ?? label, mapKey) : gatePoint(airport, mapKey, kind)
+    return { n, kind, label, location: id ?? null, mapKey, place: l?.name ?? terminalName(airport, mapKey), point }
   }
   const first = keyOfActivity(activities[0]), last = keyOfActivity(activities[activities.length - 1])
   const stops: Stop[] = [
     stop(0, 'arrival', 'Arrival', arrivalLocation, first),
-    ...activities.map((a, i) => stop(i + 1, 'activity', a.name, itin.hops[i]?.toLocation ?? null, keyOfActivity(a))),
+    ...activities.map((a, i) => stop(i + 1, 'activity', a.name, itin.hops[i]?.toLocation ?? null, keyOfActivity(a), a.id)),
     stop(activities.length + 1, 'departure', 'Departure', departureLocation, last),
   ]
   const legs: Leg[] = stops.slice(1).map((to, i) => {
@@ -117,12 +127,18 @@ export function buildRoute(
     const routed = !!h && h.kind !== 'unknown'
     const same = !!from.mapKey && from.mapKey === to.mapKey
     const key = h?.fromLocation && h?.toLocation ? `${h.fromLocation}>${h.toLocation}` : ''
-    const geometry = (key && PATH_GEOMETRY[key]) || (from.mapKey && to.mapKey ? curveBetween(airport, from.mapKey, to.mapKey) : null)
+    const geometry = (key && PATH_GEOMETRY[key]) || (from.point && to.point ? mockPath(airport, from.point, from.mapKey, to.point, to.mapKey) : null)
+    const distanceM = geometry ? Math.round(pathLength(geometry) / 10) * 10 : 0
+    const walk = geometry ? walkMinutes(distanceM) : (same ? ILLUSTRATIVE.sameTerminal.max : ILLUSTRATIVE.otherTerminal.max)
+    const checkpoints = h ? checkpointsOf(h) : []
+    const steps = mockSteps({ fromLabel: from.label, fromKind: from.kind, toLabel: to.label, toKind: to.kind, fromPlace: from.place, toPlace: to.place,
+      changesTerminal: !same && !!from.mapKey && !!to.mapKey, mode: h?.modes.find((m) => m !== 'walk'),
+      category: to.kind === 'activity' ? activities[to.n - 1]?.category : undefined, immigration: !!h?.immigration, departureChecks: !!h?.departureChecks })
     if (routed) {
-      return { i, from, to, status: statusOf(h), minutes: { min: h.min, max: h.max }, modes: h.modes, checkpoints: checkpointsOf(h), notes: h.notes, sources: h.sources, geometry }
+      return { i, from, to, status: statusOf(h), minutes: { min: h.min, max: h.max }, modes: h.modes, checkpoints, notes: h.notes, sources: h.sources, geometry, distanceM, walkMin: walk, steps }
     }
-    return { i, from, to, status: 'estimate' as const, minutes: { ...(same ? ILLUSTRATIVE.sameTerminal : ILLUSTRATIVE.otherTerminal) },
-      modes: ['walk'], checkpoints: h ? checkpointsOf(h) : [], notes: [], sources: [], geometry }
+    return { i, from, to, status: 'estimate' as const, minutes: { min: walk, max: walk },
+      modes: ['walk'], checkpoints, notes: [], sources: [], geometry, distanceM, walkMin: walk, steps }
   })
   return { routing: itin.routing, stops, legs }
 }

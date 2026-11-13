@@ -331,6 +331,13 @@ try {
   await o.page.waitForTimeout(800);
   check('onboarding + access: a returning guest is not shown either again', !(await visible(o.page, 'Your layover, reimagined.')) && await o.page.getByRole('button', { name: /^Add flight/ }).first().isVisible());
   await o.page.getByRole('button', { name: 'Profile' }).click();
+  await o.page.getByRole('button', { name: /^About & data/ }).click();
+  {
+    const about = (await o.page.getByRole('dialog', { name: 'About & data' }).innerText()).replace(/\s+/g, ' ');
+    check('about: one central page covers sample bookings, venue sources, simulated directions, the time model and entry checks',
+      about.includes('AXR7KD') && /changiairport\.com/.test(about) && /simulated/i.test(about) && /planning buffer/i.test(about) && /never decides whether you may enter/.test(about), about.slice(0, 200));
+    await o.page.getByRole('button', { name: 'Close' }).click();
+  }
   await o.page.getByRole('button', { name: 'Replay introduction' }).click();
   await o.page.getByText('Your layover, reimagined.').waitFor();
   for (let k = 0; k < 2; k++) { await o.page.getByRole('button', { name: 'Get started' }).click(); await o.page.waitForTimeout(250); }
@@ -426,14 +433,22 @@ try {
     await toChangiMap();
     await P.getByRole('button', { name: 'How to get there' }).click();
     await dir.getByText('Step 1 of 3').waitFor();
-    check('wayfinding: "How to get there" opens step 1 of 3 (arrival T1 → Butterfly Garden T3) with its published time', (await dir.innerText()).includes('Arrival (T1 transit) → Butterfly Garden') && await dir.getByText('Published time').first().isVisible() && await dir.getByText(/5–10 min/).first().isVisible());
+    const d1 = (await dir.innerText()).replace(/\s+/g, ' ');
+    check('wayfinding: Directions opens step 1 of 3 (arrival T1 → Butterfly Garden T3) with time, distance and Changi\'s transfer time', d1.includes('To Butterfly Garden') && d1.includes('From Arrival') && await dir.getByText('Airport transfer time').first().isVisible() && /5–10 min/.test(d1) && /\d(\.\d)? km|\d+ m\b/.test(d1), d1.slice(0, 200));
+    check('wayfinding: generic steps adapted to the route (start, Skytrain to T3, continue to the stop)', /Start at your arrival gate area in Terminal 1/.test(d1) && /Skytrain/.test(d1));
+    check('wayfinding: the destination pin and origin marker are drawn', (await P.locator('.wf-pin').count()) === 1 && (await P.locator('.wf-stop--origin').count()) === 1);
     await dir.getByRole('button', { name: 'Next step' }).click();
-    check('wayfinding: Next step moves to step 2, flagged with arrival immigration (no waiting time given)', (await dir.innerText()).includes('Step 2 of 3') && /Arrival immigration/.test(await dir.innerText()));
-    check('wayfinding: the selected leg\'s ends are highlighted on the map', await P.locator('.map-pin[data-state="to"]').count() >= 1);
+    const d2 = await dir.innerText();
+    check('wayfinding: Next step moves to step 2, with the arrival immigration step visible (no waiting time given)', d2.includes('Step 2 of 3') && /Clear arrival immigration/.test(d2) && !/immigration[^\n]*\d+ ?min/i.test(d2));
+    check('wayfinding: the simulated route is labelled once, not after every step', (await dir.getByText(/Estimated route|Airport transfer time/).count()) === 1);
     check('wayfinding: the route is drawn on the map as a line between the stops', (await P.locator('.leaflet-overlay-pane path').count()) >= 2);
-    await dir.getByRole('button', { name: 'All steps' }).click();
+    await dir.getByRole('button', { name: 'Next step' }).click();
+    const d3 = (await dir.innerText()).replace(/\s+/g, ' ');
+    check('wayfinding: the return leg (Jewel → departure) shows check-in, departure immigration and security', d3.includes('Step 3 of 3') && /departure immigration and security/i.test(d3) && d3.includes('Done'), d3.slice(0, 200));
+    await P.getByRole('button', { name: 'Expand sheet' }).click();
     const all = (await dir.innerText()).replace(/\s+/g, ' ');
-    check('wayfinding: all steps list arrival, both stops and departure, with checkpoint flags and no disclaimer', /Arrival.*Butterfly Garden.*Jewel Rain Vortex.*Departure/.test(all) && !all.includes('No route lines') && /departure immigration and security/i.test(all), all.slice(0, 160));
+    check('wayfinding: all stops list both stops and the departure, with no disclaimer', /All stops.*Butterfly Garden.*Jewel Rain Vortex.*Departure/.test(all) && !/No route lines|planning estimate|Source:/i.test(all), all.slice(0, 200));
+    await P.getByRole('button', { name: 'Collapse sheet' }).click();
     await P.waitForTimeout(600);
     const lay = await P.evaluate(() => {
       const sheet = document.querySelector('section[aria-label="Directions"]').getBoundingClientRect(), nav = document.querySelector('nav[aria-label="Primary"] > div').getBoundingClientRect();
@@ -449,7 +464,14 @@ try {
     await P.getByRole('button', { name: /Lisbon/ }).first().click(); await P.getByRole('tab', { name: 'map' }).click();
     await P.locator('.map-pin').first().click();
     await P.getByRole('button', { name: /ANA Lounge/ }).first().click();
+    const pre = (await P.locator('section[aria-label^="ANA Lounge"]').innerText()).replace(/\s+/g, ' ');
+    check('wayfinding: tapping a venue previews its route from the arrival gate (time and distance, line on the map)', /from Arrival/.test(pre) && /\d+ ?min/.test(pre) && (await P.locator('.wf-pin').count()) === 1, pre.slice(0, 160));
     const lisbonOk = (await P.getByRole('button', { name: 'How to get there' }).count()) === 1
+    // Activity details: How to get there opens the map route to that venue (Lisbon, no transfer graph: simulated walk)
+    await P.getByRole('button', { name: 'How to get there' }).click();
+    await P.locator('section[aria-label="Directions"]').getByText('To ANA Lounge', { exact: false }).waitFor();
+    const lis = (await P.locator('section[aria-label="Directions"]').innerText()).replace(/\s+/g, ' ');
+    check('wayfinding: Lisbon directions use the simulated route, labelled "Estimated route", with a line drawn', lis.includes('Estimated route') && (await P.locator('.leaflet-overlay-pane path').count()) >= 1, lis.slice(0, 160));
     // Entry point 3: a saved plan
     await P.getByRole('button', { name: 'My Plans' }).click();
     await P.getByRole('heading', { name: 'My plans' }).waitFor();
@@ -478,19 +500,24 @@ try {
     await P.getByRole('button', { name: 'Build itinerary (2)' }).click();
     await P.getByLabel('Time budget').waitFor();
     // D (terminals unknown): transfers cannot be estimated, so feasibility is not claimed
-    check('D: terminals not set -> "Cannot verify feasibility" and the transfer asks for a terminal', (await hero()).includes('Cannot verify feasibility') && (await itin()).includes('choose your terminal to estimate'));
+    check('D: terminals not set -> "Cannot verify feasibility" and the transfer asks for a terminal', (await hero()).includes('Cannot verify feasibility') && (await itin()).includes('Choose a terminal to estimate'));
     await P.getByRole('button', { name: 'Arriving at Terminal 3 transit area' }).click();
     await P.getByRole('button', { name: 'Departing from Terminal 3 transit area' }).click();
     // A: two airside activities in T3: 620 usable − 70 activities − 3 × 10 (within-area planning estimates) = 520 = 8h 40m
     const ha = await hero();
     check('A: airside-only plan fits; remaining = 10h 20m − 1h 10m activities − 30m transfers = 8h 40m', !ha.includes('Cannot verify') && !ha.includes('Exceeds') && ha.includes('8h 40m') && ha.includes('Transfers 30m') && (await visible(P, 'Stays in the transit area')), ha.slice(0, 160));
-    check('A: each transfer is shown with its estimate', (await P.getByText('Estimated transfer: 2–10m').count()) === 2 && (await P.getByText('Return transfer: 2–10m').count()) === 1);
+    check('A: each transfer is shown with its estimate', (await P.getByText('Transfer: 2–10m').count()) === 2 && (await P.getByText('Return: 2–10m').count()) === 1);
     await shot(P, '07-changi-airside');
     // E: reorder and remove update everything at once
     await P.getByRole('button', { name: 'Reorder' }).click();
     await P.getByRole('button', { name: "Move Harry's earlier" }).click();
     await P.getByRole('button', { name: 'Done' }).click();
     check('E: reorder keeps the new order (Harry\'s first)', (await itin()).indexOf("Harry's") < (await itin()).indexOf('Butterfly Garden'));
+    await P.getByRole('button', { name: 'See how to get there' }).click();
+    await P.locator('section[aria-label="Directions"]').getByText('Step 1 of 3').waitFor();
+    check('E: after reordering, the map route follows the new order (step 1 goes to Harry\'s)', (await P.locator('section[aria-label="Directions"]').innerText()).includes("To Harry's"));
+    await P.getByRole('button', { name: 'Back', exact: true }).first().click();
+    await P.getByLabel('Itinerary').waitFor();
     // B: add Jewel (landside)
     await P.getByRole('button', { name: 'Add activities' }).click();
     await P.getByRole('button', { name: 'Add Jewel Rain Vortex' }).click();
@@ -498,8 +525,8 @@ try {
     await P.getByLabel('Entry check').waitFor();
     const hb = await hero(), entry = (await P.getByLabel('Entry check').innerText()).replace(/\s+/g, ' ');
     check('B: Jewel triggers "Entry verification required" with the zone transition explained', entry.includes('Entry verification required') && entry.includes('Jewel Rain Vortex is outside the transit area') && entry.includes('arrival immigration'));
-    check('B: immigration and re-entry steps shown on the transfers, time not included', await visible(P, 'Immigration required · time not included') && await visible(P, 'Check-in, departure immigration and security · time not included'));
-    check('B: feasibility is not claimed while immigration time is unknown', hb.includes('Cannot verify feasibility') && hb.includes('Immigration and re-entry checks are not included'));
+    check('B: immigration and re-entry steps shown on the transfers (concise safety labels)', await visible(P, 'Immigration required') && await visible(P, 'Re-enter via check-in, immigration and security'));
+    check('B: feasibility is not claimed while immigration time is unknown', hb.includes('Cannot verify feasibility') && hb.includes('Immigration queues not included'));
     check('B: links to ICA, the official authority', (await P.getByRole('link', { name: /Check entry requirements with Immigration & Checkpoints Authority/ }).getAttribute('href')).startsWith('https://www.ica.gov.sg/'));
     await P.getByLabel('Passport nationality (optional)').fill('Indonesian');
     await P.getByRole('button', { name: "I'm not sure" }).click();
@@ -522,7 +549,7 @@ try {
     check('F: reopened plan keeps its terminals and the same estimate', (await P.getByRole('button', { name: 'Arriving at Terminal 3 transit area' }).getAttribute('aria-pressed')) === 'true' && (await hero()).includes('8h 40m'));
     await P.getByRole('button', { name: 'Departing from Terminal 1 transit area' }).click();
     const hf = await hero();
-    check('F: changing the departure terminal adds the Skytrain transfer (official 5–10 min)', hf.includes('8h 40m') && (await P.getByText('Return transfer: 5–10m').count()) >= 1, hf.slice(0, 120));
+    check('F: changing the departure terminal adds the Skytrain transfer (official 5–10 min)', hf.includes('8h 40m') && (await P.getByText('Return: 5–10m').count()) >= 1, hf.slice(0, 120));
     await P.getByRole('button', { name: 'Save changes' }).click();
     await P.getByText('All changes saved').waitFor();
     await P.reload();

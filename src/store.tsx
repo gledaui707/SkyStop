@@ -29,7 +29,7 @@ export type Route =
   | { name: 'compare'; ids: string[]; origin: string; destination: string; date: string }
   | { name: 'airports' }
   /** `directions`: open the map with the current itinerary's directions showing. */
-  | { name: 'airport'; code: string; view?: 'map' | 'list'; directions?: boolean }
+  | { name: 'airport'; code: string; view?: 'map' | 'list'; directions?: boolean; venue?: string }
   | { name: 'builder' }
   | { name: 'plans' }
   | { name: 'plan'; id: string }

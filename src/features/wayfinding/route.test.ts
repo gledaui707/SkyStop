@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { planItinerary, type TransferGraph } from '../../domain/itinerary'
 import { PATH_GEOMETRY, buildRoute, mapKeyFor, stopsByPin } from './route'
+import { metres, walkMinutes } from './mock'
 
 // A small Changi-like graph (shape of the real data; values are test fixtures).
 const g: TransferGraph = {
@@ -41,16 +42,23 @@ describe('wayfinding route view', () => {
     expect(r.legs[0].checkpoints.join(' ')).toMatch(/immigration/i)
     expect(r.legs[1].checkpoints.join(' ')).toMatch(/departure immigration and security/i)
   })
-  it('fills a leg the graph cannot route with illustrative minutes (between terminals 12–20 min)', () => {
+  it('gives a leg the graph cannot route a simulated walking estimate that matches its route distance', () => {
     const r = route([act('Lounge', ['SIN-T2-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT') // no T1↔T2 edge in the fixture
-    expect(r.legs[0]).toMatchObject({ status: 'estimate', minutes: { min: 12, max: 20 } })
+    const l = r.legs[0]
+    expect(l.status).toBe('estimate')
+    expect(l.minutes).toEqual({ min: walkMinutes(l.distanceM), max: walkMinutes(l.distanceM) })
   })
-  it('draws a curved line between two different terminals, and none within one terminal', () => {
+  it('connects consecutive stops: every line starts at one stop\'s point and ends at the next', () => {
     const r = route([act('Lounge', ['SIN-T3-TRANSIT']), act('Cafe', ['SIN-T3-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT')
-    expect(r.legs[0].geometry!.length).toBeGreaterThan(10)
-    expect(r.legs[1].geometry).toBeNull()
-    const mid = r.legs[0].geometry![12], [a, b] = [r.legs[0].geometry![0], r.legs[0].geometry!.at(-1)!]
-    expect(Math.abs((mid[0] - a[0]) * (b[1] - a[1]) - (mid[1] - a[1]) * (b[0] - a[0]))).toBeGreaterThan(0) // bowed, not straight
+    for (const l of r.legs) {
+      expect(l.geometry![0]).toEqual(l.from.point)
+      expect(l.geometry!.at(-1)).toEqual(l.to.point)
+    }
+  })
+  it('never uses a straight line: the route bows through the terminal hub and is longer than the direct distance', () => {
+    const r = route([act('Lounge', ['SIN-T3-TRANSIT']), act('Cafe', ['SIN-T3-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT')
+    for (const l of r.legs) expect(l.distanceM).toBeGreaterThan(metres(l.from.point!, l.to.point!))
+    expect(r.legs[1].geometry!.length).toBeGreaterThan(2) // same terminal: still a curve, not two points
   })
   it('uses registered path geometry when there is one', () => {
     PATH_GEOMETRY['SIN-T1-TRANSIT>SIN-T3-TRANSIT'] = [[1.36, 103.99], [1.355, 103.986]]
@@ -65,8 +73,32 @@ describe('wayfinding route view', () => {
     const itin = planItinerary({ usable: 600, activities: [act('Cafe', [])], graph: null })
     const r = buildRoute('LHR', null, itin, [{ id: 'a', name: 'Cafe', terminal: 'Terminal 5' }, { id: 'b', name: 'Shop', terminal: 'Terminal 3' }])
     expect(r.stops.map((s) => s.mapKey)).toEqual(['T5', 'T5', 'T3', 'T3'])
-    expect(r.legs.map((l) => l.minutes)).toEqual([{ min: 5, max: 10 }, { min: 12, max: 20 }, { min: 5, max: 10 }])
-    expect(r.legs[1].geometry).not.toBeNull()
+    expect(r.legs.every((l) => l.geometry && l.minutes!.max === walkMinutes(l.distanceM))).toBe(true)
+    expect(r.legs[1].distanceM).toBeGreaterThan(r.legs[0].distanceM) // a terminal change is a longer walk
+  })
+  it('writes short generic directions: start, follow the concourse, continue to the stop; nothing invented', () => {
+    const r = route([act('Lounge', ['SIN-T3-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT')
+    const s0 = r.legs[0].steps
+    expect(s0[0]).toMatch(/^Start at your arrival gate area in Terminal 1/)
+    expect(s0).toContain('Take the Skytrain or travellator to Terminal 3') // the mode comes from the airport's data
+    expect(s0.at(-1)).toBe('Continue to Lounge')
+    expect(r.legs.flatMap((l) => l.steps).join(' ')).not.toMatch(/gate \d|escalator|security checkpoint|turn (left|right)/i)
+  })
+  it('only adds an immigration step when the airport data says the move needs it', () => {
+    const r = route([act('Rain Vortex', ['SIN-JEWEL'], 'landside')], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT')
+    expect(r.legs[0].steps).toContain('Clear arrival immigration')
+    expect(route([act('Lounge', ['SIN-T3-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT').legs[0].steps.join(' ')).not.toMatch(/immigration/i)
+  })
+  it('adds the departure check-in, immigration and security step only when the return re-enters airside', () => {
+    const r = route([act('Rain Vortex', ['SIN-JEWEL'], 'landside')], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT')
+    expect(r.legs[1].steps).toContain('Check in, then clear departure immigration and security')
+    expect(r.legs[0].steps.join(' ')).not.toMatch(/departure immigration/i)
+  })
+  it('is deterministic and follows the plan order (reordering changes the route)', () => {
+    const a = [act('Lounge', ['SIN-T3-TRANSIT']), act('Garden', ['SIN-T1-TRANSIT'])]
+    expect(route(a, 'SIN-T1-TRANSIT', 'SIN-T3-TRANSIT')).toEqual(route(a, 'SIN-T1-TRANSIT', 'SIN-T3-TRANSIT'))
+    const re = route([...a].reverse(), 'SIN-T1-TRANSIT', 'SIN-T3-TRANSIT')
+    expect(re.legs.map((l) => l.to.label)).toEqual(['Garden', 'Lounge', 'Departure'])
   })
   it('groups stop numbers by terminal pin for map badges', () => {
     const r = route([act('Lounge', ['SIN-T3-TRANSIT'])], 'SIN-T1-TRANSIT', 'SIN-T1-TRANSIT')

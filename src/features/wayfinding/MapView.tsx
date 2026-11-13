@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft, Bus, Check, ChevronDown, ChevronUp, Footprints, Layers, LocateFixed, Navigation, Plus, ShieldAlert, TrainFront, X, type LucideIcon } from 'lucide-react'
 import { useApp } from '../../store'
 import { GRAPHS, getAirport } from '../../data/mock'
@@ -6,16 +6,16 @@ import { AIRPORT_GEO, terminalKeysOf } from '../../data/airportGeo'
 import { fmtDur, type budget } from '../../data/time'
 import { computeItinerary, MODE_LABEL } from '../../data/itinerary'
 import { planItinerary } from '../../domain/itinerary'
-import { AirportMap, zoneOf, type Zone } from '../../components/AirportMap'
+import { AirportMap, zoneOf, type Wayfinding, type Zone } from '../../components/AirportMap'
 import { ActivitySheet, Button, Photo, cx } from '../../components/ui'
 import type { Activity, Category } from '../../data/types'
-import { buildRoute, stopsByPin, type Leg, type LegStatus, type RouteView } from './route'
+import { buildRoute, type Leg, type LegStatus, type RouteView } from './route'
 
 const ZONES: Zone[] = ['all', 'Airside', 'Landside']
 const MODE_ICON: Record<string, LucideIcon> = { walk: Footprints, link_bridge_walk: Footprints, skytrain_or_walk: TrainFront, shuttle_bus: Bus }
 const STATUS: Record<LegStatus, { label: string; cls: string; hint: string }> = {
-  verified: { label: 'Published time', cls: 'bg-success-tint text-success', hint: 'Minutes published by the airport.' },
-  estimate: { label: 'Estimate', cls: 'bg-warning-tint text-warning', hint: 'Planning estimate: no published time for at least one step.' },
+  verified: { label: 'Airport transfer time', cls: 'bg-success-tint text-success', hint: 'Transfer minutes published by the airport; the line is simulated.' },
+  estimate: { label: 'Estimated route', cls: 'bg-ink-tint text-muted-text', hint: 'Simulated route and walking estimate.' },
   unavailable: { label: 'No directions', cls: 'bg-ink-tint text-muted-text', hint: 'No recorded route between these places.' },
 }
 
@@ -31,17 +31,19 @@ interface Props {
   startTrip: () => void
   /** Open with the itinerary's directions showing (from the itinerary or a saved plan). */
   openDirections?: boolean
+  /** Open with directions to this venue (from its details sheet). */
+  openVenue?: string
 }
 
 /** Airport map with one coordinated bottom sheet: browse (terminal filter + venues), a venue preview, or directions.
  *  Floating controls sit above the sheet, the sheet sits above the tab bar; nothing overlaps. */
-export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, startTrip, openDirections }: Props) {
+export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, startTrip, openDirections, openVenue }: Props) {
   const { go, draft } = useApp()
   const ap = getAirport(code)
   const graph = GRAPHS[code] ?? null
   const [zone, setZone] = useState<Zone>('all')
   const [terminal, setTerminal] = useState<string | null>(null)
-  const [focusId, setFocusId] = useState<string | null>(null)
+  const [focusId, setFocusId] = useState<string | null>(openVenue ?? null)
   const startOnRoute = !!openDirections && ready && planned.length > 0
   const [routeFor, setRouteFor] = useState<'plan' | string | null>(startOnRoute ? 'plan' : null)
   const [leg, setLeg] = useState<number | null>(startOnRoute ? 0 : null)
@@ -71,25 +73,58 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
   const shown = acts.filter((a) => (cat === 'All' || a.category === cat) && (zone === 'all' || zoneOf(a) === zone) && (!terminal || terminalKeysOf(code, a.terminal).includes(terminal)))
   const terminals = AIRPORT_GEO[code]?.terminals ?? []
 
-  // Directions: the whole itinerary (when layover times exist), or one venue from arrival and back to departure.
-  const route: RouteView | null = useMemo(() => {
-    if (!routeFor) return null
-    if (routeFor === 'plan') {
-      if (!ready || !draft) return null
-      const { items, itin } = computeItinerary(draft)
-      return buildRoute(code, graph, itin, items, draft.arrivalLocation, draft.departureLocation)
-    }
-    const a = acts.find((x) => x.id === routeFor)
-    if (!a) return null
+  // Directions: the whole itinerary (when layover times exist), or one venue from the arrival gate and on to departure.
+  const singleRoute = (a: Activity): RouteView => {
     const z = a.access === 'Airside' ? 'airside' : a.access === 'Landside' ? 'landside' : 'unknown'
     const itin = planItinerary({ usable: b?.usable ?? 0, graph, arrivalLocation: draft?.arrivalLocation, departureLocation: draft?.departureLocation,
       activities: [{ id: a.id, name: a.name, durationMin: a.durationMin, zone: z, locationIds: a.locationIds }] })
     return buildRoute(code, graph, itin, [a], draft?.arrivalLocation, draft?.departureLocation)
-  }, [graph, routeFor, ready, draft, code, acts, b?.usable])
+  }
+  const planRoute: RouteView | null = useMemo(() => {
+    if (!ready || !draft || !planned.length) return null
+    const { items, itin } = computeItinerary(draft)
+    return buildRoute(code, graph, itin, items, draft.arrivalLocation, draft.departureLocation)
+  }, [ready, draft, planned.length, code, graph])
+  const route: RouteView | null = useMemo(() => {
+    if (!routeFor) return null
+    if (routeFor === 'plan') return planRoute
+    const a = acts.find((x) => x.id === routeFor)
+    return a ? singleRoute(a) : null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeFor, planRoute, acts, draft, b?.usable])
   const sel: Leg | null = route && leg !== null ? route.legs[leg] ?? null : null
-  const pins = route ? stopsByPin(route.stops) : {}
-  const lastStop = route ? route.stops.length - 1 : -1
-  const paths = (route?.legs ?? []).filter((l) => l.geometry).map((l) => ({ key: String(l.i), points: l.geometry!, active: leg === null || l.i === leg }))
+  // Selecting a venue previews its route: the leg arriving at it in the itinerary, else from the arrival gate.
+  const focusPlanLeg = focusId && planRoute ? planRoute.legs.find((l) => l.to.kind === 'activity' && draft?.activityIds[l.to.n - 1] === focusId) ?? null : null
+  const preview: Leg | null = useMemo(() => {
+    if (route || !focusId) return null
+    if (focusPlanLeg) return focusPlanLeg
+    const a = acts.find((x) => x.id === focusId)
+    return a ? singleRoute(a).legs[0] ?? null : null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route, focusId, focusPlanLeg, acts, draft])
+  const wayfinding: Wayfinding | null = route ? {
+    legs: route.legs.filter((l) => l.geometry).map((l) => ({ i: l.i, path: l.geometry!, active: sel ? l.i === sel.i : true })),
+    stops: route.stops.filter((st) => st.point).map((st) => ({ n: st.n, kind: st.kind, label: st.label, point: st.point!,
+      role: sel ? (st.n === sel.to.n ? 'dest' as const : st.n === sel.from.n ? 'origin' as const : null) : null })),
+    frame: sel?.geometry ?? route.stops.flatMap((st) => (st.point ? [st.point] : [])),
+  } : preview?.geometry ? {
+    legs: [{ i: 0, path: preview.geometry, active: true }],
+    stops: [preview.from, preview.to].filter((st) => st.point).map((st, k) => ({ n: st.n, kind: st.kind, label: st.label, point: st.point!, role: k === 0 ? 'origin' as const : 'dest' as const })),
+    frame: preview.geometry,
+  } : null
+  const openRouteFor = (a: Activity) => {
+    if (focusPlanLeg) { setRouteFor('plan'); setLeg(focusPlanLeg.i) } else { setRouteFor(a.id); setLeg(0) }
+    setExpanded(false)
+  }
+  // Arriving from a venue's details: open its directions once.
+  const opened = useRef(false)
+  useEffect(() => {
+    if (opened.current || !openVenue) return
+    opened.current = true
+    const a = acts.find((x) => x.id === openVenue)
+    if (a) openRouteFor(a)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openVenue])
 
   const closeRoute = () => { setRouteFor(null); setLeg(null); setExpanded(window.innerHeight >= 720) }
   const canRoute = true
@@ -99,9 +134,7 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
     <div className="relative -mb-[var(--nav-h)] h-dvh overflow-hidden">
       <AirportMap airport={code} activities={acts} planned={planned} terminal={terminal}
         onTerminal={(k) => { setTerminal(k); setFocusId(null); if (k) setExpanded(true) }} cat={cat} zone={zone}
-        insets={{ top: topH, bottom: bottomInset, right: 64 }} stops={pins} lastStop={lastStop}
-        highlight={sel ? { from: sel.from.mapKey, to: sel.to.mapKey } : undefined} paths={paths}
-        focusKeys={sel ? [sel.from.mapKey, sel.to.mapKey].filter((k): k is string => !!k) : route ? route.stops.map((s) => s.mapKey).filter((k): k is string => !!k) : []} />
+        insets={{ top: topH, bottom: bottomInset, right: 64 }} wayfinding={wayfinding} />
       <div ref={top}>{bar}</div>
 
       {/* Map controls: always above the sheet, never under it */}
@@ -122,7 +155,7 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
           className="grid h-6 shrink-0 place-items-center"><span className="h-1 w-9 rounded-full bg-ink/25" /></button>
         <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-3">
           {mode === 'route' && route ? (
-            <RouteSheet route={route} leg={leg} onLeg={setLeg} onClose={closeRoute} expanded={expanded} onExpand={() => setExpanded(true)} airportName={ap.name}
+            <RouteSheet route={route} leg={leg ?? 0} onLeg={setLeg} onClose={closeRoute} expanded={expanded} onExpand={() => setExpanded(true)}
               forPlan={routeFor === 'plan'} onPlan={() => go({ name: 'builder' })} />
           ) : mode === 'venue' && focus ? (
             <div>
@@ -137,10 +170,16 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
               </div>
               {expanded && b && !planned.includes(focus.id) && focus.durationMin > b.remaining && (
                 <p role="alert" className="mt-2 text-sub font-medium text-error">Adds {fmtDur(focus.durationMin - Math.max(b.remaining, 0))} beyond your usable time.</p>)}
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button className={canRoute ? '' : 'col-span-2'} variant={planned.includes(focus.id) ? 'secondary' : 'primary'} icon={planned.includes(focus.id) ? Check : Plus} onClick={() => toggle(focus.id)}>
+              {preview && (
+                <p className="mt-3 flex items-center gap-2 text-sub">
+                  <Footprints size={17} className="shrink-0 text-accent-dark" aria-hidden="true" />
+                  <span><b className="font-semibold">{legTime(preview)}</b> · {fmtDist(preview.distanceM)} from {preview.from.label}{preview.from.place ? ` (${shortPlace(preview.from.place)})` : ''}</span>
+                </p>)}
+              {/* One primary: Add when it is not in the plan yet, otherwise How to get there. */}
+              <div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+                <Button className="px-4" variant={planned.includes(focus.id) ? 'secondary' : 'primary'} icon={planned.includes(focus.id) ? Check : Plus} onClick={() => toggle(focus.id)}>
                   {planned.includes(focus.id) ? (ready ? 'Added' : 'Selected') : ready ? 'Add' : 'Select'}</Button>
-                {canRoute && <Button variant="secondary" icon={Navigation} onClick={() => { setRouteFor(focus.id); setLeg(0); setExpanded(false) }}>How to get there</Button>}
+                <Button className="px-4" variant={planned.includes(focus.id) ? 'primary' : 'secondary'} icon={Navigation} onClick={() => openRouteFor(focus)}>How to get there</Button>
                 <Button variant="tertiary" size="sm" className="col-span-2" onClick={() => setDetails(focus.id)}>Details</Button>
               </div>
             </div>
@@ -178,87 +217,89 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
           )}
         </div>
       </section>
-      <ActivitySheet a={acts.find((a) => a.id === details) ?? null} onClose={() => setDetails(null)} />
+      <ActivitySheet a={acts.find((a) => a.id === details) ?? null} onClose={() => setDetails(null)}
+        onDirections={() => { const a = acts.find((x) => x.id === details); if (a) { setFocusId(a.id); openRouteFor(a) } }} />
     </div>
   )
 }
 
 /** "Terminal 3 transit area" → "T3 transit", "Jewel (public area)" → "Jewel". */
-const shortPlace = (p: string) => p.replace(/^Terminal (\d)/, 'T$1').replace(/ area$/, '').replace(/ \(public\)$/, '').replace(/\s*\(public area\)/, '')
+const shortPlace = (p: string) => p.replace(/^Terminal (\d)/, 'T$1').replace(/ area$/, '').replace(/\s*\(public area\)/, '')
+const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`)
+const legTime = (l: Leg) => (l.minutes && l.minutes.min !== l.minutes.max ? `${l.minutes.min}–${l.minutes.max} min` : `${l.minutes?.max ?? l.walkMin} min`)
+const stopBadge = (n: number, last: number) => (n === 0 ? 'A' : n === last ? 'D' : String(n))
 
-function RouteSheet({ route, leg, onLeg, onClose, expanded, onExpand, airportName, forPlan, onPlan }:
-  { route: RouteView; leg: number | null; onLeg: (i: number | null) => void; onClose: () => void; expanded: boolean; onExpand: () => void; airportName: string; forPlan: boolean; onPlan: () => void }) {
-  const sel = leg !== null ? route.legs[leg] : null
-  const needsTerminals = route.stops[0].location === null || route.stops[route.stops.length - 1].location === null
+/** Directions for one leg at a time, like a maps app: destination, time and distance, numbered steps, next stop. */
+const CHECK = /immigration|security|check in|check-in/i
+
+function RouteSheet({ route, leg, onLeg, onClose, expanded, onExpand, forPlan, onPlan }:
+  { route: RouteView; leg: number; onLeg: (i: number) => void; onClose: () => void; expanded: boolean; onExpand: () => void; forPlan: boolean; onPlan: () => void }) {
+  const l = route.legs[leg]
+  if (!l) return null
+  const last = route.stops.length - 1
+  const next = route.legs[leg + 1]
+  const s = STATUS[l.status]
+  const Icon = MODE_ICON[l.modes.find((m) => m !== 'walk') ?? 'walk'] ?? Footprints
+  // Collapsed: the first two steps plus every border / security step, which always stays visible.
+  const steps = expanded ? l.steps : l.steps.filter((t, k) => k < 2 || CHECK.test(t))
+  const extra = l.checkpoints.filter((c) => !(CHECK.test(c) && l.steps.some((t) => CHECK.test(t))))
+  const needsTerminals = forPlan && (route.stops[0].location === null || route.stops[last].location === null) && route.routing
   return (
     <div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-start gap-2">
         <button type="button" onClick={onClose} aria-label="Back to the map" className="press grid size-11 shrink-0 place-items-center rounded-full bg-ink-tint"><ArrowLeft size={19} /></button>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-card font-semibold leading-tight">How to get there</h2>
-          <p className="truncate text-cap text-muted-text">{forPlan ? `Your itinerary · ${route.stops.length - 2} stops` : route.stops[1]?.label}</p>
+        <div className="min-w-0 flex-1 pt-0.5">
+          <p className="text-cap font-semibold text-muted-text">Step {leg + 1} of {route.legs.length}</p>
+          <h2 className="truncate text-card font-bold leading-tight">To {l.to.label}{l.to.place ? ` · ${shortPlace(l.to.place)}` : ''}</h2>
+          <p className="truncate text-cap text-muted-text">From {l.from.label}{l.from.place ? ` · ${shortPlace(l.from.place)}` : ''}</p>
         </div>
-        {sel && <div className="flex gap-1">
-          <button type="button" disabled={leg === 0} onClick={() => onLeg(Math.max(0, (leg ?? 0) - 1))} aria-label="Previous step" className="press grid size-11 place-items-center rounded-full bg-ink-tint disabled:opacity-35"><ChevronUp size={19} /></button>
-          <button type="button" disabled={leg === route.legs.length - 1} onClick={() => onLeg(Math.min(route.legs.length - 1, (leg ?? 0) + 1))} aria-label="Next step" className="press grid size-11 place-items-center rounded-full bg-ink-tint disabled:opacity-35"><ChevronDown size={19} /></button>
-        </div>}
+        <div className="flex gap-1">
+          <button type="button" disabled={leg === 0} onClick={() => onLeg(leg - 1)} aria-label="Previous step" className="press grid size-11 place-items-center rounded-full bg-ink-tint disabled:opacity-35"><ChevronUp size={19} /></button>
+          <button type="button" disabled={!next} onClick={() => onLeg(leg + 1)} aria-label="Next step" className="press grid size-11 place-items-center rounded-full bg-ink-tint disabled:opacity-35"><ChevronDown size={19} /></button>
+        </div>
       </div>
-      {sel && !expanded && (
-        <div className="mt-2" aria-live="polite">
-          <p className="text-cap font-semibold text-muted-text">Step {sel.i + 1} of {route.legs.length}</p>
-          <p className="truncate text-sub font-semibold">{sel.from.label}{sel.from.place ? ` (${shortPlace(sel.from.place)})` : ''} → {sel.to.label}{sel.to.place ? ` (${shortPlace(sel.to.place)})` : ''}</p>
-          <LegRow l={sel} on compact onSelect={() => undefined} />
-          <Button variant="tertiary" size="sm" className="mt-1 w-full" onClick={onExpand}>All steps</Button>
-        </div>)}
+      <div className="mt-3 flex items-center gap-3 rounded-control bg-ink-tint px-3 py-2.5" aria-live="polite">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-white"><Icon size={20} aria-hidden="true" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1"><span className="text-h2 font-bold leading-none tabular-nums">{legTime(l)}</span>
+            <span className={cx('rounded-full px-2 py-0.5 text-micro font-semibold', s.cls)} title={s.hint}>{s.label}</span></p>
+          <p className="mt-1 text-sub text-muted-text">{fmtDist(l.distanceM)} · {l.modes.some((m) => m !== 'walk') ? [...new Set(l.modes.map((m) => MODE_LABEL[m] ?? m))].join(', ') : 'walk'}</p>
+        </div>
+      </div>
+      {extra.map((c) => <p key={c} className="mt-2 flex items-start gap-2 text-sub font-medium text-warning"><ShieldAlert size={16} className="mt-0.5 shrink-0" aria-hidden="true" />{c}</p>)}
+      <ol className="mt-3 grid gap-2" aria-label="Directions">
+        {steps.map((t, k) => (
+          <li key={k} className="flex gap-3 text-sub">
+            <span aria-hidden="true" className="grid size-6 shrink-0 place-items-center rounded-full bg-accent-tint text-micro font-bold text-accent-dark">{k + 1}</span>
+            <span className={cx('pt-0.5', CHECK.test(t) && 'font-medium text-warning')}>{t}</span>
+          </li>))}
+      </ol>
+      {!expanded && l.steps.length > steps.length && <button type="button" onClick={onExpand} className="mt-1 min-h-11 text-sub font-semibold text-accent-dark">Show all {l.steps.length} steps</button>}
+      <div className="mt-3">
+        {next
+          ? <Button className="w-full" onClick={() => onLeg(leg + 1)}>Next stop: {next.to.label}</Button>
+          : <Button variant="secondary" className="w-full" onClick={onClose}>Done</Button>}
+      </div>
       {expanded && (
-        <ol className="mt-3 grid gap-1" aria-label="Steps">
-          {route.legs.map((l) => (
-            <li key={l.i}>
-              <StopRow n={l.from.n} last={route.stops.length - 1} label={l.from.label} place={l.from.place} onMap={!!l.from.mapKey} />
-              <LegRow l={l} on={leg === l.i} onSelect={() => onLeg(leg === l.i ? null : l.i)} />
-              {l.i === route.legs.length - 1 && <StopRow n={l.to.n} last={route.stops.length - 1} label={l.to.label} place={l.to.place} onMap={!!l.to.mapKey} />}
-            </li>))}
-        </ol>)}
+        <div className="mt-4">
+          <p className="text-cap font-semibold text-muted-text">All stops</p>
+          <ol className="mt-2 grid gap-1">
+            {route.legs.map((x) => (
+              <li key={x.i}>
+                <button type="button" onClick={() => onLeg(x.i)} aria-pressed={x.i === leg}
+                  className={cx('press flex w-full items-center gap-3 rounded-control px-2 py-2 text-left', x.i === leg ? 'bg-accent-tint' : 'active:bg-ink-tint')}>
+                  <span aria-hidden="true" className="btn-coral grid size-7 shrink-0 place-items-center rounded-full text-cap font-bold">{stopBadge(x.to.n, last)}</span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sub font-semibold">{x.to.label}</span>
+                    <span className="block truncate text-cap text-muted-text">{legTime(x)} · {fmtDist(x.distanceM)}{x.to.place ? ` · ${shortPlace(x.to.place)}` : ''}</span></span>
+                </button>
+              </li>))}
+          </ol>
+        </div>)}
       {expanded && needsTerminals && (
         <div className="mt-3 rounded-control bg-ink-tint p-3 text-sub">
-          <p>Choose your arrival and departure terminals to get directions from your gate and back.</p>
-          {forPlan && <Button variant="secondary" size="sm" className="mt-2" onClick={onPlan}>Choose terminals</Button>}
+          <p>Choose your arrival and departure terminals for directions from your gate and back.</p>
+          <Button variant="secondary" size="sm" className="mt-2" onClick={onPlan}>Choose terminals</Button>
         </div>)}
-
     </div>
-  )
-}
-
-function StopRow({ n, last, label, place, onMap }: { n: number; last: number; label: string; place: string | null; onMap: boolean }) {
-  return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span aria-hidden="true" className="btn-coral grid size-7 shrink-0 place-items-center rounded-full text-cap font-bold">{n === 0 ? 'A' : n === last ? 'D' : n}</span>
-      <div className="min-w-0">
-        <p className="truncate text-sub font-semibold">{label}</p>
-        <p className="truncate text-cap text-muted-text">{place ?? 'Terminal not set'}{place && !onMap ? ' · not on the map (no published position)' : ''}</p>
-      </div>
-    </div>
-  )
-}
-
-function LegRow({ l, on, compact, onSelect }: { l: Leg; on: boolean; compact?: boolean; onSelect: () => void }) {
-  const s = STATUS[l.status]
-  const Icon = MODE_ICON[l.modes[0]] ?? Footprints
-  const mins = l.minutes ? (l.minutes.min === l.minutes.max ? `${l.minutes.max} min` : `${l.minutes.min}–${l.minutes.max} min`) : null
-  return (
-    <button type="button" onClick={onSelect} aria-pressed={on}
-      className={cx('press ml-3 flex w-[calc(100%-0.75rem)] gap-3 border-l-2 border-dashed py-2 pl-5 pr-2 text-left', on ? 'rounded-r-control border-accent bg-accent/10' : 'border-ink/20')}>
-      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-ink-tint"><Icon size={17} aria-hidden="true" /></span>
-      <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-sub font-semibold">{l.status === 'unavailable' ? 'Directions unavailable' : [...new Set(l.modes.map((m) => MODE_LABEL[m] ?? m))].join(', ')}</span>
-          {mins && <span className="text-sub tabular-nums text-muted-text">{mins}</span>}
-          <span className={cx('rounded-full px-2 py-0.5 text-micro font-semibold', s.cls)} title={s.hint}>{s.label}</span>
-        </span>
-        {l.checkpoints.map((c) => <span key={c} className="mt-1 flex items-start gap-1.5 text-cap text-warning"><ShieldAlert size={14} className="mt-px shrink-0" aria-hidden="true" />{c}</span>)}
-        {on && !compact && l.notes.map((n) => <span key={n} className="mt-1 block text-cap text-muted-text">{n}</span>)}
-        {on && !compact && l.sources.length > 0 && <span className="mt-1 block text-cap text-muted-text">Source: {l.sources.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold text-accent-dark underline underline-offset-2">{new URL(u).hostname.replace(/^www\./, '')}</a>)}</span>}
-      </span>
-    </button>
   )
 }
