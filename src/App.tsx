@@ -148,17 +148,15 @@ function Shell() {
     <div className="mx-auto min-h-dvh max-w-[480px] pb-[var(--nav-h)]">
       <main key={key} className="vt-screen anim-screen"><TopBlur /><Screen /></main>
       <Toast />
-      {/* Floating capsule tab bar: lifted off the edge, the active tab is a coral-lit pill that glides between tabs. */}
+      {/* Floating capsule tab bar: the selected tab is a coral icon and label (no fill; one primary per screen). */}
       <nav aria-label="Primary" className="vt-tabbar pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] px-4 pb-[var(--nav-lift)]">
         <div className="glass-medium pointer-events-auto relative mx-auto grid h-16 max-w-[24rem] grid-cols-3 rounded-full p-1.5">
-          <span aria-hidden="true" className="btn-coral absolute inset-y-1.5 left-1.5 w-[calc((100%-0.75rem)/3)] rounded-full transition-transform duration-500 ease-ios motion-reduce:transition-none"
-            style={{ transform: `translateX(${Math.max(0, TABS.findIndex((t) => t.id === active)) * 100}%)`, opacity: active ? 1 : 0 }} />
         {TABS.map(({ id, label, icon: Icon }) => {
           const on = active === id
           return (
             <button key={id} onClick={() => switchTab(id)} aria-current={on ? 'page' : undefined}
               className={cx('press relative flex flex-col items-center justify-center gap-0.5 rounded-full text-tab font-semibold transition-colors duration-300',
-                on ? 'text-white' : 'text-muted-text hover:text-ink')}>
+                on ? 'text-accent-dark' : 'text-muted-text hover:text-ink')}>
               <Icon size={21} strokeWidth={on ? 2.4 : 1.9} aria-hidden="true" />{label}
             </button>
           )

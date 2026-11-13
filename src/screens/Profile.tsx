@@ -23,7 +23,7 @@ function countryNames(): string[] {
 function Avatar({ src, size }: { src: string | null; size: string }) {
   return src
     ? <img src={src} alt="" className={cx(size, 'shrink-0 rounded-full object-cover ring-2 ring-white shadow-md')} />
-    : <span className={cx(size, 'btn-coral grid shrink-0 place-items-center rounded-full')}><UserRound size={26} /></span>
+    : <span className={cx(size, 'grid shrink-0 place-items-center rounded-full bg-ink-tint text-muted-text ring-1 ring-line')}><UserRound size={26} /></span>
 }
 
 const Section = ({ title, action, children, bare }: { title: string; action?: React.ReactNode; children: React.ReactNode; bare?: boolean }) => (

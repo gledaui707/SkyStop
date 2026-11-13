@@ -43,9 +43,9 @@ export function TripTicket({ plan, onView }: Props) {
           <span className="flex min-w-0 flex-col items-center" aria-label={`Transit ${ap.code}, ${fmtDur(total)} layover`}>
             <span className="btn-coral rounded-lg px-2 py-0.5 text-cap font-bold leading-tight tracking-[0.02em]">{ap.code}</span>
             <span aria-hidden="true" className="mt-1 flex w-full min-w-0 items-center gap-1.5 text-ink/75">
-              <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-white/40" />
+              <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-ink/25" />
               <Plane size={24} strokeWidth={1} fill="currentColor" className="shrink-0 rotate-45" />
-              <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-white/40" />
+              <span className="h-0 min-w-2 flex-1 border-t-[1.5px] border-dashed border-ink/25" />
             </span>
             <span className="mt-0.5 whitespace-nowrap text-cap font-medium tabular-nums text-ink/60">{fmtDur(total)}</span>
           </span>
@@ -64,9 +64,10 @@ export function TripTicket({ plan, onView }: Props) {
 
       {/* boarding-pass tear line */}
       <div aria-hidden="true" className="relative h-0">
-        <span className="absolute -left-3 -top-3 size-6 rounded-full bg-canvas ring-1 ring-line" />
-        <span className="absolute -right-3 -top-3 size-6 rounded-full bg-canvas ring-1 ring-line" />
-        <span className="absolute inset-x-5 top-0 border-t-[1.5px] border-dashed border-white/20" />
+        {/* The tear-off: two cut-outs and a perforation across the pass. */}
+        <span className="absolute -left-3.5 -top-3.5 size-7 rounded-full bg-[#e7e0da] shadow-[inset_-1px_0_3px_rgb(31_26_23/0.18)]" />
+        <span className="absolute -right-3.5 -top-3.5 size-7 rounded-full bg-[#e7e0da] shadow-[inset_1px_0_3px_rgb(31_26_23/0.18)]" />
+        <span className="absolute inset-x-6 top-0 border-t-2 border-dashed border-ink/20" />
       </div>
 
       <section aria-label="Layover" className="px-5 pb-5 pt-4">

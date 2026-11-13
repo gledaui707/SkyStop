@@ -87,7 +87,7 @@ export function Home() {
           <button onClick={() => go({ name: 'profile' })} aria-label="Profile" className="press flex min-w-0 items-center gap-3 text-left">
             {photo
               ? <img src={photo} alt="" className="size-12 shrink-0 rounded-full object-cover ring-2 ring-white/80 shadow-md" />
-              : <span className="btn-coral grid size-12 shrink-0 place-items-center rounded-full"><UserRound size={22} /></span>}
+              : <span className="grid size-12 shrink-0 place-items-center rounded-full bg-white/90 text-muted-text ring-1 ring-black/5"><UserRound size={22} /></span>}
             <span className="min-w-0 truncate text-body text-white/85 [text-shadow:0_1px_10px_rgb(0_0_0/0.4)]">{greeting()}{account.status === 'registered' && account.name ? <>, <b className="font-semibold text-white">{account.name.split(' ')[0]}</b></> : ''}</span>
           </button>
           <button onClick={() => setNotice('No new notifications')} aria-label="Notifications" className="glass-dark press relative grid size-12 shrink-0 place-items-center rounded-full">
@@ -117,12 +117,12 @@ export function Home() {
         )}
         </>)}
         <div className={plans.length > 0 ? 'mt-4 grid grid-cols-2 gap-3' : 'grid grid-cols-2 gap-3'}>
-          <button onClick={() => go({ name: 'booking' })} className="btn-coral press flex min-h-[7rem] flex-col items-start justify-between gap-2 rounded-surface p-4 text-left">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/22 ring-1 ring-white/30"><Plus size={20} /></span>
-            <span className="min-w-0"><b className="block text-body font-semibold leading-tight">Add flight</b><span className="block text-cap text-white/85">Already booked</span></span>
+          <button onClick={() => go({ name: 'booking' })} className="panel press flex min-h-[7rem] flex-col items-start justify-between gap-2 rounded-surface p-4 text-left">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><Plus size={20} /></span>
+            <span className="min-w-0"><b className="block text-body font-semibold leading-tight">Add flight</b><span className="block text-cap text-muted-text">Already booked</span></span>
           </button>
-          <button onClick={() => go({ name: 'find' })} className="glass press flex min-h-[7rem] flex-col items-start justify-between gap-2 rounded-surface p-4 text-left">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark ring-1 ring-accent/30"><Compass size={20} /></span>
+          <button onClick={() => go({ name: 'find' })} className="panel press flex min-h-[7rem] flex-col items-start justify-between gap-2 rounded-surface p-4 text-left">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><Compass size={20} /></span>
             <span className="min-w-0"><b className="block text-body font-semibold leading-tight">Compare flights</b><span className="block text-cap text-muted-text">Not booked yet</span></span>
           </button>
         </div>
