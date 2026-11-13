@@ -112,7 +112,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
         )}
 
         {/* The whole journey (optional): where it starts and ends. Shown on your flight card. */}
-        <section aria-label="Journey" className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-[1.75rem] p-4">
+        <section aria-label="Journey" className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-surface p-4">
           <AirportPicker label="Flying from (optional)" value={origin} onChange={setOrigin} exclude={[conn, destination].filter(Boolean)} placeholder="City, airport or code" />
           <AirportPicker label="Final destination (optional)" value={destination} onChange={setDestination} exclude={[conn, origin].filter(Boolean)} placeholder="City, airport or code" />
         </section>

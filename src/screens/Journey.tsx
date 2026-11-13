@@ -35,10 +35,10 @@ export function FindJourney() {
           <p className="mt-3 text-body leading-relaxed text-muted-text">Enter your booking reference to see your connection and layover time.</p>
         </div>
 
-        <form className="panel grid grid-cols-[minmax(0,1fr)] gap-6 rounded-[1.75rem] p-5" onSubmit={(e) => { e.preventDefault(); submit() }} noValidate>
+        <form className="panel grid grid-cols-[minmax(0,1fr)] gap-6 rounded-surface p-5" onSubmit={(e) => { e.preventDefault(); submit() }} noValidate>
           <div className="grid grid-cols-[minmax(0,1fr)] gap-2.5">
           <label htmlFor="booking-ref" className="text-sub font-semibold text-ink">Booking reference</label>
-          <div className={cx('flex min-h-16 items-center gap-3 rounded-2xl border bg-white px-4 transition-colors focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15', error ? 'border-error' : 'border-[rgb(35_26_23/0.16)]')}>
+          <div className={cx('flex min-h-16 items-center gap-3 rounded-control border bg-white px-4 transition-colors focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15', error ? 'border-error' : 'border-[rgb(35_26_23/0.16)]')}>
             <Search size={22} className="shrink-0 text-muted" aria-hidden="true" />
             <input id="booking-ref" size={1} value={ref} maxLength={8} autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text"
               aria-invalid={!!error} aria-describedby={error ? 'ref-error' : 'ref-help'}
@@ -53,9 +53,7 @@ export function FindJourney() {
           <Button type="submit" className="w-full" disabled={!ref.trim()}>Find my journey</Button>
           </div>
         </form>
-        <button type="button" onClick={() => go({ name: 'trip' })}
-          className="glass press -mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-white/50 text-body font-semibold text-ink backdrop-blur-xl">
-          <PenLine size={18} className="text-accent-dark" />I can't find my flight</button>
+        <Button variant="secondary" size="lg" icon={PenLine} className="-mt-3 w-full" onClick={() => go({ name: 'trip' })}>I can't find my flight</Button>
 
         {showSamples && (
           <section aria-label="Sample bookings" className="anim-rise grid grid-cols-[minmax(0,1fr)] gap-2">
@@ -63,7 +61,7 @@ export function FindJourney() {
               const r = resolveJourney(j)
               return (
                 <button key={j.ref} onClick={() => { setRef(j.ref); submit(j.ref) }}
-                  className="panel press flex min-h-16 items-center gap-3 rounded-2xl px-4 py-3 text-left">
+                  className="panel press flex min-h-16 items-center gap-3 rounded-control px-4 py-3 text-left">
                   <span className="rounded-lg bg-ink-tint px-2 py-1 font-mono text-sub font-bold tracking-wider">{j.ref}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-body font-semibold">{city(j.origin)} → {city(j.connection)} → {city(j.destination)}</span>
@@ -124,7 +122,7 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
       <Header title="Your journey" subtitle={`Booking ${j.ref}`} />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 px-5 pt-2">
         {/* route summary */}
-        <section className="ph relative overflow-hidden rounded-[1.75rem] text-white">
+        <section className="ph relative overflow-hidden rounded-surface text-white">
           <img src={sized(conn.image, 800, 420)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="absolute inset-0 size-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-deep/90 via-deep/50 to-deep/20" />
           <div className="relative p-5">
@@ -139,12 +137,12 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
         </section>
 
         {/* flight timeline */}
-        <section aria-label="Flight timeline" className="panel relative rounded-[1.75rem] p-5">
+        <section aria-label="Flight timeline" className="panel relative rounded-surface p-5">
           <span aria-hidden="true" className="absolute bottom-10 left-[1.95rem] top-9 w-0.5 bg-gradient-to-b from-ink/30 via-accent to-ink/30" />
           <Stop code={j.origin} label="Depart" at={j.legs[0].departLocal} />
           <Flight min={j.legs[0].durationMin} />
           <Stop code={j.connection} label="Arrive" at={j.legs[0].arriveLocal} strong />
-          <div className="panel-accent my-3 ml-9 rounded-2xl p-3.5">
+          <div className="panel-accent my-3 ml-9 rounded-control p-3.5">
             <p className="text-sub font-semibold text-accent-dark">Layover in {city(j.connection)}</p>
             <p className="text-h2 font-bold">{fmtDur(j.layover.totalMin)}</p>
           </div>
@@ -155,16 +153,16 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
         </section>
 
         {/* time budget */}
-        <section aria-label="Layover time breakdown" className="sunset rounded-[1.75rem] p-5">
+        <section aria-label="Layover time breakdown" className="sunset rounded-surface p-5">
           <p className="text-sub font-medium text-white/85">Estimated usable time</p>
-          <p className="text-[2.75rem] font-bold leading-none tracking-[-0.03em] tabular-nums">{fmtDur(j.layover.usableMin)}</p>
+          <p className="text-metric font-bold tabular-nums">{fmtDur(j.layover.usableMin)}</p>
           <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-white/25" aria-hidden="true">
             <span className="bg-[repeating-linear-gradient(135deg,rgb(255_255_255/0.75)_0_3px,rgb(255_255_255/0.35)_3px_6px)]" style={{ width: pct(j.layover.bufferMin) }} />
             <span className="bg-white" style={{ width: pct(j.layover.usableMin) }} />
           </div>
           <p className="mt-3 text-sub text-white/90">{fmtDur(j.layover.totalMin)} layover − {fmtDur(j.layover.bufferMin)} planning buffer = <b className="text-white">{fmtDur(j.layover.usableMin)} usable</b></p>
         </section>
-        <p className="panel flex gap-2.5 rounded-2xl p-3.5 text-sub text-muted-text"><Info size={18} className="mt-0.5 shrink-0 text-accent-dark" />
+        <p className="panel flex gap-2.5 rounded-control p-3.5 text-sub text-muted-text"><Info size={18} className="mt-0.5 shrink-0 text-accent-dark" />
           <span>The planning buffer keeps time free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding.</span></p>
       </div>
       <ActionBar>
@@ -172,9 +170,8 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
           {saveError && <p role="alert" className="text-sub font-medium text-error">{saveError}</p>}
           <Button className="w-full" onClick={start}>{supported ? `Explore ${city(j.connection)}` : 'Build my itinerary'}</Button>
           {supported && (
-            <button type="button" onClick={saveFlight} disabled={saving}
-              className="press flex min-h-[3.25rem] w-full items-center justify-center rounded-full border border-white/90 bg-white/70 text-body font-semibold text-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.9)] backdrop-blur-xl disabled:opacity-60">
-              {existing ? 'Open in My flights' : saving ? 'Saving…' : 'Save to My flights'}</button>)}
+            <Button variant="secondary" className="w-full" onClick={saveFlight} disabled={saving}>
+              {existing ? 'Open in My flights' : saving ? 'Saving…' : 'Save to My flights'}</Button>)}
         </div>
       </ActionBar>
     </div>

@@ -176,7 +176,7 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
       </div>
       <div className="relative px-5">
         {usable !== undefined && (
-          <p className="panel-accent mt-4 rounded-2xl px-4 py-3 text-sub text-ink">
+          <p className="panel-accent mt-4 rounded-control px-4 py-3 text-sub text-ink">
             <b>{fmtDur(usable)}</b> usable time
             {b?.over ? <> · <b className="text-error">{fmtDur(-b.remaining)} over budget</b></> : b ? <> · <b>{fmtDur(b.remaining)}</b> still free</> : null}
           </p>

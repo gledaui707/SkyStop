@@ -56,7 +56,7 @@ export function Results({ origin, destination, date }: { origin: string; destina
   const toggle = (id: string) => setCmp((c) => c.includes(id) ? c.filter((x) => x !== id) : c.length < 3 ? [...c, id] : c)
   return (
     <div className="pb-44">
-      <div className="ph relative overflow-hidden rounded-b-[2rem] px-4 pb-6 pt-[var(--safe-top)] text-white">
+      <div className="ph relative overflow-hidden rounded-b-tray px-4 pb-6 pt-[var(--safe-top)] text-white">
         <img onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} src={sized(IMAGES.results, 900, 360)} alt="" className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-deep/30 to-deep/20" /><div className="photo-fade absolute inset-x-0 bottom-0 h-[75%]" />
         <div className="relative">
@@ -89,7 +89,7 @@ export function Results({ origin, destination, date }: { origin: string; destina
             {flights.map((f) => {
               const usable = Math.max(0, f.layoverMin - DEFAULT_BUFFER)
               return (
-                <li key={f.id} className="panel rounded-[1.75rem] p-4">
+                <li key={f.id} className="panel rounded-surface p-4">
                   <div className="flex items-center justify-between gap-2">
                     <Airline code={f.airline} size={32} bold />
                     {f.priceUsd === cheapest && <span className="rounded-md bg-success/10 px-2 py-0.5 text-cap font-semibold text-success">Cheapest</span>}
@@ -106,7 +106,7 @@ export function Results({ origin, destination, date }: { origin: string; destina
                   <div className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full" role="img" aria-label={`Flight ${fmtDur(f.legOneMin)}, layover ${fmtDur(f.layoverMin)}, flight ${fmtDur(f.legTwoMin)}`}>
                     <span className="rounded-l-full bg-ink/15" style={{ flex: f.legOneMin }} /><span className="bg-gradient-to-r from-[#f6a04d] to-accent" style={{ flex: f.layoverMin }} /><span className="rounded-r-full bg-ink/15" style={{ flex: f.legTwoMin }} />
                   </div>
-                  <div className="mt-3 flex items-center gap-3 rounded-2xl bg-ink-tint p-2.5 ring-1 ring-line">
+                  <div className="mt-3 flex items-center gap-3 rounded-control bg-ink-tint p-2.5 ring-1 ring-line">
                     <span className="ph relative size-11 shrink-0 overflow-hidden rounded-xl"><Photo img={IMAGES.airports[f.via]} w={44} h={44} className="absolute inset-0 size-full" /></span>
                     <p className="text-sub leading-snug">Layover <b>{fmtDur(f.layoverMin)}</b> in {f.via}<br />
                       <span className="text-muted-text">{fmtDur(usable)} usable · {fits(f)} itinerary fits</span></p>
@@ -153,13 +153,13 @@ export function FlightDetails({ flightId, origin, destination, date }: { flightI
       <Header title={`${origin} to ${destination}`} subtitle={AIRLINES[f.airline].name} />
       <div className="px-5 pt-2">
         <div className="mb-3"><Airline code={f.airline} size={40} bold /></div>
-        <section className="panel relative rounded-[1.75rem] p-4">
+        <section className="panel relative rounded-surface p-4">
           <span className="absolute bottom-10 left-[1.625rem] top-8 w-0.5 bg-line" />
           <Node time={f.departAt} day code={origin} label={city(origin)} strong />
           <Leg dur={f.legOneMin} />
           <Node time={arriveConn(f)} code={f.via} label="Arrive at connecting airport" />
           <button onClick={() => choose(f)}
-            className="panel-accent press mb-5 ml-9 flex w-[calc(100%-2.25rem)] items-center gap-3 rounded-2xl p-3 text-left">
+            className="panel-accent press mb-5 ml-9 flex w-[calc(100%-2.25rem)] items-center gap-3 rounded-control p-3 text-left">
             <span className="ph relative size-12 shrink-0 overflow-hidden rounded-xl"><Photo img={ap.image} w={48} h={48} className="absolute inset-0 size-full" /></span>
             <span className="min-w-0 flex-1"><b className="block text-body font-semibold leading-tight">{fmtDur(f.layoverMin)} layover</b>
               <span className="text-sub text-muted-text">{fmtDur(usable)} usable · {fits(f)} itinerary fits</span></span>
@@ -173,7 +173,7 @@ export function FlightDetails({ flightId, origin, destination, date }: { flightI
         {night && <div className="mt-3"><Notice>This is an overnight connection. Check airport service hours.</Notice></div>}
         <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
           {[['Total', fmtDur(total(f))], ['Layover', fmtDur(f.layoverMin)], ['Price', money(f.priceUsd)]].map(([k, v]) => (
-            <div key={k} className="panel rounded-2xl py-3"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
+            <div key={k} className="panel rounded-control py-3"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
         </dl>
       </div>
       <ActionBar>
@@ -199,7 +199,7 @@ export function Compare({ ids, origin, destination, date }: { ids: string[]; ori
     <div className="pb-6">
       <Header title="Compare" subtitle={`${origin} to ${destination}`} />
       <div className="px-5 pt-4">
-        <div className="panel overflow-x-auto rounded-[1.5rem]">
+        <div className="panel overflow-x-auto rounded-card">
           <table className="w-full min-w-[26rem] border-collapse text-left">
             <thead><tr><th className="w-28 p-3" />{list.map((f) => (
               <th key={f.id} className="p-3 align-bottom">

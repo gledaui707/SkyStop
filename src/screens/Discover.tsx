@@ -8,7 +8,7 @@ import { localToInstant } from '../domain'
 import { IMAGES, sized } from '../data/images'
 import { fmtDur, timeSpan, toLocalInput } from '../data/time'
 import type { Category, Plan } from '../data/types'
-import { Button, CATEGORIES, Chip, ChipRow, Field, Header, LargeTitle, Photo } from '../components/ui'
+import { Button, CATEGORIES, Chip, ChipRow, Field, Header, LargeTitle, Photo, EmptyState } from '../components/ui'
 import { FlightStack } from '../components/FlightStack'
 
 const Heading = ({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) => (
@@ -100,19 +100,15 @@ export function Home() {
         {upcoming.length > 0 ? (
           <FlightStack flights={upcoming} onOpen={(p) => go({ name: 'plan', id: p.id })} />
         ) : (
-          <div className="rounded-[1.75rem] border border-dashed border-[rgb(35_26_23/0.18)] bg-white/70 px-5 py-6 text-center">
-            <span className="mx-auto grid size-12 place-items-center rounded-full bg-accent-tint text-accent-dark"><Plane size={22} className="-rotate-45" /></span>
-            <p className="mt-3 text-card font-semibold">No upcoming flights</p>
-            <p className="mt-1 text-sub text-muted-text">Your past flights are in See all.</p>
-          </div>
+          <EmptyState title="No upcoming flights">Your past flights are in See all.</EmptyState>
         )}
         </>)}
         <div className={plans.length > 0 ? 'mt-4 grid grid-cols-2 gap-3' : 'grid grid-cols-2 gap-3'}>
-          <button onClick={() => go({ name: 'booking' })} className="btn-coral press flex min-h-[6.25rem] flex-col items-start justify-between gap-2 rounded-[1.4rem] p-3.5 text-left">
+          <button onClick={() => go({ name: 'booking' })} className="btn-coral press flex min-h-[6.25rem] flex-col items-start justify-between gap-2 rounded-card p-3.5 text-left">
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/20"><Plus size={19} /></span>
             <span className="min-w-0"><b className="block text-body font-semibold leading-tight">Add flight</b><span className="block text-cap text-white/85">Already booked</span></span>
           </button>
-          <button onClick={() => go({ name: 'find' })} className="panel press flex min-h-[6.25rem] flex-col items-start justify-between gap-2 rounded-[1.4rem] p-3.5 text-left">
+          <button onClick={() => go({ name: 'find' })} className="panel press flex min-h-[6.25rem] flex-col items-start justify-between gap-2 rounded-card p-3.5 text-left">
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><Compass size={19} /></span>
             <span className="min-w-0"><b className="block text-body font-semibold leading-tight">Compare flights</b><span className="block text-cap text-muted-text">Not booked yet</span></span>
           </button>
@@ -212,18 +208,18 @@ export function FindFlight() {
         <h2 className="text-h1 font-bold">Search for the best layover flights</h2>
       </div>
       <form id="find" className="mt-5 px-5" onSubmit={(e) => { e.preventDefault(); if (origin && dest && !same) go({ name: 'results', origin, destination: dest, date }) }}>
-        <div className="panel-accent relative rounded-[1.75rem] p-2">
-          <div className="rounded-[1.375rem] bg-white px-4 py-2.5 ring-1 ring-line">
+        <div className="panel-accent relative rounded-surface p-2">
+          <div className="rounded-card bg-white px-4 py-2.5 ring-1 ring-line">
             <Field label="Flying from"><select className={sel} value={origin} onChange={(e) => setOrigin(e.target.value)}>{opts}</select></Field>
           </div>
           <div className="relative h-2">
             <button type="button" onClick={swap} aria-label="Swap cities" className="press absolute right-5 top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-ink text-white shadow-[0_6px_16px_rgb(35_26_23/0.25)]">
               <ArrowUpDown size={18} /></button>
           </div>
-          <div className="rounded-[1.375rem] bg-white px-4 py-2.5 ring-1 ring-line">
+          <div className="rounded-card bg-white px-4 py-2.5 ring-1 ring-line">
             <Field label="Flying to"><select className={sel} value={dest} onChange={(e) => setDest(e.target.value)}>{opts}</select></Field>
           </div>
-          <div className="mt-2 rounded-[1.375rem] bg-white px-4 py-2.5 ring-1 ring-line">
+          <div className="mt-2 rounded-card bg-white px-4 py-2.5 ring-1 ring-line">
             <Field label="Departure date"><input type="date" required className={sel} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
           </div>
         </div>
