@@ -6,6 +6,7 @@ import { IMAGES, sized, type Img } from '../data/images'
 import { Button, cx } from '../components/ui'
 import { SSMark } from '../components/SSMark'
 import { guestStore } from '../data/mock'
+import { accessStore } from '../features/access/accessState'
 
 /** First-visit onboarding: three photographic screens. Skippable, swipeable, keyboard-operable.
  *  The floating previews are clearly marked examples; no personal or live flight data is shown.
@@ -121,12 +122,13 @@ export function Welcome() {
     if (next === i) return
     setDir(next > i ? 1 : -1); setI(next)
   }
-  // The introduction is optional: Skip returns to Home; Get started on the last step opens Plan a layover.
-  const skip = () => finishWelcome({ name: 'discover' })
-  const done = () => finishWelcome({ name: 'trip' })
-  // Sign in: the email sign-in form on the account screen (one sign-in flow). Not now returns here.
+  // Skip, and Get started on the last step, finish onboarding: first-time visitors continue to Account Access, others into planning.
+  const done = () => finishWelcome({ name: 'booking' })
+  // Sign in: the email sign-in form on the account screen (one sign-in flow). Not now returns here. Onboarding counts as seen,
+  // and the account screen stays pending, so a visitor who leaves without signing in sees it again next launch.
   const signInNow = () => {
     guestStore.markWelcomed()
+    if (accessStore.get() !== 'done') accessStore.set('pending')
     navigate({ name: 'access', auth: 'signin' })
   }
   const v = (x: Variants) => (reduce ? NONE : x)
@@ -181,7 +183,7 @@ export function Welcome() {
             <SSMark className="h-8 w-auto drop-shadow-[0_2px_8px_rgb(0_0_0/0.35)]" />SkyStop</span>
           <AnimatePresence initial={false}>
             {!last && (
-              <motion.button key="skip" onClick={skip} className="glass-dark press min-h-11 rounded-full px-5 text-sub font-semibold"
+              <motion.button key="skip" onClick={done} className="glass-dark press min-h-11 rounded-full px-5 text-sub font-semibold"
                 variants={v({ enter: { opacity: 0, filter: 'blur(6px)' }, show: { opacity: 1, filter: 'blur(0px)', transition: { duration: 0.4 } }, exit: { opacity: 0, filter: 'blur(6px)', transition: OUT } })}
                 initial="enter" animate="show" exit="exit">Skip</motion.button>
             )}

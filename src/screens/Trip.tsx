@@ -11,7 +11,7 @@ import { ActionBar, Button, Header, Field, InfoTip, Photo, cx, inputCls, IconBut
 const BUFFERS = [90, 120, 180]
 const split = (v: string) => { const [d = '', t = ''] = v.split('T'); return { date: d, time: t.slice(0, 5) } }
 
-/** Plan a layover: the connecting airport and local arrival/departure times come first; the route is optional.
+/** Plan a layover: enter the connecting airport and times.
  *  An airport, curated itinerary or activities chosen while exploring are carried in and shown here. */
 export function Trip({ airport, templateId }: { airport?: string; templateId?: string }) {
   const { replace, setDraft, picked, setPicked } = useApp()
@@ -67,7 +67,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
   const pct = (n: number) => `${b.total ? (n / b.total) * 100 : 0}%`
   return (
     <div className="pb-[calc(var(--nav-h)+7rem)]">
-      <Header title="Plan a layover" subtitle={tplApplies ? `Itinerary: ${tpl!.name}` : conn ? airportInfo(conn)!.name : undefined} />
+      <Header title="Add flight" subtitle={tplApplies ? `Itinerary: ${tpl!.name}` : conn ? airportInfo(conn)!.name : 'Your connection'} />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 px-5 pt-1">
         {sup ? (
           <div className="ph relative h-36 overflow-hidden rounded-surface">
@@ -80,11 +80,11 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           </div>
         ) : (
           <div>
-            <h2 className="text-h1 font-bold">Find out what fits between your flights</h2>
-            <p className="mt-1 text-sub text-muted-text">Enter where you change planes and when. Times are local to the connecting airport.</p>
+            <h2 className="text-h1 font-bold">Your time between flights</h2>
+            <p className="mt-1 text-sub text-muted-text">Enter the connection from your booking. Times are local to the connecting airport.</p>
           </div>
         )}
-        {sup && <p className="-mt-2 text-sub text-muted-text">Times are local to the connecting airport.</p>}
+        {sup && <p className="-mt-2 text-sub text-muted-text">Enter the connection from your booking. Times are local to the connecting airport.</p>}
 
         {tpl && (
           <section aria-label="Selected itinerary" className="panel-accent flex items-start gap-3 rounded-card p-3.5">
@@ -111,14 +111,20 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           </section>
         )}
 
+        {/* The whole journey (optional): where it starts and ends. Shown on your flight card. */}
+        <section aria-label="Journey" className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-[1.75rem] p-4">
+          <AirportPicker label="Flying from (optional)" value={origin} onChange={setOrigin} exclude={[conn, destination].filter(Boolean)} placeholder="City, airport or code" />
+          <AirportPicker label="Final destination (optional)" value={destination} onChange={setDestination} exclude={[conn, origin].filter(Boolean)} placeholder="City, airport or code" />
+        </section>
+
         {/* The connection as one surface: airport, then an arrive → depart rail. */}
         <section aria-label="Connection" className="panel rounded-surface p-4">
           <AirportPicker label="Connecting airport" value={conn} onChange={setConn} exclude={[origin, destination].filter(Boolean)} placeholder="Where do you change planes?" />
           {!conn ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-sub text-muted-text">Airports with activity guides:</span>
+              <span className="text-sub text-muted-text">Layover guides:</span>
               {AIRPORTS.map((a) => (
-                <button key={a.code} type="button" onClick={() => setConn(a.code)} className="press min-h-11 rounded-full bg-white px-4 text-sub font-medium shadow-[0_2px_8px_rgb(70_35_25/0.08)]">{a.city} {a.code}</button>))}
+                <button key={a.code} type="button" onClick={() => setConn(a.code)} className="press min-h-11 rounded-full border border-line bg-white px-4 text-sub font-medium">{a.city} {a.code}</button>))}
             </div>
           ) : !supported && <p className="mt-2 text-sub text-muted-text">No activity guide for this airport yet. You can still see your time budget.</p>}
 
@@ -142,7 +148,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           <legend className="w-full">
             <span className="flex items-center justify-between gap-3">
               <span id="buffer-label" className="text-body font-semibold">Planning buffer</span>
-              <InfoTip id="buffer-help" title="Planning buffer">Time kept free for leaving the aircraft, transfer security, walking to your gate and boarding. Activities only use what is left. Choose more if your airport is busy or you are unsure.</InfoTip>
+              <InfoTip id="buffer-help" title="Planning buffer">Time kept free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding. Activities only use what is left.</InfoTip>
             </span>
           </legend>
           <div className="grid grid-cols-3 gap-1 rounded-full bg-ink-tint p-1 ring-1 ring-line">
@@ -156,7 +162,7 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           <section aria-label="Layover time breakdown" className="panel-accent anim-rise rounded-surface p-5">
             <div className="flex items-end justify-between gap-3">
               <div>
-                <p className="text-sub text-muted-text">Estimated usable time</p>
+                <p className="text-sub text-muted-text">Usable time</p>
                 <p className="text-metric font-bold tabular-nums">{fmtDur(b.usable)}</p>
               </div>
               <Clock size={28} className="mb-1 text-accent-dark" aria-hidden="true" />
@@ -168,20 +174,12 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
             <dl className="mt-4 grid gap-2 text-body">
               <div className="flex justify-between"><dt className="text-muted-text">Total layover</dt><dd className="font-semibold">{fmtDur(b.total)}</dd></div>
               <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted-text"><span className="size-2.5 rounded-full bg-muted/60" />Planning buffer</dt><dd className="font-semibold">− {fmtDur(b.buffer)}</dd></div>
-              <div className="flex justify-between  pt-2"><dt className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-accent" />Estimated usable time</dt><dd className="text-card font-bold text-accent-dark">{fmtDur(b.usable)}</dd></div>
+              <div className="flex justify-between  pt-2"><dt className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-accent" />Usable time</dt><dd className="text-card font-bold text-accent-dark">{fmtDur(b.usable)}</dd></div>
             </dl>
-            {b.usable === 0 && <p role="alert" className="mt-3 text-sub font-medium text-error">No usable time after the buffer.</p>}
-            <p className="mt-3 text-sub text-muted-text">Transfer times and airport access are checked when you build your plan.</p>
+            {b.usable === 0 && <p role="alert" className="mt-3 text-sub font-medium text-error">No usable time after the buffer. A shorter buffer may help.</p>}
             {isOvernight(new Date(arr), new Date(dep)) && <p className="mt-3 text-sub text-muted-text">Overnight connection: many services may be closed.</p>}
           </section>
         )}
-
-        {/* The whole journey is optional: where it starts and ends, shown on the saved plan's card. */}
-        <section aria-label="Flight route" className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-surface p-4">
-          <p className="text-body font-semibold">Flight route <span className="font-normal text-muted-text">(optional)</span></p>
-          <AirportPicker label="Flying from (optional)" value={origin} onChange={setOrigin} exclude={[conn, destination].filter(Boolean)} placeholder="City, airport or code" />
-          <AirportPicker label="Final destination (optional)" value={destination} onChange={setDestination} exclude={[conn, origin].filter(Boolean)} placeholder="City, airport or code" />
-        </section>
       </div>
       <ActionBar>
         <Button className="w-full" disabled={!ok} onClick={finish}>{cta}</Button>

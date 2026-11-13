@@ -16,7 +16,7 @@ export function FlightStack({ flights, onOpen }: { flights: Plan[]; onOpen: (p: 
   const behind = flights.filter((f) => f.id !== front.id).slice(0, 3).reverse()
   const depth = behind.length
   return (
-    <section aria-label="Upcoming layovers" className="relative">
+    <section aria-label="My flights" className="relative">
       {behind.map((f, i) => {
         const level = depth - i // 1 = directly behind the front card
         const route = f.origin && f.destination ? `${f.origin} → ${f.destination}` : getAirport(f.airport).code

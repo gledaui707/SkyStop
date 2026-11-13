@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { ChevronLeft, MapPin, Pencil, Plane, Trash2 } from 'lucide-react'
+import { ChevronLeft, MapPin, Pencil, Plane } from 'lucide-react'
 import { sized } from '../data/images'
 import { useApp } from '../store'
 import { ACTIVITIES, getAirport } from '../data/mock'
@@ -7,7 +6,7 @@ import { budget, fmtDur, isOvernight, layoverMinutesAt } from '../data/time'
 import type { Plan } from '../data/types'
 import { computeItinerary } from '../data/itinerary'
 import { BudgetHero } from '../components/BudgetHero'
-import { ActivityRow, Button, Header, LargeTitle, Notice, Photo, SectionTitle, Sheet, cx, IconButton } from '../components/ui'
+import { ActivityRow, Button, Header, LargeTitle, Notice, Photo, SectionTitle, cx, IconButton } from '../components/ui'
 
 const itemsOf = (p: Plan) => p.activityIds.map((id) => ACTIVITIES.find((a) => a.id === id)!).filter(Boolean)
 const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -15,8 +14,9 @@ const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'nume
 /** Screen 5: retrieve and reopen saved plans. */
 export function Plans() {
   const { plans: allPlans, plansState, reload, go } = useApp()
-  // Every saved layover plan, soonest first; plans still without activities are included.
-  const plans = [...allPlans].sort((a, b) => a.arrival.localeCompare(b.arrival))
+  // My Plans = saved activity itineraries. Flights without one are listed in My Flights.
+  const plans = allPlans.filter((p) => p.activityIds.length > 0)
+  const bare = allPlans.length - plans.length
   return (
     <div className="pb-6">
       <LargeTitle>My plans</LargeTitle>
@@ -30,9 +30,9 @@ export function Plans() {
         ) : plans.length === 0 ? (
           <div className="panel-accent rounded-surface p-6 text-center">
             <span aria-hidden="true" className="btn-coral mx-auto mb-4 grid size-14 place-items-center rounded-full"><Plane size={24} className="-rotate-45" /></span>
-            <p className="text-card font-semibold">No saved plans yet</p>
-            <p className="mt-1 text-body text-muted-text">Plan a layover, choose activities and save it here.</p>
-            <Button className="mt-4 w-full" onClick={() => go({ name: 'trip' })}>Plan a layover</Button>
+            <p className="text-card font-semibold">No saved itineraries yet</p>
+            <p className="mt-1 text-body text-muted-text">{bare ? `You have ${bare} saved ${bare === 1 ? 'flight' : 'flights'} without activities. Open one to plan your layover.` : 'Add a flight, choose activities and save your itinerary.'}</p>
+            <Button className="mt-4 w-full" onClick={() => go(bare ? { name: 'flights' } : { name: 'booking' })}>{bare ? 'My flights' : 'Add flight'}</Button>
           </div>
         ) : (
           <ul className="grid gap-4">
@@ -54,7 +54,7 @@ export function Plans() {
                       <b className="block truncate text-h2 font-bold">{p.name}</b>
                       <span className="block text-sub text-white/80">{when(p.arrival)}</span>
                       <span className={cx('mt-2 inline-flex rounded-full px-3 py-1 text-cap font-semibold backdrop-blur-md', b.over ? 'bg-[#ff5c4d]/30 text-white' : 'bg-white/20 text-white')}>
-                        {p.activityIds.length ? `${p.activityIds.length} ${p.activityIds.length === 1 ? 'activity' : 'activities'} · ${b.over ? `${fmtDur(-b.remaining)} over` : `${fmtDur(b.remaining)} left`}` : `No activities yet · ${fmtDur(r.usable)} usable`}</span>
+                        {p.activityIds.length} {p.activityIds.length === 1 ? "activity" : "activities"} · {b.over ? `${fmtDur(-b.remaining)} over` : `${fmtDur(b.remaining)} left`}</span>
                     </span>
                   </button>
                 </li>)
@@ -67,10 +67,7 @@ export function Plans() {
 }
 
 export function PlanDetail({ id }: { id: string }) {
-  const { plans, plansState, setDraft, go, back, removePlan, setNotice } = useApp()
-  const [confirm, setConfirm] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { plans, plansState, setDraft, go, back } = useApp()
   const p = plans.find((x) => x.id === id)
   if (!p) return <div><Header title="Plan" /><p className="p-6 text-center text-muted-text">{plansState.status === 'loading' ? 'Loading your plan…' : 'This plan is not available.'}</p></div>
   const items = itemsOf(p)
@@ -104,19 +101,7 @@ export function PlanDetail({ id }: { id: string }) {
           setDraft({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination, arrivalLocation: p.arrivalLocation, departureLocation: p.departureLocation })
           go({ name: 'builder' })
         }}>Edit plan</Button>
-        <Button variant="ghost" icon={Trash2} className="text-error" onClick={() => { setError(null); setConfirm(true) }}>Remove plan</Button>
       </div>
-      <Sheet open={confirm} onClose={() => setConfirm(false)} title="Remove this plan?">
-        <div className="grid gap-3 pb-2">
-          <p className="text-body text-ink/85">{items.length ? `Its ${items.length} ${items.length === 1 ? 'activity' : 'activities'} will be removed too.` : 'This plan has no activities.'} This cannot be undone.</p>
-          {error && <Notice tone="warn">{error}</Notice>}
-          <Button variant="danger" icon={Trash2} disabled={busy} onClick={async () => {
-            setBusy(true); setError(null)
-            try { await removePlan(p.id); setConfirm(false); back(); setNotice('Plan removed') } catch (e) { setError(e instanceof Error ? e.message : String(e)) } finally { setBusy(false) }
-          }}>{busy ? 'Removing…' : 'Remove plan'}</Button>
-          <Button variant="secondary" onClick={() => setConfirm(false)}>Keep it</Button>
-        </div>
-      </Sheet>
     </div>
   )
 }

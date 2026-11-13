@@ -52,13 +52,3 @@ Domain logic + tests; data layer; Figma integration; fresh Supabase setup and ve
 
 ## Repo map for the submission
 docs/SUBMISSION_PDF_CONTENT.md (PDF source) · docs/submission/SkyStop-Assignment2-DRAFT.pdf · docs/screenshots/ (11 real screenshots) · docs/DATABASE_AS_IMPLEMENTED.md · docs/DEMO_SCRIPT.md · docs/UI_REVIEW.md · docs/VALIDATION.md · docs/REQUIREMENTS.md (A1–A8 status).
-
-## 2026-11-16: Layover planner as the main guest flow
-
-- First launch opens Home. The introduction is optional ("How SkyStop works", Profile → Replay introduction), and the account screen opens only from Create account / Sign in.
-- Home: "Find out what fits between your flights". Plan a layover is the primary action until there is an upcoming saved plan; then View layover leads, with Plan a layover and Explore airports as secondary actions.
-- Removed the booking-reference lookup, the flight comparison, the separate My flights list and their fixture data (`src/data/journeys.ts`, comparison data in `src/data/mock.ts`). My Plans now lists every saved plan, including plans without activities, and a plan can be removed from its detail screen.
-- Setup opens manual entry directly: connecting airport and local times first, then the editable planning buffer ("What is this?"), the estimated usable time, and the optional flight route.
-- Discovery: estimated usable time sits above the activities; List is the default and Map is one tap away, with selections kept across both. Itineraries compare activity time only (no "Fits" label). Each activity shows its duration and what still needs checking (Transfer time unavailable, Check airport entry requirements, Access conditions unknown).
-- Builder: activity time, transfer time (or "Unavailable") and airport access are shown separately; the primary action is Save layover plan.
-- Verified: e2e 136/136 (including 320 px and 390 px checks that each primary action clears the bottom navigation), layout audit 0 issues, unit tests 114 passed (1 skipped), database 17/17.

@@ -2,12 +2,15 @@ import { House, Bookmark, Plane } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
 import { AppProvider, useApp, tabOf, type Tab } from './store'
-import { Home, Airports } from './screens/Discover'
+import { Home, FindFlight, Airports } from './screens/Discover'
 import { Trip } from './screens/Trip'
+import { FindJourney, JourneyOverview } from './screens/Journey'
 import { Welcome } from './screens/Welcome'
+import { Results, FlightDetails, Compare } from './screens/Flights'
 import { Airport } from './screens/Airport'
 import { Builder } from './screens/Builder'
 import { Plans, PlanDetail } from './screens/Plans'
+import { MyFlights } from './screens/MyFlights'
 import { Profile } from './screens/Profile'
 import { AccountAccess } from './features/access/AccountAccess'
 import { cx, LoadingState } from './components/ui'
@@ -18,12 +21,19 @@ function Screen() {
     case 'welcome': return <Welcome />
     case 'access': return <AccountAccess />
     case 'discover': return <Home />
+    case 'find': return <FindFlight />
     case 'trip': return <Trip key={(r.airport ?? '') + (r.templateId ?? '')} airport={r.airport} templateId={r.templateId} />
+    case 'booking': return <FindJourney />
+    case 'journey': return <JourneyOverview refCode={r.ref} />
     case 'airports': return <Airports />
+    case 'results': return <Results key={r.origin + r.destination + r.date} {...r} />
+    case 'flight': return <FlightDetails {...r} />
+    case 'compare': return <Compare {...r} />
     case 'airport': return <Airport key={r.code} {...r} />
     case 'builder': return <Builder />
     case 'plans': return <Plans />
     case 'plan': return <PlanDetail id={r.id} />
+    case 'flights': return <MyFlights />
     case 'profile': return <Profile />
   }
 }

@@ -12,7 +12,7 @@ const time = (local: string) => local.slice(11, 16)
 
 /** Boarding-pass composition: the journey's end points as huge IATA codes at opposite ends with a centred plane on a
  *  dashed line, the CONNECTION's arrival and departure times beneath them, then a compact layover section.
- *  Data comes from the saved plan. */
+ *  Data comes from the saved plan (route labels restored from the sample booking where applicable). */
 export function TripTicket({ plan, onView }: Props) {
   const ap = getAirport(plan.airport)
   const total = layoverMinutesAt(plan.arrival, plan.departure, ap.timezone)

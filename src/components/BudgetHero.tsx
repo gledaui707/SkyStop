@@ -13,11 +13,11 @@ export const TIME_LABEL: Record<TimeState, string> = {
   fits: 'Fits within estimated time budget',
   tight: 'Tight connection',
   exceeds: 'Exceeds available time',
-  unverified: 'Timing not confirmed',
+  unverified: 'Cannot verify feasibility',
 }
 export const ACCESS_LABEL: Record<AccessState, string> = {
   airside: 'Stays in the transit area',
-  'entry-required': 'Check airport entry requirements',
+  'entry-required': 'Entry verification required',
   unverified: 'Access conditions unknown',
 }
 
@@ -44,7 +44,7 @@ export function BudgetHero({ n, overnight, bufferInfo }: { n: HeroNumbers; overn
         </div>
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
           {([['Layover', fmtDur(n.total), 'bg-white/30'], ['Buffer', fmtDur(n.buffer), 'bg-white/60'], ['Activities', fmtDur(n.activityMin), over ? 'bg-[#3a1110]' : 'bg-white'],
-            ['Transfers', n.routing ? fmtDur(n.transferMin) : 'Unavailable', 'bg-white/60']] as [string, string, string][]).map(([k, v, c]) => (
+            ...(n.routing ? [['Transfers', fmtDur(n.transferMin), 'bg-white/60']] : [])] as [string, string, string][]).map(([k, v, c]) => (
             <div key={k} className="min-w-0"><dt className="flex items-center gap-1.5 text-cap text-white/85"><span className={cx('size-2 shrink-0 rounded-full', c)} />{k}
               {k === 'Buffer' && bufferInfo && <InfoTip id="buffer-info" title="Planning buffer" label="About the planning buffer" icon={<Info size={15} className="text-white/90" />}>{bufferInfo}</InfoTip>}</dt>
               <dd className="text-body font-semibold tabular-nums">{v}</dd></div>))}

@@ -7,7 +7,7 @@ import { getSupabase } from './api/client'
 import { getAccount, type Account } from './api/account'
 import { getProfile, type DataError } from './api/repositories'
 import type { TravelerProfileRow } from './types/database.types'
-import { accessStore } from './features/access/accessState'
+import { accessStore, resumeAccessOnLaunch, shouldOfferAccess } from './features/access/accessState'
 
 export type LoadState = { status: 'loading' | 'ready' | 'error'; error?: string }
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -18,13 +18,21 @@ export type Route =
   /** Account access (SS screen). With `auth`, opens with the email field for that choice (e.g. from Profile). */
   | { name: 'access'; auth?: 'create' | 'signin' }
   | { name: 'discover' }
-  /** Plan a layover: connecting airport and local arrival/departure times (the main way to start). */
+  | { name: 'find' }
   | { name: 'trip'; airport?: string; templateId?: string }
+  /** Booking-reference entry (the primary way to plan) and the journey overview it opens. */
+  | { name: 'booking' }
+  | { name: 'journey'; ref: string }
+  | { name: 'results'; origin: string; destination: string; date: string }
+  | { name: 'flight'; flightId: string; origin: string; destination: string; date: string }
+  | { name: 'compare'; ids: string[]; origin: string; destination: string; date: string }
   | { name: 'airports' }
   | { name: 'airport'; code: string; view?: 'map' | 'list' }
   | { name: 'builder' }
   | { name: 'plans' }
   | { name: 'plan'; id: string }
+  /** All saved flight journeys (upcoming and past). */
+  | { name: 'flights' }
   /** `auth` opens the account form directly (from Account Access). */
   | { name: 'profile'; auth?: 'create' | 'signin' }
 
@@ -32,7 +40,7 @@ export type Tab = 'home' | 'airports' | 'plans'
 export const tabOf = (r: Route): Tab | null => {
   switch (r.name) {
     case 'welcome': case 'access': return null
-    case 'discover': case 'profile': case 'trip': return 'home'
+    case 'discover': case 'flights': case 'profile': case 'find': case 'trip': case 'booking': case 'journey': case 'results': case 'flight': case 'compare': return 'home'
     case 'airports': case 'airport': return 'airports'
     case 'plans': case 'plan': case 'builder': return 'plans'
     default: return null
@@ -77,7 +85,7 @@ interface Ctx {
   finishWelcome: (to: Route) => void
   /** Leaves Account Access for good: Home, with `to` (e.g. the account form) opened on top. */
   finishAccess: (to?: Route) => void
-  /** Shows the optional introduction (Home's "How SkyStop works", Profile's "Replay introduction"). */
+  /** Shows the onboarding again (from Home's "How SkyStop works"). */
   replayOnboarding: () => void
   hint: HintStage
   advanceHint: (to: 2 | 3) => void
@@ -95,14 +103,14 @@ function init() {
   let hint: HintStage = 1
   try { const v = sessionStorage.getItem(HINT_KEY); if (v) hint = v === 'done' ? 'done' : (Number(v) as HintStage) } catch { /* ignore */ }
   const welcomed = guestStore.hasWelcomed()
-  return { hint, welcomed }
+  return { hint, welcomed, access: resumeAccessOnLaunch(welcomed, accessStore.get()) }
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const refreshAccountRef = useRef<(() => Promise<void>) | null>(null)
   const [boot] = useState(init)
   const [welcomed, setWelcomed] = useState(boot.welcomed)
-  const [stack, setStack] = useState<Route[]>([{ name: 'discover' }]) // first launch opens Home: the introduction and accounts are optional
+  const [stack, setStack] = useState<Route[]>([{ name: !boot.welcomed ? 'welcome' : boot.access ? 'access' : 'discover' }])
   const [plans, setPlans] = useState<Plan[]>([])
   const [catalogue, setCatalogue] = useState<LoadState>({ status: 'loading' })
   const [plansState, setPlansState] = useState<LoadState>({ status: 'loading' })
@@ -174,7 +182,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /** Leaves the onboarding for good. It is replaced by Home, and the chosen route opens on top of Home. */
   const finishWelcome = (to: Route) => {
     guestStore.markWelcomed(); setWelcomed(true)
-    setStack(to.name === 'discover' ? [to] : [{ name: 'discover' }, to])
+    if (shouldOfferAccess(accessStore.get(), account.status)) { accessStore.set('pending'); setStack([{ name: 'access' }]) }
+    else setStack(to.name === 'discover' ? [to] : [{ name: 'discover' }, to])
     window.scrollTo(0, 0)
   }
   const finishAccess = useCallback((to?: Route) => {

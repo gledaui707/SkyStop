@@ -199,6 +199,10 @@ export const PassportNote = () => (
   </Notice>
 )
 
+export const DemoNote = ({ children }: { children: ReactNode }) => (
+  <p className="text-cap text-muted-text">{children}</p>
+)
+
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="grid min-w-0 gap-1.5 text-sub font-medium text-muted-text">{label}{children}</label>
 }
@@ -222,7 +226,7 @@ export function TextField({ label, hint, error, icon: Icon, className, id, ...in
   )
 }
 
-export function ActivityRow({ a, action, onOpen, note }: { a: Activity; action?: ReactNode; onOpen?: () => void; note?: ReactNode }) {
+export function ActivityRow({ a, action, onOpen }: { a: Activity; action?: ReactNode; onOpen?: () => void }) {
   return (
     <li className="panel flex items-center gap-3 rounded-card p-2.5">
       <button onClick={onOpen} disabled={!onOpen} className="press flex min-w-0 flex-1 items-center gap-3 text-left">
@@ -235,7 +239,6 @@ export function ActivityRow({ a, action, onOpen, note }: { a: Activity; action?:
           <span className="block text-cap text-muted-text">
             {[a.category, a.terminal, a.access === 'Unverified' ? null : a.access].filter(Boolean).join(' · ')}{a.leavesAirport ? ' · leaves airport' : ''}
           </span>
-          {note && <span className="mt-1 block text-cap font-semibold text-accent-dark">{note}</span>}
         </span>
       </button>
       {action}
