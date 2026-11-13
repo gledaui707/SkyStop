@@ -22,6 +22,9 @@ handle expands it; tapping a terminal expands it. Controls hide when an expanded
 Nothing overlaps: sheet above the tab bar, controls and attribution above the sheet (browser-tested).
 
 ## Directions ("How to get there")
+Where to find it: **See how to get there** under the time card on your itinerary (Builder), the same button on a saved
+plan (My Plans → a plan), and on the map itself (*Directions* in the sheet, or *How to get there* on a venue). Elsewhere
+the button reads **See on map**.
 Available where SkyStop has a transfer graph (Changi pilot; see `CONSTRAINT_AWARE_PLANNING.md`). For the whole
 itinerary or a single venue (from the arrival terminal and back to the departure terminal). Opens as a step card
 (Step n of N, from → to, mode, minutes, status, checkpoints) with previous/next; *All steps* lists every stop and leg

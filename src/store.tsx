@@ -28,7 +28,8 @@ export type Route =
   | { name: 'flight'; flightId: string; origin: string; destination: string; date: string }
   | { name: 'compare'; ids: string[]; origin: string; destination: string; date: string }
   | { name: 'airports' }
-  | { name: 'airport'; code: string; view?: 'map' | 'list' }
+  /** `directions`: open the map with the current itinerary's directions showing. */
+  | { name: 'airport'; code: string; view?: 'map' | 'list'; directions?: boolean }
   | { name: 'builder' }
   | { name: 'plans' }
   | { name: 'plan'; id: string }

@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { AlertTriangle, ArrowDown, ArrowUp, Check, ExternalLink, Info, Plane, Plus, ShieldAlert, Trash2 } from 'lucide-react'
+import { AlertTriangle, ArrowDown, ArrowUp, Check, ExternalLink, Info, Map as MapIcon, Plane, Plus, ShieldAlert, Trash2 } from 'lucide-react'
 import { useApp } from '../store'
 import { getAirport, isSupported } from '../data/mock'
 import { fmtDay, fmtDur, fmtTime, isOvernight } from '../data/time'
@@ -73,6 +73,9 @@ export function Builder() {
         <div className="mt-4"><BudgetHero n={hero} overnight={night} bufferInfo={`The ${fmtDur(hero.buffer)} planning buffer covers leaving the aircraft, transfer screening, the final walk to your gate and boarding. ${itin.routing
           ? 'Moving between terminals and venues is counted separately as transfers. Leaving and re-entering the transit area is not covered.'
           : `Transfer times between activities are not available for ${ap.city}, so only activity time is counted.`}`} /></div>
+        {items.length > 0 && (
+          <Button variant="secondary" icon={MapIcon} className="mt-3 w-full" onClick={() => go({ name: 'airport', code: draft.airport, view: 'map', directions: true })}>
+            {itin.routing ? 'See how to get there' : 'See on map'}</Button>)}
 
         {/* access status, separate from time */}
         {items.length > 0 && (

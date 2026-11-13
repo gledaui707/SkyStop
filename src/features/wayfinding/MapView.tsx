@@ -29,21 +29,24 @@ interface Props {
   cat: 'All' | Category
   toggle: (id: string) => void
   startTrip: () => void
+  /** Open with the itinerary's directions showing (from the itinerary or a saved plan). */
+  openDirections?: boolean
 }
 
 /** Airport map with one coordinated bottom sheet: browse (terminal filter + venues), a venue preview, or directions.
  *  Floating controls sit above the sheet, the sheet sits above the tab bar; nothing overlaps. */
-export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, startTrip }: Props) {
+export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, startTrip, openDirections }: Props) {
   const { go, draft } = useApp()
   const ap = getAirport(code)
   const graph = GRAPHS[code] ?? null
   const [zone, setZone] = useState<Zone>('all')
   const [terminal, setTerminal] = useState<string | null>(null)
   const [focusId, setFocusId] = useState<string | null>(null)
-  const [routeFor, setRouteFor] = useState<'plan' | string | null>(null)
-  const [leg, setLeg] = useState<number | null>(null)
+  const startOnRoute = !!openDirections && !!graph && ready && planned.length > 0
+  const [routeFor, setRouteFor] = useState<'plan' | string | null>(startOnRoute ? 'plan' : null)
+  const [leg, setLeg] = useState<number | null>(startOnRoute ? 0 : null)
   // Short phones start with the sheet collapsed (title + main action) so the map stays visible.
-  const [expanded, setExpanded] = useState(() => typeof window === 'undefined' || window.innerHeight >= 720)
+  const [expanded, setExpanded] = useState(() => !startOnRoute && (typeof window === 'undefined' || window.innerHeight >= 720))
   const [details, setDetails] = useState<string | null>(null)
   const sheet = useRef<HTMLElement>(null), top = useRef<HTMLDivElement>(null)
   const [sheetH, setSheetH] = useState(260), [topH, setTopH] = useState(120)
@@ -170,7 +173,7 @@ export function MapView({ code, bar, acts, planned, ready, b, cat, toggle, start
                 {ready
                   ? <Button className="w-full" onClick={() => go({ name: 'builder' })}>Build itinerary ({planned.length})</Button>
                   : <Button className="w-full" onClick={() => startTrip()}>{planned.length ? `Set layover times (${planned.length})` : 'Set my layover times'}</Button>}
-                {ready && canRoute && planned.length > 0 && <Button variant="secondary" icon={Navigation} aria-label="How to get there" className="px-4" onClick={() => { setRouteFor('plan'); setLeg(0); setExpanded(false) }}>Route</Button>}
+                {ready && canRoute && planned.length > 0 && <Button variant="secondary" icon={Navigation} aria-label="How to get there" className="px-4" onClick={() => { setRouteFor('plan'); setLeg(0); setExpanded(false) }}>Directions</Button>}
               </div>
             </div>
           )}

@@ -12,7 +12,7 @@ type View = 'map' | 'list'
 
 /** Discover a layover airport. List first (curated itineraries, then activities); the map shows the real airport
  *  with a pin per terminal behind a toggle. Planning state lives in the store, so switching views keeps everything. */
-export function Airport({ code, view: initialView }: { code: string; view?: View }) {
+export function Airport({ code, view: initialView, directions }: { code: string; view?: View; directions?: boolean }) {
   const { go, back, draft, setDraft, picked, setPicked } = useApp()
   const ap = getAirport(code)
   const [view, setView] = useState<View>(initialView ?? 'list')
@@ -58,7 +58,7 @@ export function Airport({ code, view: initialView }: { code: string; view?: View
     </div>
   )
 
-  if (view === 'map') return <MapView {...{ code, bar, acts, planned, ready, b, cat, toggle, startTrip }} />
+  if (view === 'map') return <MapView {...{ code, bar, acts, planned, ready, b, cat, toggle, startTrip }} openDirections={directions} />
 
   return <List {...{ code, bar, ready, planned, b, toggle, applyItinerary, startTrip, cat, setCat }} />
 }

@@ -414,9 +414,17 @@ try {
     await P.getByRole('button', { name: 'Build my itinerary' }).click();
     await P.getByRole('button', { name: /^Arriving at Terminal 1/ }).click();
     await P.getByRole('button', { name: /^Departing from Terminal 3/ }).click();
+    // Entry point 1: the itinerary itself
+    await P.getByRole('button', { name: 'See how to get there' }).click();
+    const dir = P.locator('section[aria-label="Directions"]');
+    await dir.getByText('Step 1 of 3').waitFor();
+    check('wayfinding: "See how to get there" on the itinerary opens the map on step 1 of the directions', await dir.isVisible());
+    await P.getByRole('button', { name: 'Back', exact: true }).first().click();
+    await P.getByRole('button', { name: /^Save (layover )?plan/ }).click();
+    await P.getByLabel('Upcoming trip').waitFor({ timeout: 8000 });
+    // Entry point 2: from the map's own button
     await toChangiMap();
     await P.getByRole('button', { name: 'How to get there' }).click();
-    const dir = P.locator('section[aria-label="Directions"]');
     await dir.getByText('Step 1 of 3').waitFor();
     check('wayfinding: "How to get there" opens step 1 of 3 (arrival T1 → Butterfly Garden T3) with its published time', (await dir.innerText()).includes('Arrival (T1 transit) → Butterfly Garden') && await dir.getByText('Published time').first().isVisible() && await dir.getByText(/5–10 min/).first().isVisible());
     await dir.getByRole('button', { name: 'Next step' }).click();
@@ -441,7 +449,15 @@ try {
     await P.getByRole('button', { name: /Lisbon/ }).first().click(); await P.getByRole('tab', { name: 'map' }).click();
     await P.locator('.map-pin').first().click();
     await P.getByRole('button', { name: /ANA Lounge/ }).first().click();
-    check('wayfinding: Lisbon venue shows no directions button and says why', (await P.getByRole('button', { name: 'How to get there' }).count()) === 0 && await visible(P, "Directions aren't available"));
+    const lisbonOk = (await P.getByRole('button', { name: 'How to get there' }).count()) === 0 && await visible(P, "Directions aren't available")
+    // Entry point 3: a saved plan
+    await P.getByRole('button', { name: 'My Plans' }).click();
+    await P.getByRole('heading', { name: 'My plans' }).waitFor();
+    await P.locator('button.ph').first().click();
+    await P.getByRole('button', { name: 'See how to get there' }).click();
+    await P.locator('section[aria-label="Directions"]').getByText('Step 1 of 3').waitFor();
+    check('wayfinding: a saved plan has "See how to get there" and it opens the directions', await P.locator('section[aria-label="Directions"]').isVisible());
+    check('wayfinding: Lisbon venue shows no directions button and says why', lisbonOk);
     await wf.ctx.close();
   }
 
@@ -496,7 +512,8 @@ try {
     // F: persistence of order and terminals across save, refresh, reopen, edit, save
     await P.getByRole('button', { name: 'Save plan' }).click();
     await P.getByLabel('Upcoming trip').waitFor();
-    const sp = [...fake.plans.values()].find((x) => x.row.airport_id === 'SIN' && x.items.length === 2);
+    // The most recently saved Changi plan (earlier sections also save Changi plans to the shared fake backend).
+    const sp = [...fake.plans.values()].reverse().find((x) => x.row.airport_id === 'SIN' && x.items.length === 2);
     check('F: saved with the chosen order (Harry\'s, then Butterfly Garden)', !!sp && sp.items[0].activity_id.endsWith('08') && sp.items[1].activity_id.endsWith('04'));
     await P.reload();
     await P.getByRole('button', { name: 'View layover' }).click();
