@@ -6,7 +6,8 @@ import { airportInfo } from '../data/airportDirectory'
 import { budget, fmtDur, isOvernight, layoverMinutesAt, timeSpan } from '../data/time'
 import { validateLayover } from '../domain'
 import { AirportPicker } from '../components/AirportPicker'
-import { ActionBar, Button, Header, Field, InfoTip, Photo, cx, inputCls, IconButton } from '../components/ui'
+import { ActionBar, Backdrop, Button, Header, Field, InfoTip, Photo, cx, inputCls, IconButton } from '../components/ui'
+import { IMAGES } from '../data/images'
 
 const BUFFERS = [90, 120, 180]
 const split = (v: string) => { const [d = '', t = ''] = v.split('T'); return { date: d, time: t.slice(0, 5) } }
@@ -66,9 +67,10 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
   const sup = conn && supported ? getAirport(conn) : null
   const pct = (n: number) => `${b.total ? (n / b.total) * 100 : 0}%`
   return (
-    <div className="pb-[calc(var(--nav-h)+7rem)]">
+    <div className="relative pb-[calc(var(--nav-h)+7rem)]">
+      {!sup && <Backdrop img={IMAGES.hero} className="h-[20rem]" />}
       <Header title="Add flight" subtitle={tplApplies ? `Itinerary: ${tpl!.name}` : conn ? airportInfo(conn)!.name : 'Your connection'} />
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 px-5 pt-1">
+      <div className="relative grid grid-cols-[minmax(0,1fr)] gap-5 px-5 pt-1">
         {sup ? (
           <div className="ph relative h-36 overflow-hidden rounded-surface">
             <Photo img={sup.image} w={440} h={144} className="absolute inset-0 size-full" />
@@ -79,9 +81,9 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
             </div>
           </div>
         ) : (
-          <div>
-            <h2 className="text-h1 font-bold">Your time between flights</h2>
-            <p className="mt-1 text-sub text-muted-text">Enter the connection from your booking. Times are local to the connecting airport.</p>
+          <div className="pt-10">
+            <h2 className="text-title font-bold [text-shadow:0_2px_16px_rgb(0_0_0/0.4)]">Your time between flights</h2>
+            <p className="mt-2 text-sub text-ink/85 [text-shadow:0_1px_10px_rgb(0_0_0/0.4)]">Enter the connection from your booking. Times are local to the connecting airport.</p>
           </div>
         )}
         {sup && <p className="-mt-2 text-sub text-muted-text">Enter the connection from your booking. Times are local to the connecting airport.</p>}

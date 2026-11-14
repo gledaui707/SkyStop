@@ -108,7 +108,7 @@ export function Builder() {
 
         <SectionHeader className="mb-4 mt-8" action={items.length > 1 && <Chip active={reorder} onClick={() => setReorder(!reorder)}>{reorder ? 'Done' : 'Reorder'}</Chip>}>Your plan</SectionHeader>
 
-        <ol aria-label="Itinerary" className="relative ml-[1.1rem] pl-6 before:absolute before:bottom-3 before:left-[-1px] before:top-4 before:w-0.5 before:rounded-full before:bg-gradient-to-b before:from-ink/20 before:via-accent/60 before:to-ink/20">
+        <ol aria-label="Itinerary" className="relative ml-[1.1rem] pl-6 before:absolute before:bottom-3 before:left-[-1px] before:top-4 before:w-[3px] before:rounded-full before:bg-[image:var(--rail-grad)] before:opacity-80 before:shadow-[0_0_14px_rgb(234_81_57/0.45)]">
           <li className="relative pb-3"><span aria-hidden="true" className="absolute -left-[2.15rem] top-0.5 pill-on grid size-7 place-items-center rounded-full ring-4 ring-canvas"><Plane size={14} className="rotate-45" /></span>
             <p className="text-card font-bold tabular-nums">{fmtTime(arrival)}<span className="text-sub font-normal text-muted-text">{dayTag(arrival)}</span></p>
             <p className="text-sub text-muted-text">Arrive at {ap.code}{draft.arrivalLocation ? ` · ${terminals.find((t) => t.id === draft.arrivalLocation)?.name ?? ''}` : ''}. Allow time to leave the aircraft first.</p></li>

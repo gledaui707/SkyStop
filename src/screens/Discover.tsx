@@ -8,7 +8,7 @@ import { localToInstant } from '../domain'
 import { IMAGES, sized } from '../data/images'
 import { fmtDur, timeSpan, toLocalInput } from '../data/time'
 import type { Category, Plan } from '../data/types'
-import { Button, CATEGORIES, Chip, ChipRow, Field, Header, LargeTitle, Photo, EmptyState } from '../components/ui'
+import { Backdrop, Button, CATEGORIES, cx, Chip, ChipRow, Field, Header, LargeTitle, Photo, EmptyState } from '../components/ui'
 import { FlightStack } from '../components/FlightStack'
 
 const Heading = ({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) => (
@@ -117,8 +117,9 @@ export function Home() {
         )}
         </>)}
         <div className={plans.length > 0 ? 'mt-4 grid grid-cols-2 gap-3' : 'grid grid-cols-2 gap-3'}>
-          <button onClick={() => go({ name: 'booking' })} className="panel press flex min-h-[7rem] flex-col items-start justify-between gap-2 rounded-surface p-4 text-left">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><Plus size={20} /></span>
+          {/* With no flights yet, Add flight is the screen's one dominant action (coral-lit glass, coral disc). */}
+          <button onClick={() => go({ name: 'booking' })} className={cx(plans.length === 0 ? 'panel-accent' : 'panel', 'press flex min-h-[7rem] flex-col items-start justify-between gap-2 rounded-surface p-4 text-left')}>
+            <span className={cx('grid size-10 shrink-0 place-items-center rounded-full', plans.length === 0 ? 'btn-coral' : 'bg-accent-tint text-accent-dark')}><Plus size={20} /></span>
             <span className="min-w-0"><b className="block text-body font-semibold leading-tight">Add flight</b><span className="block text-cap text-muted-text">Already booked</span></span>
           </button>
           <button onClick={() => go({ name: 'find' })} className="panel press flex min-h-[7rem] flex-col items-start justify-between gap-2 rounded-surface p-4 text-left">
@@ -215,13 +216,15 @@ export function FindFlight() {
   const swap = () => { setOrigin(dest); setDest(origin) }
   const sel = 'min-h-12 w-full min-w-0 appearance-none bg-transparent text-card font-semibold text-ink focus:outline-none'
   return (
-    <div className="pb-[calc(var(--nav-h)+2rem)]">
+    <div className="relative pb-[calc(var(--nav-h)+2rem)]">
+      <Backdrop img={IMAGES.results} />
       <Header title="Compare flights" />
-      <div className="px-5 pt-2">
-        <h2 className="text-h1 font-bold">Search for the best layover flights</h2>
+      <div className="relative px-5 pt-20">
+        <h2 className="text-title font-bold [text-shadow:0_2px_16px_rgb(0_0_0/0.4)]">Find the best<br />layover flights</h2>
+        <p className="mt-2 text-body text-ink/85 [text-shadow:0_1px_10px_rgb(0_0_0/0.4)]">Compare connections by the time they leave you to explore.</p>
       </div>
-      <form id="find" className="mt-5 px-5" onSubmit={(e) => { e.preventDefault(); if (origin && dest && !same) go({ name: 'results', origin, destination: dest, date }) }}>
-        <div className="panel-accent relative rounded-surface p-2">
+      <form id="find" className="relative mt-6 px-5" onSubmit={(e) => { e.preventDefault(); if (origin && dest && !same) go({ name: 'results', origin, destination: dest, date }) }}>
+        <div className="glass-premium relative rounded-surface p-2">
           <div className="field rounded-card px-4 py-2.5">
             <Field label="Flying from"><select className={sel} value={origin} onChange={(e) => setOrigin(e.target.value)}>{opts}</select></Field>
           </div>

@@ -29,7 +29,7 @@ export function TripTicket({ plan, onView }: Props) {
   const caption = 'mt-1.5 block whitespace-nowrap text-tab leading-tight text-muted-text'
 
   return (
-    <article aria-label="Upcoming trip" className="panel relative overflow-hidden rounded-surface text-ink shadow-e2">
+    <article aria-label="Upcoming trip" className="theme-paper paper relative overflow-hidden rounded-surface">
       <section aria-label={hasRoute ? `Journey ${plan.origin} to ${plan.destination} via ${ap.code}` : `Connection at ${ap.code}`} className="px-5 pb-5 pt-5">
         {/* names at opposite ends */}
         <div className="flex justify-between gap-3">
@@ -65,8 +65,8 @@ export function TripTicket({ plan, onView }: Props) {
       {/* boarding-pass tear line */}
       <div aria-hidden="true" className="relative h-0">
         {/* The tear-off: two cut-outs and a perforation across the pass. */}
-        <span className="absolute -left-3.5 -top-3.5 size-7 rounded-full bg-[#e7e0da] shadow-[inset_-1px_0_3px_rgb(31_26_23/0.18)]" />
-        <span className="absolute -right-3.5 -top-3.5 size-7 rounded-full bg-[#e7e0da] shadow-[inset_1px_0_3px_rgb(31_26_23/0.18)]" />
+        <span className="absolute -left-3.5 -top-3.5 size-7 rounded-full bg-canvas shadow-[inset_-2px_0_4px_rgb(0_0_0/0.5)]" />
+        <span className="absolute -right-3.5 -top-3.5 size-7 rounded-full bg-canvas shadow-[inset_2px_0_4px_rgb(0_0_0/0.5)]" />
         <span className="absolute inset-x-6 top-0 border-t-2 border-dashed border-ink/20" />
       </div>
 

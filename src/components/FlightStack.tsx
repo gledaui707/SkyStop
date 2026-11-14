@@ -16,7 +16,7 @@ export function FlightStack({ flights, onOpen }: { flights: Plan[]; onOpen: (p: 
   const behind = flights.filter((f) => f.id !== front.id).slice(0, 3).reverse()
   const depth = behind.length
   return (
-    <section aria-label="My flights" className="relative">
+    <section aria-label="My flights" className="theme-paper relative">
       {behind.map((f, i) => {
         const level = depth - i // 1 = directly behind the front card
         const route = f.origin && f.destination ? `${f.origin} → ${f.destination}` : getAirport(f.airport).code
@@ -24,9 +24,9 @@ export function FlightStack({ flights, onOpen }: { flights: Plan[]; onOpen: (p: 
           <button key={f.id} onClick={() => setFrontId(f.id)} aria-label={`Show flight ${f.origin && f.destination ? `${f.origin} to ${f.destination} via ${f.airport}` : `connecting at ${f.airport}`}, ${shortDay(f.arrival)}`}
             style={{ zIndex: i, transform: `scale(${1 - level * 0.035})` }}
             className={cx('press relative -mb-[1.65rem] flex h-[4.4rem] w-full origin-bottom items-start justify-between gap-3 rounded-t-card rounded-b-xl px-5 pt-3 text-left',
-              'ring-1 ring-black/5 shadow-[0_-2px_8px_rgb(31_26_23/0.06)] transition-transform duration-300 motion-reduce:transition-none',
+              'ring-1 ring-black/10 shadow-[0_-4px_14px_rgb(0_0_0/0.25)] transition-transform duration-300 motion-reduce:transition-none',
               // solid cards behind the front pass, a shade warmer the further back they sit (Wallet-style)
-              level === 1 ? 'bg-white' : level === 2 ? 'bg-[#f8f4f1]' : 'bg-[#f1ebe6]')}>
+              level === 1 ? 'bg-[#f6ece5]' : level === 2 ? 'bg-[#e9dbd2]' : 'bg-[#d9c8bd]')}>
             <span className="min-w-0 truncate text-code font-bold text-ink">{route}</span>
             <span className="shrink-0 text-right text-micro leading-tight text-ink/70">via <b className="font-semibold text-ink">{f.airport}</b><br />{shortDay(f.arrival)}</span>
           </button>

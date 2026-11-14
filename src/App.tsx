@@ -76,50 +76,31 @@ function Toast() {
   )
 }
 
-type Tone = 'light' | 'dark'
-const lum = (c: string) => { const m = c.match(/[\d.]+/g); if (!m || m.length < 3) return null; const [r, g, b, a = '1'] = m; return +a < 0.5 ? null : (0.2126 * +r + 0.7152 * +g + 0.0722 * +b) / 255 }
-/** What is behind the top of the screen: a photo or a dark surface ('dark') or the light canvas ('light'). */
-function toneAtTop(): Tone {
-  const y = Math.max(8, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 16)
-  for (const el of document.elementsFromPoint(window.innerWidth / 2, y)) {
-    if (el.closest('[data-top-blur]')) continue
-    if (el instanceof HTMLImageElement || el instanceof HTMLCanvasElement || el.classList.contains('leaflet-tile')) return 'dark'
-    const l = lum(getComputedStyle(el).backgroundColor)
-    if (l !== null) return l < 0.5 ? 'dark' : 'light'
-  }
-  return 'light'
-}
-const THEME: Record<Tone, string> = { light: '#f3e6de', dark: '#150e0c' }
-
-/** Revolut-style progressive blur under the status bar and header, shown only once the page is scrolled: content
- *  scrolling up blurs and fades instead
- *  of meeting a hard band. Also reports whether the top is dark, so the status bar text can switch to white. */
+/** Progressive blur under the status bar and header, shown only once the page is scrolled: content scrolling up blurs
+ *  and fades into a dark band instead of meeting a hard edge. The whole app is dark, so the status bar stays white. */
 function TopBlur() {
   const { route } = useApp()
-  const [tone, setTone] = useState<Tone>('light')
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     let raf = 0
-    const check = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { setTone(toneAtTop()); setScrolled(window.scrollY > 4) }) }
-    check(); const t = setTimeout(check, 450) // after the screen's entrance and images
-    window.addEventListener('scroll', check, { passive: true }); window.addEventListener('resize', check)
-    return () => { cancelAnimationFrame(raf); clearTimeout(t); window.removeEventListener('scroll', check); window.removeEventListener('resize', check) }
+    const check = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => setScrolled(window.scrollY > 4)) }
+    check()
+    window.addEventListener('scroll', check, { passive: true })
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('scroll', check) }
   }, [route])
   useEffect(() => {
     let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
     if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta) }
-    meta.content = THEME[tone]
-    try { window.parent?.postMessage({ type: 'skystop-statusbar', tone }, '*') } catch { /* not framed */ }
-  }, [tone])
+    meta.content = '#150e0c'
+    try { window.parent?.postMessage({ type: 'skystop-statusbar', tone: 'dark' }, '*') } catch { /* not framed */ }
+  }, [])
   const layers = [[16, 0, 30], [8, 20, 50], [4, 40, 70], [2, 60, 88], [1, 75, 100]] as const
   return (
     <div data-top-blur aria-hidden="true" className={cx('pointer-events-none fixed inset-x-0 top-0 z-10 mx-auto h-[calc(var(--safe-top)+4.75rem)] max-w-[480px] transition-opacity duration-300', scrolled ? 'opacity-100' : 'opacity-0')}>
       {layers.map(([px, solid, end]) => (
         <div key={px} className="absolute inset-0" style={{ backdropFilter: `blur(${px}px)`, WebkitBackdropFilter: `blur(${px}px)`,
           maskImage: `linear-gradient(to bottom, black ${solid}%, transparent ${end}%)`, WebkitMaskImage: `linear-gradient(to bottom, black ${solid}%, transparent ${end}%)` }} />))}
-      <div className="absolute inset-0 transition-colors duration-300" style={{ background: tone === 'dark'
-        ? 'linear-gradient(to bottom, rgb(21 14 12 / 0.78), rgb(21 14 12 / 0.4) 55%, transparent)'
-        : 'linear-gradient(to bottom, rgb(243 230 222 / 0.85), rgb(243 230 222 / 0.5) 55%, transparent)' }} />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgb(21 14 12 / 0.8), rgb(21 14 12 / 0.4) 55%, transparent)' }} />
     </div>
   )
 }
@@ -156,7 +137,7 @@ function Shell() {
           return (
             <button key={id} onClick={() => switchTab(id)} aria-current={on ? 'page' : undefined}
               className={cx('press relative flex flex-col items-center justify-center gap-0.5 rounded-full text-tab font-semibold transition-colors duration-300',
-                on ? 'text-accent-dark' : 'text-muted-text hover:text-ink')}>
+                on ? 'bg-white/10 text-accent-dark' : 'text-muted-text hover:text-ink')}>
               <Icon size={21} strokeWidth={on ? 2.4 : 1.9} aria-hidden="true" />{label}
             </button>
           )

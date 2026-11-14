@@ -14,6 +14,18 @@ export function Photo({ img, w, h, className }: { img: Img; w: number; h?: numbe
     className={cx('object-cover anim-fade', className)} />
 }
 
+/** Full-bleed photograph behind a screen's header that dissolves into the ambient canvas: gives form screens a sense of
+ *  place and a focal point. Decorative (the screen's heading carries the meaning). Place it first inside a `relative`
+ *  screen; content after it needs `relative` to sit above it. */
+export function Backdrop({ img, className }: { img: Img; className?: string }) {
+  return (
+    <div aria-hidden="true" className={cx('ph pointer-events-none absolute inset-x-0 top-0 h-[25rem] overflow-hidden [mask-image:linear-gradient(to_bottom,#000_35%,transparent)]', className)}>
+      <img src={sized(img, 900, 800)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-canvas/60" />
+    </div>
+  )
+}
+
 export function Header({ title, subtitle, right, onBack }: { title: string; subtitle?: string; right?: ReactNode; onBack?: () => void }) {
   const { back } = useApp()
   return (
@@ -119,7 +131,7 @@ export function Chip({ active, children, ...p }: React.ButtonHTMLAttributes<HTML
   return (
     <button {...p} aria-pressed={active} className={cx(
       'press inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sub font-medium transition-colors',
-      active ? 'pill-on border-transparent' : 'border-line bg-white text-ink', p.className)}>
+      active ? 'pill-on border-transparent' : 'btn-secondary text-ink', p.className)}>
       {children}
     </button>
   )
@@ -133,7 +145,7 @@ export function ChipRow({ children }: { children: ReactNode }) {
 export function Segmented<T extends string>({ value, onChange, options }:
   { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div role="tablist" className="grid rounded-full bg-ink-tint p-1 ring-1 ring-line" style={{ gridTemplateColumns: `repeat(${options.length},1fr)` }}>
+    <div role="tablist" className="glass-subtle grid rounded-full p-1" style={{ gridTemplateColumns: `repeat(${options.length},1fr)` }}>
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={value === o.value} onClick={() => onChange(o.value)}
           className={cx('min-h-11 rounded-full text-sub font-semibold transition-colors', value === o.value ? 'pill-on' : 'text-muted-text')}>
@@ -162,7 +174,7 @@ export const SectionTitle = ({ children, action }: { children: ReactNode; action
 /** Nothing here yet: an icon, one line of title, an optional sentence and an optional action. */
 export function EmptyState({ icon: Icon = Plane, title, children, action, className }: { icon?: LucideIcon; title: string; children?: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <div className={cx('rounded-surface panel border-dashed !border-[rgb(255_236_226/0.2)] px-5 py-6 text-center', className)}>
+    <div className={cx('rounded-surface panel border-dashed !border-[rgb(255_236_226/0.22)] px-5 py-7 text-center', className)}>
       <span aria-hidden="true" className="mx-auto grid size-12 place-items-center rounded-full bg-accent-tint text-accent-dark"><Icon size={22} /></span>
       <p className="mt-3 text-card font-semibold">{title}</p>
       {children && <div className="mt-1 text-sub text-muted-text">{children}</div>}
@@ -187,7 +199,7 @@ export function Notice({ children, tone = 'info' }: { children: ReactNode; tone?
   const Icon = tone === 'warn' ? ShieldAlert : Info
   return (
     <div role={tone === 'warn' ? 'alert' : 'note'} className={cx('flex gap-3 rounded-card border p-3.5 text-sub',
-      tone === 'warn' ? 'border-error/30 bg-error-tint text-ink' : 'border-line bg-white text-muted-text')}>
+      tone === 'warn' ? 'border-error/30 bg-error-tint text-ink' : 'border-line bg-ink-tint text-muted-text')}>
       <Icon size={20} className={cx('mt-px shrink-0', tone === 'warn' ? 'text-error' : 'text-accent-dark')} />
       <div className="min-w-0">{children}</div>
     </div>
@@ -257,10 +269,10 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   }, [open, onClose])
   if (!open) return null
   return (
-    <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-[rgb(31_26_23/0.32)]" onClick={onClose}>
+    <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-[rgb(8_5_4/0.55)] backdrop-blur-[3px]" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
-        className="anim-sheet bg-white shadow-e3 max-h-[85dvh] w-full max-w-[480px] overflow-y-auto rounded-t-tray !border-b-0 pb-[calc(var(--safe-bottom)+1rem)] text-ink">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-white/95 px-5 pb-3 pt-3">
+        className="anim-sheet sheet-solid max-h-[85dvh] w-full max-w-[480px] overflow-y-auto rounded-t-tray !border-b-0 pb-[calc(var(--safe-bottom)+1rem)] text-ink">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[#2a1d1a]/95 px-5 pb-3 pt-3 backdrop-blur-md">
           <span className="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-ink/20" />
           <h2 className="mt-3 min-w-0 text-h2 font-bold">{title}</h2>
           <IconButton label="Close" icon={X} tone="plain" size="sm" iconSize={18} onClick={onClose} className="mt-3" />
@@ -361,9 +373,9 @@ export function InfoTip({ id, title, children, label = 'What is this?', icon }: 
         aria-label={icon ? label : undefined}
         className={icon ? 'press -m-2 grid size-9 place-items-center rounded-full' : 'press min-h-11 text-sub font-semibold text-accent-dark underline underline-offset-2'}>{icon ?? label}</button>
       <span id={id} role="tooltip" hidden={!open}
-        className={cx('anim-fade absolute right-0 z-50 w-[min(18.5rem,calc(100vw-2.5rem))] rounded-card bg-[#33231f] px-4 py-3.5 text-left shadow-[0_10px_28px_rgb(31_26_23/0.22)] ring-1 ring-line',
+        className={cx('anim-fade absolute right-0 z-50 w-[min(18.5rem,calc(100vw-2.5rem))] rounded-card bg-[#3a2925] px-4 py-3.5 text-left shadow-[0_14px_34px_rgb(0_0_0/0.45)] ring-1 ring-white/12',
           above ? 'bottom-full mb-2.5' : 'top-full mt-2.5')}>
-        <span aria-hidden="true" className={cx('absolute right-8 size-3.5 rotate-45 rounded-[3px] bg-[#33231f]', above ? '-bottom-1.5' : '-top-1.5')} />
+        <span aria-hidden="true" className={cx('absolute right-8 size-3.5 rotate-45 rounded-[3px] bg-[#3a2925]', above ? '-bottom-1.5' : '-top-1.5')} />
         <span className="block text-body font-semibold text-white">{title}</span>
         <span className="mt-1.5 block text-sub font-normal normal-case leading-relaxed tracking-normal text-white/80">{children}</span>
       </span>

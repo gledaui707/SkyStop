@@ -261,3 +261,22 @@ Not done: real-device iPhone check, Safari backdrop-filter rendering, production
   390 px (Dubai Duty Free 5 in 2 terminals, Aesop 2 in 1 terminal), no sideways scroll.
 - Fixed during checks: at 320 px "How to get there" wrapped to three lines in the map venue sheet (buttons now stack
   when narrow); duplicated location text in the venue subtitle removed when chips are shown.
+
+### "Golden hour" visual redesign (scheduled owner direction, 14 Nov 2026)
+
+- Direction: `design-references/` (composition and finish, not typography). System font (SF Pro on Apple devices) kept.
+- Design system (`src/index.css`, `docs/DESIGN_SYSTEM.md`): tokens moved to an espresso canvas with slowly drifting
+  coral/plum/amber light (still under reduced motion); content on matte frosted glass with real backdrop blur (no
+  specular highlights, per the 13 Nov owner review); smoked-glass tab bar and trays; recessed dark inputs; frosted
+  secondary buttons; warm-white selected chips; coral gradients for buttons, the time budget and timeline rails.
+  Flight passes and Wallet strips are warm "paper" (`.theme-paper` resets text tokens to dark ink) so journey data stays
+  crisp. Modal sheets are solid (`sheet-solid`). Status bar and top blur are always dark.
+- Screens: new `Backdrop` full-bleed photo behind Add flight (booking reference), Compare flights and the manual
+  connection form, with larger titles; booking and compare forms on one `glass-premium` slab; Home with no flights makes
+  Add flight the coral-lit focal tile; itinerary and journey timelines use the coral→amber rail.
+- Supabase integration, persistence and application logic untouched (styling and markup only).
+- Checks: `npx tsc --noEmit` clean; `npx vitest run` 145 passed, 1 skipped (hosted); `npm run build` OK;
+  `npm run test:e2e` 157/157; `npm run test:layout` 0 issues at 320/375/390/430 px. Screens reviewed from captures at
+  390 px (all tabs, booking, journey, manual connection, airport list/map, activity sheet, builder, plan detail,
+  profile, compare). Limitation: activity and hero photos (Unsplash) were blocked in the test environment, so those
+  captures show the warm placeholder gradient; bundled airport photos rendered.

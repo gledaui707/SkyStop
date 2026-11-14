@@ -5,8 +5,8 @@ import { SAMPLE_JOURNEYS, findSampleJourney, isRefFormat, normaliseRef, resolveJ
 import { airportInfo } from '../data/airportDirectory'
 import { getAirport, isSupported } from '../data/mock'
 import { fmtDur } from '../data/time'
-import { sized } from '../data/images'
-import { ActionBar, Button, Header, cx } from '../components/ui'
+import { IMAGES, sized } from '../data/images'
+import { ActionBar, Backdrop, Button, Header, cx } from '../components/ui'
 
 const day = (local: string) => new Date(`${local.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 const time = (local: string) => local.slice(11, 16)
@@ -27,15 +27,16 @@ export function FindJourney() {
   }
 
   return (
-    <div className="pb-[calc(var(--nav-h)+2rem)]">
+    <div className="relative pb-[calc(var(--nav-h)+2rem)]">
+      <Backdrop img={IMAGES.hero} />
       <Header title="Add flight" />
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 px-5 pt-6">
+      <div className="relative grid grid-cols-[minmax(0,1fr)] gap-8 px-5 pt-24">
         <div>
-          <h1 className="text-title font-bold">Find your journey</h1>
-          <p className="mt-3 text-body leading-relaxed text-muted-text">Enter your booking reference to see your connection and layover time.</p>
+          <h1 className="text-title font-bold [text-shadow:0_2px_16px_rgb(0_0_0/0.4)]">Find your journey</h1>
+          <p className="mt-3 text-body leading-relaxed text-ink/85 [text-shadow:0_1px_10px_rgb(0_0_0/0.4)]">Enter your booking reference to see your connection and layover time.</p>
         </div>
 
-        <form className="panel grid grid-cols-[minmax(0,1fr)] gap-6 rounded-surface p-5" onSubmit={(e) => { e.preventDefault(); submit() }} noValidate>
+        <form className="glass-premium grid grid-cols-[minmax(0,1fr)] gap-6 rounded-surface p-5" onSubmit={(e) => { e.preventDefault(); submit() }} noValidate>
           <div className="grid grid-cols-[minmax(0,1fr)] gap-2.5">
           <label htmlFor="booking-ref" className="text-sub font-semibold text-ink">Booking reference</label>
           <div className={cx('field flex min-h-16 items-center gap-3 rounded-control px-4 transition-colors focus-within:!border-accent-dark focus-within:ring-4 focus-within:ring-accent/25', error && '!border-error')}>
@@ -138,7 +139,7 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
 
         {/* flight timeline */}
         <section aria-label="Flight timeline" className="panel relative rounded-surface p-5">
-          <span aria-hidden="true" className="absolute bottom-10 left-[1.95rem] top-9 w-0.5 bg-gradient-to-b from-ink/30 via-accent to-ink/30" />
+          <span aria-hidden="true" className="absolute bottom-10 left-[1.9rem] top-9 w-[3px] rounded-full bg-[image:var(--rail-grad)] opacity-80" />
           <Stop code={j.origin} label="Depart" at={j.legs[0].departLocal} />
           <Flight min={j.legs[0].durationMin} />
           <Stop code={j.connection} label="Arrive" at={j.legs[0].arriveLocal} strong />

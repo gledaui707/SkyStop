@@ -1,37 +1,42 @@
-# SkyStop design system ("Restrained light")
+# SkyStop design system ("Golden hour")
 
 Everything below exists in code. Tokens and materials live in `src/index.css` (`@theme`, `:root`, `@layer components`);
-shared components live in `src/components/ui.tsx`. Revised 13 Nov 2026 (owner review): the high-gloss "Dusk" glass
-was too shiny and competed with flight information, so the system was corrected, not rebuilt: same token names,
-components and layouts; light warm surfaces, subtle glass, quieter coral.
+shared components live in `src/components/ui.tsx`. Revised 14 Nov 2026 from the owner's visual direction (references in
+`design-references/`): rich, layered glassmorphism over darker photographic surfaces, warm gradients around coral, no
+plain white screens. The 13 Nov owner review still applies: glass is **matte** (no specular highlights, streaks, bevels
+or reflective rims) so it never competes with flight information, and flight passes stay on a crisp light surface.
+Same token names, components and layouts as before; the values changed.
 
 ## Principles
-- **Light and warm inside the app.** Screens sit on a warm-neutral canvas; content is on solid white surfaces.
-  Photography stays immersive (Home, Airport and plan heroes, onboarding); the desktop stage around the phone is dark.
-- **Typography and journey information lead.** Oversized airport codes and times, clear headings, few secondary labels.
-- **Coral is an accent,** for the one main action and meaningful highlights (time remaining, selected state).
-- **Glass is subtle and selective:** the floating tab bar, sheets, action trays, small floating controls, labels on photos.
-  Never on ordinary cards, flight details, forms, activity lists or the time budget.
-- **Depth is quiet:** a hairline and a soft shadow; no specular highlights, reflective rims, bevels or glows.
-- **Accessible by default.** 44 px touch targets, AA text, visible focus, reduced motion, iOS safe areas.
+- **Dark, warm and photographic.** Screens sit on an espresso canvas lit by slowly drifting coral, plum and amber light
+  (`div.ambient`, still under reduced motion). Photography is full-bleed where it helps: Home and Airport heroes,
+  onboarding, and a `Backdrop` photo behind form screens (Add flight, Compare flights, manual connection).
+- **Layered, matte glass.** Content sits on frosted panels with real backdrop blur over the light and photos; floating
+  chrome (tab bar, trays, toasts) is a denser smoked glass. One quiet top hairline, a soft shadow; nothing glossy.
+- **Journey information leads.** Flight passes are warm "paper" (`.theme-paper` + `.paper`): dark ink on light, the
+  brightest surface on Home, so times and codes read instantly. Oversized codes and times, clear headings.
+- **One focal point, one dominant action per screen.** Coral (`btn-coral`) is the main action; with no flights, Add flight
+  is a coral-lit tile. Selected chips and segments are warm white (`pill-on`), the brightest small thing on a dark screen.
+- **Accessible by default.** 44 px touch targets, AA text (muted text ≥ 6:1 on glass), visible focus, reduced motion,
+  iOS safe areas. Glass falls back to near-opaque fills without `backdrop-filter`.
 
 ## Colour (`@theme` → Tailwind `bg-*`, `text-*`, `border-*`)
 | Token | Value | Use |
 |---|---|---|
-| `accent` | `#EA5139` | primary coral (`btn-coral`, selected tab) |
-| `accent-dark` | `#C23B24` | coral text and icons on light surfaces (AA) |
-| `accent-tint` | `#FDEBE6` | soft coral wash (icon wells) |
-| `aqua` / `peach` / `amber` / `rose` / `plum` | `#FFB5A5` / `#FFD9C7` / `#F6A04D` / `#F0738A` / `#4A2335` | accents |
-| `canvas` | `#F6F3F0` | warm-neutral page |
-| `surface` | `#FFFFFF` | solid surfaces |
-| `ink` | `#1F1A17` | charcoal text |
-| `muted-text` / `muted` | `#6B625D` / `#A39A95` | secondary text / placeholders |
-| `line` / `ink-tint` | 9 % / 5 % ink | hairlines / neutral fills |
-| `success`, `warning`, `error` (+ `-tint`) | `#1D7F45`, `#9A5A00`, `#C4321F` | status |
-| `deep` | `#1C1412` | dark photographic surface, scrims |
+| `accent` | `#EA5139` | primary coral (`btn-coral`, time budget, rails) |
+| `accent-dark` | `#FF8D73` | coral text and icons on dark surfaces (AA); `#C23B24` inside `.theme-paper` |
+| `accent-tint` | coral 20 % | coral wash (icon wells, pills) |
+| `aqua` / `peach` / `amber` / `rose` / `plum` | `#FFB5A5` / `#FFD9C7` / `#F6A04D` / `#F0738A` / `#4A2335` | accents, gradients |
+| `canvas` | `#150E0C` | espresso page (under the ambient light) |
+| `surface` | `#221815` | solid raised surface |
+| `ink` | `#FBF3EE` | warm-white text (`#1F1A17` inside `.theme-paper`) |
+| `muted-text` / `muted` | `#CBBAB1` / `#94817A` | secondary text / placeholders |
+| `line` / `ink-tint` | warm white 12 % / 7 % | hairlines / neutral fills |
+| `success`, `warning`, `error` (+ `-tint`) | `#74D9A0`, `#FFC074`, `#FF8673` | status on dark |
+| `deep` | `#0F0907` | darkest photographic surface, scrims |
 
-Gradients (`:root`): `--coral-grad` (buttons, nearly flat), `--sunset-grad` (time budget). Page background
-(`div.ambient`): warm neutral with a faint peach light at the top.
+Gradients (`:root`): `--coral-grad` (buttons), `--sunset-grad` (time budget: amber → coral → rose), `--rail-grad`
+(itinerary and journey timelines: soft coral → coral → amber), `--dusk-grad`.
 
 ## Typography (`text-*`; system font stack, SF Pro on Apple devices; rem so it follows text-size settings)
 | Token | Size / line height | Use |
@@ -56,26 +61,25 @@ Headings use −0.022em tracking; numbers that change use `tabular-nums`. Weight
 - **Safe areas**: `--safe-top`, `--safe-bottom`, `--nav-lift` (gap under the floating tab bar), `--nav-h` (tab bar + lift).
   Screens pad their bottom by `--nav-h` (plus the action bar where present).
 - **Radii**: `rounded-control` 1 rem · `rounded-card` 1.5 rem · `rounded-surface` 1.75 rem · `rounded-tray` 2 rem · `rounded-full`.
-- **Borders**: 1 px hairlines in charcoal at 6–12 % (no white rims).
-- **Elevation**: `shadow-e1` rest (cards), `shadow-e2` raised (the boarding pass), `shadow-e3` floating (tab bar,
-  sheets, trays): soft and low-contrast. `shadow-glow` is a faint coral shadow under primary buttons.
+- **Borders**: 1 px warm-white hairlines at 10–18 % on glass; a single inset top hairline (`--glass-edge`), no rims.
+- **Elevation**: `shadow-e1` rest, `shadow-e2` raised (flight pass), `shadow-e3` floating (tab bar, trays, sheets), all
+  dark and soft. `shadow-glow` is a coral shadow under primary buttons.
 
 ## Materials (`@layer components`)
 | Class | Look | Use |
 |---|---|---|
-| `panel` | solid white, hairline, e1, no blur | cards, forms, lists, flight details |
-| `panel-accent` | solid soft-coral wash, coral hairline | the one highlighted surface on a screen |
-| `sunset` | solid coral, matte, soft coral shadow | the time budget |
-| `glass-medium` | white at 90 %, 16 px blur, hairline, e3 | tab bar, action trays, sheets, toasts |
-| `glass-subtle` (= `glass`) | white at 82 %, 12 px blur, hairline, e1 | small floating controls (header buttons) |
-| `glass-premium` | near-solid white, e2 | an occasional hero surface (Account Access tray) |
-| `glass-dark` / `glass-light` | dark or light tint, 14 px blur, thin border | controls and labels over photography |
-| `btn-coral` / `btn-secondary` / `pill-on` | coral / white with hairline / charcoal selected state | buttons, chips |
-| `field` | white, clear outline | inputs |
+| `panel` | frosted warm glass (6–9 % white, 24 px blur), hairline, e1 | cards, forms, lists, activity rows |
+| `panel-accent` | coral-lit frosted glass, coral hairline | the one highlighted surface on a screen |
+| `glass-medium` | smoked glass (≈ 75–80 %), 28 px blur, e3 | tab bar, action trays, toasts, suggestion lists |
+| `glass-subtle` (= `glass`) | light frost (10 %), 20 px blur | small floating controls, segmented tracks |
+| `glass-premium` | brighter frost (7–16 %), e2 | one hero slab per screen (booking form, compare form) |
+| `glass-dark` / `glass-light` | dark or light tint, 18 px blur | controls and labels over photography |
+| `sheet-solid` | solid warm dark gradient | modal sheets (content behind never shows through) |
+| `sunset` | warm coral gradient, matte | the time budget |
+| `theme-paper` + `paper` | warm light paper, dark-ink tokens inside | flight passes and Wallet strips |
+| `btn-coral` / `btn-secondary` / `pill-on` | coral gradient / frosted glass / warm white with dark text | buttons, chips |
+| `field` | recessed dark well, clear outline (white inside paper) | inputs |
 | `ph`, `photo-fade`, `hero-melt`, `scroll-fade`, `scrim` | placeholders and photo treatments | as named |
-
-Photo heroes end with rounded corners on the canvas and carry a dark scrim (`from-deep`) under white text.
-Without `backdrop-filter`, glass falls back to near-opaque fills.
 
 ## Components (`src/components/ui.tsx`)
 | Component | API | Notes |
@@ -92,7 +96,8 @@ Without `backdrop-filter`, glass falls back to near-opaque fills.
 | `EmptyState` | `icon`, `title`, children, `action` | dashed, quiet; one sentence max |
 | `LoadingState` / `Skeleton` | `label` / `className` | `role="status"`; pulse only when motion is allowed |
 | `Notice` / `InfoTip` | `tone`: `info` · `warn` / "What is this?" bubble | inline guidance |
-| `Header` / `LargeTitle` | back button (`IconButton`), centred title / large title | sticky under the progressive top blur |
+| `Header` / `LargeTitle` | back button (`IconButton`), centred title / large title | sticky under the progressive top blur (dark band) |
+| `Backdrop` | `img`, `className` | full-bleed photo behind a form screen's header, dissolving into the canvas |
 | `ActionBar` | children | `glass-medium` tray above the tab bar |
 | `Sheet`, `ActivitySheet`, `ActivityRow`, `Photo` | | bottom sheet in `glass-medium` |
 
@@ -139,7 +144,7 @@ content scrolls clear of the floating tab bar and action bar; insets via `--safe
 ## Desktop presentation
 On desktop-class browsers (fine pointer, ≥ 820 px) the app loads in an iframe at 390 × 844 inside a phone silhouette
 (`src/DeviceFrame.tsx`), scaled to the window, on a dark atmospheric stage (`html.device-stage`: charcoal with a faint
-coral light). The app inside stays light. `?frame=off` opens it without the frame. Phones get the app full screen.
+coral light). The drawn status bar and home indicator are white. `?frame=off` opens it without the frame. Phones get the app full screen.
 
 ## Airport map and wayfinding
 A clean light map (CARTO light, OSM fallback). Map chrome uses `map-glass` (light, dark text) from
@@ -148,5 +153,5 @@ floats above the tab bar; controls and attribution sit above it. Coral is used o
 over a white casing), the destination pin (`.wf-pin`), the leg's start (`.wf-stop--origin`) and numbered stop rings
 (`.wf-stop`); inactive legs are faint dotted coral; terminal zones are dashed, 5% coral circles (schematic). One status
 pill per leg: Airport transfer time (success tint), Estimated route (neutral), No directions (neutral). Border and
-security steps use `text-warning`. Modal sheets (`Sheet`) are solid white so content behind never shows through.
+security steps use `text-warning`. Modal sheets (`Sheet`) are solid (`sheet-solid`) so content behind never shows through. The map itself stays light (CARTO light) with light `map-glass` chrome; the sheet over it is dark glass.
 Full rules and the verified/simulated data model: `docs/WAYFINDING.md`.
