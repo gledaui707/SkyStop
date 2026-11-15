@@ -1,11 +1,11 @@
 import { Fragment, useState } from 'react'
-import { AlertTriangle, ArrowDown, ArrowUp, Check, ExternalLink, Info, Map as MapIcon, Plane, Plus, ShieldAlert, Trash2 } from 'lucide-react'
+import { AlertTriangle, ArrowDown, ArrowUp, Check, ExternalLink, Info, Map as MapIcon, Pencil, Plane, Plus, ShieldAlert, Trash2 } from 'lucide-react'
 import { useApp } from '../store'
 import { getAirport, isSupported } from '../data/mock'
 import { fmtDay, fmtDur, fmtTime, isOvernight } from '../data/time'
 import { computeItinerary, MODE_LABEL, terminalChoices } from '../data/itinerary'
 import { ACCESS_LABEL, BudgetHero } from '../components/BudgetHero'
-import { ActionBar, ActivitySheet, Button, Header, Notice, Photo, cx, IconButton, SectionHeader, Chip } from '../components/ui'
+import { ActionBar, ActivitySheet, Backdrop, Button, Header, Notice, Photo, cx, IconButton, SectionHeader, Chip } from '../components/ui'
 import type { Activity } from '../data/types'
 import type { Hop } from '../domain/itinerary'
 
@@ -62,13 +62,16 @@ export function Builder() {
   const otherWarnings = itin.warnings.filter((w) => !/outside the transit area|not included: no waiting times/.test(w))
 
   return (
-    <div className="pb-[calc(var(--nav-h)+8.5rem)]">
+    <div className="relative pb-[calc(var(--nav-h)+8.5rem)]">
+      <Backdrop img={ap.image} className="h-[22rem]" />
       <Header title={draft.planId ? 'Edit plan' : 'Your itinerary'} subtitle={`${draft.origin && draft.destination ? draft.origin + ' to ' + draft.destination + ' · ' : ''}${ap.code} · ${fmtDur(mins)} layover`} />
-      <div className="px-5 pt-2">
-        <label className="block">
+      <div className="relative px-5 pt-14">
+        <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold text-white">{ap.name}</p>
+        <label className="mt-2 flex items-center gap-2 border-b border-white/15 focus-within:border-accent-dark">
           <span className="sr-only">Plan name</span>
           <input value={draft.name} onChange={(e) => update({ name: e.target.value })}
-            className="min-h-12 w-full rounded-none  bg-transparent text-h1 font-bold focus:border-accent-dark focus:outline-none" />
+            className="min-h-12 min-w-0 flex-1 bg-transparent text-h1 font-bold [text-shadow:0_2px_16px_rgb(0_0_0/0.45)] focus:outline-none" />
+          <Pencil size={18} aria-hidden="true" className="shrink-0 text-white/70" />
         </label>
         <div className="mt-4"><BudgetHero n={hero} overnight={night} bufferInfo={`Time kept back for leaving the aircraft, transfer screening, the walk to your gate and boarding.${itin.routing ? ' Transfers between stops are counted separately.' : ''}`}/></div>
         {items.length > 0 && (

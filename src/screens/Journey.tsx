@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, Clock, Info, PenLine, Plane, Search } from 'lucide-react'
+import { ArrowRight, Clock, Info, PenLine, Plane, Search, Sparkles } from 'lucide-react'
 import { useApp } from '../store'
 import { SAMPLE_JOURNEYS, findSampleJourney, isRefFormat, normaliseRef, resolveJourney, type ResolvedJourney } from '../data/journeys'
 import { airportInfo } from '../data/airportDirectory'
@@ -30,7 +30,7 @@ export function FindJourney() {
     <div className="relative pb-[calc(var(--nav-h)+2rem)]">
       <Backdrop img={IMAGES.hero} />
       <Header title="Add flight" />
-      <div className="relative grid grid-cols-[minmax(0,1fr)] gap-8 px-5 pt-24">
+      <div className="relative grid grid-cols-[minmax(0,1fr)] gap-8 px-5 pt-16">
         <div>
           <h1 className="text-title font-bold [text-shadow:0_2px_16px_rgb(0_0_0/0.4)]">Find your journey</h1>
           <p className="mt-3 text-body leading-relaxed text-ink/85 [text-shadow:0_1px_10px_rgb(0_0_0/0.4)]">Enter your booking reference to see your connection and layover time.</p>
@@ -55,6 +55,21 @@ export function FindJourney() {
           </div>
         </form>
         <Button variant="secondary" size="lg" icon={PenLine} className="-mt-3 w-full" onClick={() => go({ name: 'trip' })}>I can't find my flight</Button>
+
+        {!showSamples && (
+          <ol aria-label="How it works" className="glass-subtle grid grid-cols-[minmax(0,1fr)] gap-4 rounded-surface p-5">
+            {[[Search, 'Find your booking', 'Your flights and connection airport.'],
+              [Clock, 'See your layover', 'Time between flights, minus a safety buffer.'],
+              [Sparkles, 'Plan what fits', 'Choose activities that fit the time you have.']].map(([Icon, t, d], i) => {
+              const I = Icon as typeof Search
+              return (
+                <li key={i} className="flex items-start gap-3.5">
+                  <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><I size={20} /></span>
+                  <span className="min-w-0 pt-0.5"><b className="block text-body font-semibold">{t as string}</b><span className="block text-sub text-muted-text">{d as string}</span></span>
+                </li>)
+            })}
+          </ol>
+        )}
 
         {showSamples && (
           <section aria-label="Sample bookings" className="anim-rise grid grid-cols-[minmax(0,1fr)] gap-2">

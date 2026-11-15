@@ -280,3 +280,15 @@ Not done: real-device iPhone check, Safari backdrop-filter rendering, production
   390 px (all tabs, booking, journey, manual connection, airport list/map, activity sheet, builder, plan detail,
   profile, compare). Limitation: activity and hero photos (Unsplash) were blocked in the test environment, so those
   captures show the warm placeholder gradient; bundled airport photos rendered.
+
+### Visual refinement pass (scheduled owner direction, 15 Nov 2026)
+Reviewed every main screen at 390 px against `design-references/` and fixed the gaps found:
+- Airports list said "2 curated itinerary"; now pluralised correctly.
+- Itinerary builder had a flat header; it now sits over the airport's bundled photo (`Backdrop`) with an airport label and
+  an editable-name underline and pencil, giving the screen a photographic focal point.
+- Add flight left the lower half empty; a short frosted "How it works" list (find booking, see layover, plan what fits)
+  now fills it and is hidden once sample bookings are shown.
+- My plans ended in empty canvas after the list; a dashed "Plan another layover" tile now leads to Add flight.
+Checks: `npm run build` (tsc + vite) OK; `npx vitest run` 145 passed, 1 hosted skipped; `npm run test:e2e` 157/157;
+`node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430 px. Remote Unsplash images are blocked in the test
+environment, so photo backdrops that use them were not visually confirmed there. No data, Supabase or logic changes.

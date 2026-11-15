@@ -1,4 +1,4 @@
-import { ChevronLeft, Map as MapIcon, MapPin, Pencil, Plane } from 'lucide-react'
+import { ChevronLeft, Map as MapIcon, MapPin, Pencil, Plane, Plus } from 'lucide-react'
 import { sized } from '../data/images'
 import { useApp } from '../store'
 import { ACTIVITIES, getAirport } from '../data/mock'
@@ -59,6 +59,13 @@ export function Plans() {
                   </button>
                 </li>)
             })}
+            <li>
+              <button onClick={() => go({ name: 'booking' })} className="press flex min-h-20 w-full items-center gap-4 rounded-surface border border-dashed border-white/20 bg-white/[0.04] px-5 py-4 text-left">
+                <span aria-hidden="true" className="btn-coral grid size-12 shrink-0 place-items-center rounded-full"><Plus size={22} /></span>
+                <span className="min-w-0"><b className="block text-card font-semibold">Plan another layover</b>
+                  <span className="block text-sub text-muted-text">Add a flight to start a new itinerary.</span></span>
+              </button>
+            </li>
           </ul>
         )}
       </div>
