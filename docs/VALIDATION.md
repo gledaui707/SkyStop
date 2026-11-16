@@ -292,3 +292,14 @@ Reviewed every main screen at 390 px against `design-references/` and fixed the 
 Checks: `npm run build` (tsc + vite) OK; `npx vitest run` 145 passed, 1 hosted skipped; `npm run test:e2e` 157/157;
 `node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430 px. Remote Unsplash images are blocked in the test
 environment, so photo backdrops that use them were not visually confirmed there. No data, Supabase or logic changes.
+
+### Visual refinement pass (scheduled owner direction, 16 Nov 2026)
+Reviewed every main screen at 390 px against `design-references/`; two screens still lacked a photographic focal point:
+- My flights was a plain list on empty canvas. It now sits under the next flight's bundled airport photo (`Backdrop`)
+  with a large "N flights ahead" summary, and each flight card shows its connecting airport's photo fading in from the
+  right behind the text.
+- Profile opened on a small avatar row. It now has a photo header with a frosted identity card (avatar, name, account
+  state, saved flights and itineraries counts). Guests see "Saved on this device only" (guest limitation kept visible).
+- 320 px check: stat labels wrapped and misaligned the numbers; shortened to "Flights" / "Itineraries".
+Checks: `npm run build` (tsc + vite) OK; `npx vitest run` 145 passed, 1 hosted skipped; `npm run test:e2e` 157/157;
+`node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430 px. Styling and markup only; no data, Supabase or logic changes.

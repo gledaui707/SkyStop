@@ -5,7 +5,8 @@ import { getSupabase } from '../api/client'
 import { avatarUrl, createAccount, removeAvatar, signIn, signOut, updateName, uploadAvatar } from '../api/account'
 import { ensureGuestSession } from '../api/session'
 import { deleteProfile, saveProfile } from '../api/repositories'
-import { Button, Header, InfoTip, Notice, cx, inputCls, SectionHeader, Sheet, Surface } from '../components/ui'
+import { Backdrop, Button, Header, InfoTip, Notice, cx, inputCls, SectionHeader, Sheet, Surface } from '../components/ui'
+import { IMAGES } from '../data/images'
 import { AboutData } from '../components/AboutData'
 
 /** Country names for the optional nationality / residence fields (ISO 3166 regions known to the browser). */
@@ -90,16 +91,27 @@ export function Profile() {
   })
 
   return (
-    <div className="pb-[calc(var(--nav-h)+2rem)]">
+    <div className="relative pb-[calc(var(--nav-h)+2rem)]">
+      <Backdrop img={IMAGES.airports.LHR} className="h-[21rem]" />
       <Header title="Profile" />
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-7 px-5 pt-2">
-        <div className="flex items-center gap-4">
-          <Avatar src={photo} size="size-14" />
-          <div className="min-w-0">
-            <p className="truncate text-h2 font-bold">{account.name || (account.status === 'registered' ? account.email : 'Guest')}</p>
-            {account.status !== 'guest' && account.status !== 'none' && <p className="text-sub text-muted-text">{account.status === 'registered' ? 'Signed in' : 'Guest · confirmation pending'}</p>}
+      <div className="relative grid grid-cols-[minmax(0,1fr)] gap-7 px-5 pt-14">
+        {/* identity card: the screen's focal point, floating on the photo */}
+        <section aria-label="Your profile" className="glass-premium grid gap-4 rounded-surface p-4">
+          <div className="flex items-center gap-4">
+            <Avatar src={photo} size="size-16" />
+            <div className="min-w-0">
+              <p className="truncate text-h1 font-bold leading-tight">{account.name || (account.status === 'registered' ? account.email : 'Guest')}</p>
+              <p className="text-sub text-muted-text">{account.status === 'registered' ? 'Signed in' : account.status === 'guest-pending' ? 'Confirmation pending' : 'Saved on this device only'}</p>
+            </div>
           </div>
-        </div>
+          <dl className="grid grid-cols-2 gap-2">
+            {[[plans.length, plans.length === 1 ? 'Flight' : 'Flights'], [plans.filter((p) => p.activityIds.length).length, 'Itineraries']].map(([n, l]) => (
+              <div key={l} className="rounded-control bg-ink-tint px-3 py-2.5">
+                <dt className="text-cap text-muted-text">{l}</dt>
+                <dd className="text-h2 font-bold tabular-nums">{n}</dd>
+              </div>))}
+          </dl>
+        </section>
 
         <Section title="Account">
           {account.status === 'registered' && (<>

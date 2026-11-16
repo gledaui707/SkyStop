@@ -4,7 +4,8 @@ import { useApp } from '../store'
 import { getAirport } from '../data/mock'
 import { airportInfo } from '../data/airportDirectory'
 import { localToInstant } from '../domain'
-import { Button, Header, Notice, Sheet, cx, EmptyState, SectionHeader, IconButton } from '../components/ui'
+import { Backdrop, Button, Header, Notice, Sheet, cx, EmptyState, SectionHeader, IconButton } from '../components/ui'
+import { IMAGES } from '../data/images'
 import type { Plan } from '../data/types'
 
 const day = (local: string) => new Date(`${local.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -32,7 +33,13 @@ export function MyFlights() {
     const ap = getAirport(p.airport), n = p.activityIds.length
     const route = !!(p.origin && p.destination)
     return (
-      <li className="panel relative overflow-hidden rounded-card">
+      <li className="panel relative isolate overflow-hidden rounded-card">
+        {/* the connecting airport's bundled photo fades in from the right, behind the text */}
+        {IMAGES.airports[p.airport] && (
+          <div aria-hidden="true" className="ph pointer-events-none absolute inset-y-0 right-0 -z-10 w-[62%] [mask-image:linear-gradient(to_right,transparent,#000_55%)]">
+            <img src={IMAGES.airports[p.airport].url} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="size-full object-cover opacity-70" />
+            <div className="absolute inset-0 bg-gradient-to-r from-canvas/70 to-black/20" />
+          </div>)}
         <button onClick={() => go({ name: 'plan', id: p.id })} className="press block w-full px-4 pb-3.5 pt-4 pr-14 text-left"
           aria-label={`${route ? `${p.origin} to ${p.destination} via ${p.airport}` : `Connection at ${p.airport}`}, ${day(p.arrival)}`}>
           {route ? (
@@ -54,9 +61,17 @@ export function MyFlights() {
   }
 
   return (
-    <div className="pb-[calc(var(--nav-h)+2rem)]">
+    <div className="relative pb-[calc(var(--nav-h)+2rem)]">
+      <Backdrop img={IMAGES.airports[upcoming[0]?.airport ?? ''] ?? IMAGES.airports.DXB} className="h-[18rem]" />
       <Header title="My flights" />
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 px-5 pt-2">
+      <div className="relative grid grid-cols-[minmax(0,1fr)] gap-6 px-5 pt-2">
+        {plans.length > 0 && (
+          <div className="pt-16">
+            <p className="text-title font-bold leading-none tracking-[-0.03em] [text-shadow:0_2px_16px_rgb(0_0_0/0.45)]">
+              {upcoming.length ? `${upcoming.length} ${upcoming.length === 1 ? 'flight' : 'flights'} ahead` : 'All flown'}</p>
+            <p className="mt-1.5 text-sub text-white/85 [text-shadow:0_1px_8px_rgb(0_0_0/0.5)]">
+              {plans.filter((p) => p.activityIds.length).length} with an itinerary · {past.length} past</p>
+          </div>)}
         {plansState.status === 'error' && <Notice tone="warn">Your flights could not be loaded. Check your connection and try again.</Notice>}
         {plans.length === 0 && plansState.status === 'ready' && (
           <EmptyState title="No flights yet">Add a booked flight with its booking reference or by hand.</EmptyState>)}
