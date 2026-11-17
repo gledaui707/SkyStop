@@ -130,6 +130,7 @@ function Shell() {
       <main key={key} className="vt-screen anim-screen"><TopBlur /><Screen /></main>
       <Toast />
       {/* Floating capsule tab bar: the selected tab is a coral icon and label (no fill; one primary per screen). */}
+      <div aria-hidden="true" className="bottom-fade fixed inset-x-0 bottom-0 z-20 mx-auto h-[calc(var(--nav-h)+1.5rem)] max-w-[480px]" />
       <nav aria-label="Primary" className="vt-tabbar pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] px-4 pb-[var(--nav-lift)]">
         <div className="glass-medium pointer-events-auto relative mx-auto grid h-16 max-w-[24rem] grid-cols-3 rounded-full p-1.5">
         {TABS.map(({ id, label, icon: Icon }) => {

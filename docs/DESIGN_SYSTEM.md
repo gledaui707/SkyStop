@@ -80,6 +80,7 @@ Headings use −0.022em tracking; numbers that change use `tabular-nums`. Weight
 | `btn-coral` / `btn-secondary` / `pill-on` | coral gradient / frosted glass / warm white with dark text | buttons, chips |
 | `field` | recessed dark well, clear outline (white inside paper) | inputs |
 | `ph`, `photo-fade`, `hero-melt`, `scroll-fade`, `scrim` | placeholders and photo treatments | as named |
+| `bottom-fade` | dims scrolled content behind the floating tab bar and action trays | tab bar (App shell), `ActionBar` |
 
 ## Components (`src/components/ui.tsx`)
 | Component | API | Notes |

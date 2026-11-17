@@ -303,3 +303,14 @@ Reviewed every main screen at 390 px against `design-references/`; two screens s
 - 320 px check: stat labels wrapped and misaligned the numbers; shortened to "Flights" / "Itineraries".
 Checks: `npm run build` (tsc + vite) OK; `npx vitest run` 145 passed, 1 hosted skipped; `npm run test:e2e` 157/157;
 `node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430 px. Styling and markup only; no data, Supabase or logic changes.
+
+### Visual refinement pass (scheduled owner direction, 17 Nov 2026)
+Reviewed every main screen at 390 px against `design-references/`. One overlap issue found:
+- Scrolled content showed through the gap between floating action trays (Explore/Save, Save plan, Set my layover times)
+  and the floating tab bar, and large text ghosted through the trays. Added a `bottom-fade` material (dark warm gradient
+  with a light backdrop blur, masked) behind the tab bar on every tab screen, and behind each `ActionBar` from just
+  above the tray down to the screen edge. Content now fades out before the floating chrome. Decorative,
+  `pointer-events: none`, hidden from assistive tech.
+Checks: `npm run build` (tsc + vite) OK; `npx vitest run` 145 passed, 1 hosted skipped; `npm run test:e2e` 157/157;
+`node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430 px. Captures reviewed at 320 and 390 px (journey
+overview, builder, airport list and map). Styling and markup only; no data, Supabase or logic changes.

@@ -291,6 +291,16 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
     backdrop-filter: blur(6px);
     text-shadow: 0 1px 8px rgb(0 0 0 / 0.35);
   }
+  /* Bottom fade behind the floating tab bar and action trays: scrolled content dims and softens before it reaches the
+     floating chrome, so text never shows in the gaps between bars or competes with the glass. */
+  .bottom-fade {
+    pointer-events: none;
+    background: linear-gradient(to top, rgb(21 14 12 / 0.94) 0%, rgb(21 14 12 / 0.78) 55%, rgb(21 14 12 / 0) 100%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to top, #000 60%, transparent 100%);
+    mask-image: linear-gradient(to top, #000 60%, transparent 100%);
+  }
   /* Progressive blur: the photo softens toward the bottom, tinted dark so white text stays readable. */
   .photo-fade {
     pointer-events: none;

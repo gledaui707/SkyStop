@@ -47,7 +47,9 @@ export function Header({ title, subtitle, right, onBack }: { title: string; subt
 export function ActionBar({ children }: { children: ReactNode }) {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[var(--nav-h)] z-30 mx-auto max-w-[480px] px-4 pb-2">
-      <div className="glass-medium pointer-events-auto rounded-tray p-2.5">{children}</div>
+      {/* Fade from just above the tray down to the screen edge, filling the gap to the tab bar. */}
+      <div aria-hidden="true" className="bottom-fade absolute inset-x-0 -top-6 bottom-[calc(-1*var(--nav-h))]" />
+      <div className="glass-medium pointer-events-auto relative rounded-tray p-2.5">{children}</div>
     </div>
   )
 }
