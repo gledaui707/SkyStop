@@ -1,44 +1,39 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, LayoutGroup, MotionConfig, MotionGlobalConfig, animate, motion, useAnimate, useMotionValue, useReducedMotion, useTransform, type Transition, type Variants } from 'motion/react'
-import { ArrowLeft, ArrowRight, BedDouble, Briefcase, Camera, Check, Clock, Hand, Plane, ShoppingBag, Utensils, type LucideIcon } from 'lucide-react'
+import { AnimatePresence, LayoutGroup, MotionConfig, MotionGlobalConfig, animate, motion, useMotionValue, useReducedMotion, useTransform, type Transition, type Variants } from 'motion/react'
+import { ArrowLeft, ArrowRight, Check, Clock, Hand, Plane } from 'lucide-react'
 import { useApp } from '../../store'
-import { SAMPLE_JOURNEYS, findSampleJourney, isRefFormat, normaliseRef, resolveJourney, type ResolvedJourney } from '../../data/journeys'
+import { findSampleJourney, type ResolvedJourney } from '../../data/journeys'
 import { airportInfo } from '../../data/airportDirectory'
-import { getActivities, isSupported } from '../../data/mock'
+import { getActivities } from '../../data/mock'
 import { BUFFER_OPTIONS, budget, fmtDur } from '../../data/time'
 import { computeItinerary } from '../../data/itinerary'
-import type { Activity, Category } from '../../data/types'
-import type { Route } from '../../store'
+import type { Activity } from '../../data/types'
 import { Photo, cx } from '../../components/ui'
 import { SSMark } from '../../components/SSMark'
-import { journeyDraft } from './handoff'
 import './onboarding.css'
 
-/** First-use onboarding: a guided story, one task per step. Each step asks for one thing; the next one unlocks when it
- *  is done (no branches inside the onboarding: manual entry and sign-in come after it, on Account Access and Home).
- *   1 Booking   pick a sample booking (or type a reference): it types itself in, validates, and moves on
- *   2 Journey   drag the plane to the connecting airport: landing reveals arrival, onward flight, connection length
- *   3 Buffer    answer how much time to keep for the airport: the time to explore counts to its value
- *   4 Mood      choose what you feel like (categories available at that airport)
- *   5 Pick      pick real activities: the time left counts down; fits / over
- *   6 Plan      your layover as a timeline → Start planning (hands a real draft to the builder)
- *  Data and rules are the app's own: `findSampleJourney`, `budget`, `computeItinerary`, the catalogue.
- *  Motion: one card carries the journey through steps 1–3 and folds into a time strip for 4–6; parts unfold; numbers
- *  count; soft springs. Reduced motion: instant. */
+/** First-use onboarding: three interactive steps on an example journey, before the visitor adds their own booking.
+ *  Each step has one task and the next unlocks when it is done:
+ *   1 Your layover, reimagined.   drag the plane to the connecting airport: landing reveals the connection
+ *   2 Know your time to explore.  choose a planning buffer: the time to explore counts to its value
+ *   3 Find your next experience.  tap activities: the time left counts down; fits / over
+ *  Then "Get started" → Account Access (when due) → the booking-reference screen.
+ *  The example is one of the app's sample journeys (AXR7KD) and real catalogue activities, using the planner's own
+ *  rules (`budget`, `computeItinerary`); it is labelled as an example and nothing is saved.
+ *  Motion: one card carries the example through the steps and folds into a time strip; numbers count; soft springs.
+ *  Reduced motion: instant. */
 
 const STEPS = [
-  { title: 'Your layover, reimagined.', label: 'Booking' },
-  { title: 'Here’s your journey.', label: 'Journey' },
-  { title: 'Know your time to explore.', label: 'Buffer' },
-  { title: 'What are you in the mood for?', label: 'Mood' },
-  { title: 'Find your next experience.', label: 'Activities' },
-  { title: 'Your layover, planned.', label: 'Plan' },
+  { title: 'Your layover, reimagined.', label: 'Your layover' },
+  { title: 'Know your time to explore.', label: 'Your time' },
+  { title: 'Find your next experience.', label: 'Experiences' },
 ] as const
 const LAST = STEPS.length - 1
+const EXAMPLE_REF = 'AXR7KD'
 
 const SPRING: Transition = { type: 'spring', visualDuration: 0.5, bounce: 0.12 }
 const EASE = [0.22, 1, 0.36, 1] as const
-const city = (code: string) => airportInfo(code)?.city ?? code
+const city = (code: string) => airportInfo(code)?.city ?? ({ SIN: 'Singapore', LIS: 'Lisbon', LHR: 'London', DXB: 'Dubai' } as Record<string, string>)[code] ?? code
 const hhmm = (local: string) => local.slice(11, 16)
 const dayOf = (local: string) => new Date(`${local.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 
@@ -70,145 +65,69 @@ function Dur({ min, from, className }: { min: number; from?: number; className?:
   return <span className={cx('tabular-nums', className)}>{fmtDur(v)}</span>
 }
 
-/** Activities a first plan can use: airside or not yet confirmed (no border crossing). */
-const poolOf = (code: string) => getActivities(code).filter((a) => a.access !== 'Landside')
-/** Up to four of them in the chosen categories, mixed. */
-function pickable(code: string, moods: Category[]): Activity[] {
+/** Up to four activities to try: airside or not yet confirmed (no border crossing), mixed categories. */
+function sampleActivities(code: string): Activity[] {
   const byCat = new Map<string, Activity[]>()
-  for (const a of poolOf(code)) if (!moods.length || moods.includes(a.category)) byCat.set(a.category, [...(byCat.get(a.category) ?? []), a])
+  for (const a of getActivities(code).filter((x) => x.access !== 'Landside')) byCat.set(a.category, [...(byCat.get(a.category) ?? []), a])
   const out: Activity[] = []
   for (let round = 0; out.length < 4 && round < 6; round++) for (const list of byCat.values()) if (list[round] && out.length < 4) out.push(list[round])
   return out
 }
-const MOOD: Record<Category, { icon: LucideIcon; label: string }> = {
-  Food: { icon: Utensils, label: 'Eat' }, Rest: { icon: BedDouble, label: 'Relax' }, Shopping: { icon: ShoppingBag, label: 'Shop' },
-  Sights: { icon: Camera, label: 'Explore' }, Work: { icon: Briefcase, label: 'Work' },
-}
 const BUFFER_NOTE: Record<number, string> = { 90: 'Quick: short transfers', 120: 'Balanced: suits most connections', 180: 'Relaxed: plenty of margin' }
 
 export function Onboarding() {
-  const { finishWelcome, catalogue, plans } = useApp()
+  const { finishWelcome, catalogue } = useApp()
   const reduce = !!useReducedMotion()
   // Reduced motion: every change is instant (no fades, slides, count-ups or unfolding) while the onboarding is open.
   MotionGlobalConfig.instantAnimations = reduce
   useEffect(() => () => { MotionGlobalConfig.instantAnimations = false }, [])
+  const journey = useMemo(() => findSampleJourney(EXAMPLE_REF)!, [])
   const [step, setStep] = useState(0)
   const [dir, setDir] = useState(1)
-  const [ref, setRef] = useState('')
-  const [status, setStatus] = useState<'idle' | 'found' | 'error'>('idle')
-  const [error, setError] = useState<string | null>(null)
-  const [journey, setJourney] = useState<ResolvedJourney | null>(null)
   const [landed, setLanded] = useState(false)
   const [buffer, setBuffer] = useState<number | null>(null)
-  const [moods, setMoods] = useState<Category[]>([])
   const [picked, setPicked] = useState<string[]>([])
-  const [focused, setFocused] = useState(false)
-  const [advance, setAdvance] = useState(0)
-  const input = useRef<HTMLInputElement>(null)
-  const typing = useRef<number[]>([])
-  const [shakeScope, shake] = useAnimate()
-  useEffect(() => () => typing.current.forEach(clearTimeout), [])
 
-  const done = [!!journey, landed, buffer !== null, moods.length > 0, picked.length > 0, true]
+  const done = [landed, buffer !== null, picked.length > 0]
   const reachable = (n: number) => n <= 0 || done.slice(0, n).every(Boolean)
   const go = (n: number) => {
     const next = Math.max(0, Math.min(LAST, n))
     if (next === step || !reachable(next)) return
     setDir(next > step ? 1 : -1); setStep(next); window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
   }
-  // A found booking moves on by itself, after its success state has been seen.
-  useEffect(() => {
-    if (!advance) return
-    const t = window.setTimeout(() => { setDir(1); setStep((s) => (s === 0 ? 1 : s)) }, reduce ? 300 : 1300)
-    return () => clearTimeout(t)
-  }, [advance, reduce])
 
-  // Booking lookup: the app's own sample fixtures; nothing else resolves.
-  const check = (value: string) => {
-    const r = normaliseRef(value)
-    if (!isRefFormat(r)) { setStatus('error'); setError('A booking reference has 6 letters or numbers.'); return }
-    const j = findSampleJourney(r)
-    if (!j) {
-      setStatus('error'); setError('That isn’t one of the sample bookings. Pick one below.')
-      if (!reduce && shakeScope.current) void shake(shakeScope.current, { x: [0, -9, 9, -5, 5, 0] }, { duration: 0.42 })
-      return
-    }
-    setStatus('found'); setError(null)
-    if (journey?.ref !== j.ref) { setLanded(false); setBuffer(null); setMoods([]); setPicked([]) }
-    setJourney(j); input.current?.blur(); setAdvance(Date.now())
-  }
-  const onType = (v: string) => {
-    typing.current.forEach(clearTimeout); typing.current = []
-    const r = normaliseRef(v).replace(/[^A-Z0-9]/g, '').slice(0, 6)
-    setRef(r); setAdvance(0)
-    if (status !== 'idle') { setStatus('idle'); setError(null) }
-    if (journey && r !== journey.ref) setJourney(null)
-    if (r.length === 6) check(r)
-  }
-  /** A sample booking types itself in, then validates exactly like a typed reference. */
-  const trySample = (code: string) => {
-    typing.current.forEach(clearTimeout); typing.current = []
-    setStatus('idle'); setError(null); setAdvance(0)
-    if (reduce) { setRef(code); check(code); return }
-    setRef('')
-    for (let k = 1; k <= code.length; k++) typing.current.push(window.setTimeout(() => setRef(code.slice(0, k)), k * 60))
-    typing.current.push(window.setTimeout(() => check(code), code.length * 60 + 160))
-  }
-
-  // Time: the planner's own budget and itinerary engine.
-  const buf = buffer ?? journey?.layover.bufferMin ?? 120
-  const b = journey ? budget(journey.layover.totalMin, buf, []) : null
+  // Time: the planner's own budget and itinerary engine, on the example journey.
+  const buf = buffer ?? journey.layover.bufferMin
+  const b = budget(journey.layover.totalMin, buf, [])
   const ready = catalogue.status === 'ready'
-  const moodsHere = useMemo(() => (journey && ready ? [...new Set(poolOf(journey.connection).map((a) => a.category))] : []), [journey, ready])
-  const acts = useMemo(() => (journey && ready ? pickable(journey.connection, moods) : []), [journey, ready, moods])
-  // Picks outside the chosen moods drop out when the moods change.
-  useEffect(() => { setPicked((p) => p.filter((id) => acts.some((a) => a.id === id))) }, [acts])
-  const plan = journey && ready
-    ? computeItinerary({ airport: journey.connection, arrival: journey.layover.arrivalLocal, departure: journey.layover.departureLocal, bufferMin: buf, activityIds: picked })
-    : null
-  const remaining = plan ? plan.hero.remaining : b?.usable ?? 0
+  const acts = useMemo(() => (ready ? sampleActivities(journey.connection) : []), [journey, ready])
+  const plan = ready ? computeItinerary({ airport: journey.connection, arrival: journey.layover.arrivalLocal, departure: journey.layover.departureLocal, bufferMin: buf, activityIds: picked }) : null
+  const remaining = plan ? plan.hero.remaining : b.usable
   const fit = !picked.length ? 'none' : plan && (plan.hero.time === 'exceeds' || remaining < 0) ? 'over' : plan?.hero.time === 'tight' ? 'tight' : 'fits'
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
-  const toggleMood = (c: Category) => setMoods((m) => (m.includes(c) ? m.filter((x) => x !== c) : [...m, c]))
 
-  // Finish: a real planning draft for the builder.
-  const startPlanning = () => {
-    if (!journey) return
-    const draft = journeyDraft(journey, buf, picked)
-    const existing = plans.find((p) => p.bookingRef === journey.ref && p.airport === journey.connection && p.arrival.slice(0, 16) === journey.layover.arrivalLocal.slice(0, 16))
-    const d = existing
-      ? { ...draft, planId: existing.id, revision: existing.revision, name: existing.name, activityIds: [...existing.activityIds, ...picked.filter((id) => !existing.activityIds.includes(id))] }
-      : draft
-    const to: Route = d.activityIds.length || !isSupported(journey.connection) ? { name: 'builder' } : { name: 'airport', code: journey.connection, view: 'list' }
-    finishWelcome(to, d)
-  }
-  const skip = () => finishWelcome({ name: 'discover' })
+  // After the onboarding: add your own booking (through Account Access when it is due).
+  const finish = () => finishWelcome({ name: 'booking' })
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT') return
       if (e.key === 'ArrowLeft') go(step - 1)
       if (e.key === 'ArrowRight') go(step + 1)
     }
     window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k)
   })
 
-  const conn = journey ? city(journey.connection) : ''
+  const conn = city(journey.connection)
   const sub = [
-    'Already booked? Let’s find your layover.',
     landed ? `You land in ${conn}. Your next flight leaves later.` : `Drag the plane to ${conn}.`,
     'How much time should we keep for the airport?',
-    `What would you like to do in ${conn}? Pick one or more.`,
-    'Make a plan that fits your time.',
-    fit === 'over' ? 'A little over your time. Go back and remove one.' : 'It fits between your flights.',
+    fit === 'over' ? 'A little over your time. Tap one to remove it.' : 'Tap what you’d like to do.',
   ][step]
-  // What the visitor does next, until the step is done; then the button.
-  const hint = ['Pick a sample booking to begin', `Drag the plane to ${conn}`, 'Choose a buffer', 'Choose at least one', 'Pick one or two', ''][step]
-  const cta = ['Continue', 'Next', 'Next', 'Next', 'Review my plan', 'Start planning'][step]
-  const announce = step === 0 && status === 'found' && journey ? `Sample booking found: ${city(journey.origin)} to ${city(journey.destination)}, connecting in ${conn}.`
-    : step === 1 && landed && journey ? `Landed in ${conn} at ${hhmm(journey.layover.arrivalLocal)}. ${fmtDur(journey.layover.totalMin)} connection.`
-    : step === 2 && buffer !== null && b ? `${fmtDur(b.usable)} to explore.`
-    : step >= 4 && picked.length ? `${fmtDur(remaining)} left. ${fit === 'over' ? 'Over your time.' : 'Fits your time.'}` : ''
+  const hint = [`Drag the plane to ${conn}`, 'Choose a buffer', 'Tap one or two'][step]
+  const cta = step === LAST ? 'Get started' : 'Next'
+  const announce = step === 0 && landed ? `Landed in ${conn} at ${hhmm(journey.layover.arrivalLocal)}. ${fmtDur(journey.layover.totalMin)} connection.`
+    : step === 1 && buffer !== null ? `${fmtDur(b.usable)} to explore.`
+    : step === 2 && picked.length ? `${fmtDur(remaining)} left. ${fit === 'over' ? 'Over your time.' : 'Fits your time.'}` : ''
 
   return (
     <MotionConfig reducedMotion="user" transition={SPRING}>
@@ -226,9 +145,9 @@ export function Onboarding() {
                 )}
               </AnimatePresence>
             </div>
-            <button type="button" onClick={skip} className="press min-h-11 rounded-full px-3 text-sub font-semibold text-muted-text active:bg-ink-tint">Skip</button>
+            <button type="button" onClick={finish} className="press min-h-11 rounded-full px-3 text-sub font-semibold text-muted-text active:bg-ink-tint">Skip</button>
           </div>
-          <ol aria-label="Onboarding progress" className="mx-auto flex max-w-[28rem] gap-1 px-1">
+          <ol aria-label="Onboarding progress" className="mx-auto flex max-w-[28rem] gap-1.5 px-1">
             {STEPS.map((st, n) => (
               <li key={st.label} className="flex-1">
                 <button type="button" onClick={() => go(n)} disabled={!reachable(n)} aria-current={n === step ? 'step' : undefined}
@@ -260,65 +179,24 @@ export function Onboarding() {
           </div>
 
           <LayoutGroup>
-            {/* The card: the booking, then the journey, then the layover; from step 4 a compact time strip. */}
-            <div ref={shakeScope} className={cx(step >= 3 && 'sticky top-[calc(var(--safe-top)+5.25rem)] z-10')}>
-              <section aria-label={['Your booking', 'Your journey', 'Your layover', 'Your time', 'Your time', 'Your time'][step]} style={{ borderRadius: 28 }}
-                className={cx('onb-card relative mt-4 overflow-hidden px-5 py-4', status === 'found' && step === 0 && 'ring-1 ring-accent/30')}>
+            {/* The card: the example journey, then its layover; on step 3 a compact time strip */}
+            <div className={cx(step === 2 && 'sticky top-[calc(var(--safe-top)+5.25rem)] z-10')}>
+              <section aria-label={['Your journey', 'Your layover', 'Your time'][step]} style={{ borderRadius: 28 }}
+                className="onb-card relative mt-4 overflow-hidden px-5 py-4">
                 <AnimatePresence initial={false}>
+                  {step < 2 && (
+                    <motion.div key="tag" {...foldProps()}><p className="pb-3 text-cap font-semibold uppercase tracking-[0.08em] text-muted-text">Example journey · {journey.ref}</p></motion.div>
+                  )}
                   {step === 0 && (
-                    <motion.div key="ref" {...foldProps()}><div className="pb-1 pt-1">
-                      <label htmlFor="onb-ref" className="text-sub font-semibold text-muted-text">Booking reference</label>
-                      <div className="relative mt-2" onClick={() => input.current?.focus()}>
-                        <div className="grid grid-cols-6 gap-1.5" aria-hidden="true">
-                          {Array.from({ length: 6 }, (_, k) => {
-                            const ch = ref[k]
-                            const active = focused && k === Math.min(ref.length, 5)
-                            return (
-                              <span key={k} className="onb-slot" data-active={active} data-state={status === 'error' ? 'error' : status === 'found' ? 'found' : undefined}>
-                                <AnimatePresence mode="popLayout" initial={false}>
-                                  {ch ? <motion.span key={ch + k} initial={{ y: 10, opacity: 0, scale: 0.8 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.1 } }}>{ch}</motion.span>
-                                    : active ? <span key="caret" className="onb-caret" /> : null}
-                                </AnimatePresence>
-                              </span>)
-                          })}
-                        </div>
-                        <input id="onb-ref" ref={input} value={ref} onChange={(e) => onType(e.target.value)} maxLength={8}
-                          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); check(ref) } }}
-                          autoCapitalize="characters" autoComplete="off" autoCorrect="off" spellCheck={false} inputMode="text" enterKeyHint="go"
-                          aria-invalid={status === 'error'} aria-describedby="onb-ref-help"
-                          className="absolute inset-0 size-full cursor-text bg-transparent text-[16px] text-transparent caret-transparent outline-none selection:bg-transparent" />
-                      </div>
-                      <AnimatePresence mode="popLayout" initial={false}>
-                        {status === 'found' ? null : error
-                          ? <motion.p key="err" id="onb-ref-help" role="alert" {...partProps()} className="mt-2 text-sub font-medium text-error">{error}</motion.p>
-                          : <motion.p key="help" id="onb-ref-help" {...partProps()} className="mt-2 text-cap text-muted-text">Type a reference, or pick a sample booking below.</motion.p>}
-                      </AnimatePresence>
-                    </div></motion.div>
-                  )}
-                  {step === 0 && status === 'found' && journey && (
-                    <motion.div key="found" {...foldProps()}><div className="flex items-center gap-3 pb-4 pt-4">
-                      <motion.span initial={{ scale: 0.4, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', visualDuration: 0.45, bounce: 0.35 }}
-                        className="grid size-9 shrink-0 place-items-center rounded-full bg-success text-white"><Check size={19} strokeWidth={3} /></motion.span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-body font-semibold">Booking found</span>
-                        <span className="block text-cap text-muted-text"><span className="font-mono font-semibold tracking-wider text-ink">{journey.ref}</span> · Sample booking</span>
-                      </span>
-                    </div></motion.div>
-                  )}
-                  {step === 0 && status === 'found' && journey && (
-                    <motion.div key="route0" {...foldProps(1)}><div className="pb-1"><RouteRow j={journey} big /></div></motion.div>
-                  )}
-                  {step === 1 && journey && (
                     <motion.div key="fly" {...foldProps()}><div className="py-1"><FlyCard j={journey} landed={landed} onLand={() => setLanded(true)} /></div></motion.div>
                   )}
-                  {step === 2 && journey && b && (
+                  {step === 1 && (
                     <motion.div key="layover" {...foldProps()}><div className="py-1">
                       <RouteRow j={journey} big={false} />
                       <div className="mt-4"><Layover j={journey} total={b.total} buffer={buffer} usable={b.usable} /></div>
                     </div></motion.div>
                   )}
-                  {step >= 3 && journey && b && (
+                  {step === 2 && (
                     <motion.div key="strip" {...foldProps()}><div className="py-1">
                       <TimeStrip usable={b.usable} remaining={remaining} fit={fit} city={conn} />
                     </div></motion.div>
@@ -329,29 +207,7 @@ export function Onboarding() {
 
             {/* The step's question */}
             <AnimatePresence mode="popLayout" initial={false}>
-              {step === 0 && (
-                <motion.section key="samples" aria-label="Sample bookings" {...partProps(1)} className="mt-5">
-                  <p className="text-cap font-semibold uppercase tracking-[0.08em] text-muted-text">Sample bookings</p>
-                  <ul className="mt-2 grid grid-cols-[minmax(0,1fr)] gap-2">
-                    {SAMPLE_JOURNEYS.map((sj, k) => {
-                      const r = resolveJourney(sj)
-                      return (
-                        <motion.li key={sj.ref} {...partProps(k + 2)}>
-                          <button type="button" onClick={() => trySample(sj.ref)} aria-label={`Sample booking ${sj.ref}: ${city(sj.origin)} to ${city(sj.destination)} via ${city(sj.connection)}`}
-                            aria-current={journey?.ref === sj.ref ? 'true' : undefined}
-                            className={cx('onb-card press flex min-h-14 w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left', journey?.ref === sj.ref && 'ring-2 ring-inset ring-accent')}>
-                            <span className="min-w-0 flex-1">
-                              <span className="block font-mono text-sub font-bold tracking-wider">{sj.ref}</span>
-                              <span className="block truncate text-sub text-muted-text">{city(sj.origin)} → <b className="font-semibold text-accent-dark">{city(sj.connection)}</b> → {city(sj.destination)}</span>
-                            </span>
-                            <span className="shrink-0 text-right text-cap text-muted-text"><b className="block text-sub font-semibold text-ink">{fmtDur(r.layover.totalMin)}</b>layover</span>
-                          </button>
-                        </motion.li>)
-                    })}
-                  </ul>
-                </motion.section>
-              )}
-              {step === 2 && journey && (
+              {step === 1 && (
                 <motion.fieldset key="buffer" {...partProps(1)} className="mt-5">
                   <legend className="sr-only">Planning buffer</legend>
                   <div role="radiogroup" aria-label="Planning buffer" className="grid gap-2">
@@ -370,38 +226,16 @@ export function Onboarding() {
                   <p className="mt-2 text-cap text-muted-text">Time kept for transfers and boarding. Your flights stay the same.</p>
                 </motion.fieldset>
               )}
-              {step === 3 && journey && (
-                <motion.section key="mood" aria-label="Moods" {...partProps(1)} className="mt-5">
-                  {!ready ? <div className="grid grid-cols-2 gap-3">{[0, 1, 2, 3].map((k) => <span key={k} className="block h-28 rounded-[1.25rem] bg-ink-tint motion-safe:animate-pulse" />)}</div> : (
-                    <div className="grid grid-cols-2 gap-3">
-                      {moodsHere.map((c, k) => {
-                        const on = moods.includes(c), M = MOOD[c], n = poolOf(journey.connection).filter((a) => a.category === c).length
-                        return (
-                          <motion.button key={c} type="button" aria-pressed={on} onClick={() => toggleMood(c)} {...partProps(k + 2)} whileTap={{ scale: 0.96 }}
-                            className={cx('onb-card press relative flex min-h-28 flex-col items-start justify-between rounded-[1.25rem] p-4 text-left', on && 'ring-2 ring-inset ring-accent')}>
-                            <motion.span animate={{ scale: on ? 1.04 : 1, rotate: on ? -4 : 0 }} className={cx('grid size-11 place-items-center rounded-2xl transition-colors', on ? 'bg-accent text-white' : 'bg-accent-tint text-accent-dark')}>
-                              <M.icon size={22} aria-hidden="true" /></motion.span>
-                            <span><span className="block text-card font-bold">{M.label}</span><span className="block text-cap text-muted-text">{n} {n === 1 ? 'place' : 'places'}</span></span>
-                            <AnimatePresence>{on && <motion.span key="ok" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="absolute right-3 top-3 grid size-6 place-items-center rounded-full bg-accent text-white"><Check size={14} strokeWidth={3} /></motion.span>}</AnimatePresence>
-                          </motion.button>)
-                      })}
-                    </div>)}
-                </motion.section>
-              )}
-              {step === 4 && journey && (
+              {step === 2 && (
                 <motion.section key="acts" aria-label={`Activities in ${conn}`} {...partProps(1)} className="mt-4">
-                  {catalogue.status === 'error' && <p className="text-sub text-muted-text">Activities could not be loaded. You can still start planning.</p>}
+                  {catalogue.status === 'error' && <p className="text-sub text-muted-text">Activities could not be loaded right now. You can still get started.</p>}
+                  {catalogue.status === 'loading' && <div className="grid grid-cols-2 gap-3">{[0, 1, 2, 3].map((k) => <span key={k} className="block h-44 rounded-[1.25rem] bg-ink-tint motion-safe:animate-pulse" />)}</div>}
                   <ul className="grid grid-cols-2 gap-3">
                     {acts.map((a, k) => (
                       <motion.li key={a.id} {...partProps(k + 2)}>
                         <ActivityCard a={a} order={picked.indexOf(a.id) + 1} onToggle={() => toggle(a.id)} />
                       </motion.li>))}
                   </ul>
-                </motion.section>
-              )}
-              {step === 5 && journey && plan && (
-                <motion.section key="plan" aria-label="Your plan" {...partProps(1)} className="onb-card mt-4 rounded-[1.75rem] px-5 py-4">
-                  <PlanTimeline j={journey} items={plan.items} transfers={plan.hero.transferMin} />
                 </motion.section>
               )}
             </AnimatePresence>
@@ -413,11 +247,11 @@ export function Onboarding() {
         <footer className="sticky bottom-0 z-10 bg-gradient-to-t from-canvas from-70% to-canvas/0 px-5 pb-[calc(var(--safe-bottom)+1rem)] pt-5">
           <div className="mx-auto grid min-h-[3.25rem] w-full max-w-[28rem]">
             <AnimatePresence mode="wait" initial={false}>
-              {done[step] ? (
-                <motion.button key={`cta-${step}`} type="button" onClick={step === LAST ? startPlanning : () => go(step + 1)}
+              {done[step] || (step === LAST && catalogue.status === 'error') ? (
+                <motion.button key={`cta-${step}`} type="button" onClick={step === LAST ? finish : () => go(step + 1)}
                   initial={{ opacity: 0, y: 16, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, transition: { duration: 0.15 } }}
                   className="btn-coral press inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-full text-card font-bold">
-                  {cta}{step < LAST && <ArrowRight size={20} aria-hidden="true" />}</motion.button>
+                  {cta}<ArrowRight size={20} aria-hidden="true" /></motion.button>
               ) : (
                 <motion.p key={`hint-${step}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.12 } }}
                   className="flex min-h-[3.25rem] items-center justify-center gap-2 text-sub font-medium text-muted-text">
@@ -431,7 +265,7 @@ export function Onboarding() {
   )
 }
 
-/** Step 2: drag the plane along the first flight to the connecting airport (or tap it to fly). Landing reveals the
+/** Step 1: drag the plane along the first flight to the connecting airport (or tap it to fly). Landing reveals the
  *  arrival time, the onward flight and the connection, which counts up. */
 function FlyCard({ j, landed, onLand }: { j: ResolvedJourney; landed: boolean; onLand: () => void }) {
   const track = useRef<HTMLDivElement>(null)
@@ -490,27 +324,6 @@ function FlyCard({ j, landed, onLand }: { j: ResolvedJourney; landed: boolean; o
           </motion.div>)}
       </AnimatePresence>
     </div>
-  )
-}
-
-/** Step 6: the layover as a timeline: land, the picked activities, board. Drawn top to bottom. */
-function PlanTimeline({ j, items, transfers }: { j: ResolvedJourney; items: Activity[]; transfers: number }) {
-  const rows = [
-    { k: 'land', time: hhmm(j.layover.arrivalLocal), title: `Land in ${city(j.connection)}`, meta: dayOf(j.layover.arrivalLocal), strong: true },
-    ...items.map((a) => ({ k: a.id, time: '', title: a.name, meta: `${fmtDur(a.durationMin)} · ${a.category}`, strong: false })),
-    { k: 'board', time: hhmm(j.layover.departureLocal), title: `Board for ${city(j.destination)}`, meta: transfers ? `${fmtDur(transfers)} of walking between stops counted` : 'Planning buffer kept free', strong: true },
-  ]
-  return (
-    <ol className="relative grid gap-4">
-      <motion.span aria-hidden="true" className="absolute bottom-3 left-[0.6875rem] top-3 w-0.5 origin-top rounded-full bg-accent/35" initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.8, ease: EASE, delay: 0.1 }} />
-      {rows.map((r, k) => (
-        <motion.li key={r.k} {...partProps(k + 1)} className="relative flex items-start gap-3 pl-9">
-          <span className={cx('absolute left-0 top-0.5 z-10 grid size-6 place-items-center rounded-full ring-4 ring-white', r.strong ? 'bg-accent text-white' : 'bg-[#fde8e3] text-accent-dark')}>
-            {r.strong ? <Plane size={12} className="-rotate-45" aria-hidden="true" /> : <span className="text-micro font-bold">{k}</span>}</span>
-          <span className="min-w-0 flex-1"><span className="block text-body font-semibold leading-snug">{r.title}</span><span className="block text-cap text-muted-text">{r.meta}</span></span>
-          {r.time && <span className="text-body font-bold tabular-nums">{r.time}</span>}
-        </motion.li>))}
-    </ol>
   )
 }
 

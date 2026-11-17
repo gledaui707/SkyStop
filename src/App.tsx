@@ -13,7 +13,8 @@ import { Plans, PlanDetail } from './screens/Plans'
 import { MyFlights } from './screens/MyFlights'
 import { Profile } from './screens/Profile'
 import { AccountAccess } from './features/access/AccountAccess'
-import { cx, LoadingState } from './components/ui'
+import { cx } from './components/ui'
+import { SSLoader } from './features/splash/SSLoader'
 
 function Screen() {
   const { route: r } = useApp()
@@ -108,10 +109,11 @@ function TopBlur() {
 function Shell() {
   const { route, switchTab, catalogue, reload } = useApp()
   const active = tabOf(route)
-  if (catalogue.status !== 'ready') return (
+  // The onboarding and Account Access do not need the airport data: they open at once while it loads.
+  if (catalogue.status !== 'ready' && route.name !== 'welcome' && route.name !== 'access') return (
     <div className="mx-auto grid min-h-dvh max-w-[480px] place-items-center px-6 text-center">
       {catalogue.status === 'loading' ? (
-        <LoadingState label="Loading SkyStop…" />
+        <SSLoader />
       ) : (
         <div role="alert" className="panel anim-rise rounded-surface p-6">
           <p className="text-h2 font-bold">We could not load the airports</p>

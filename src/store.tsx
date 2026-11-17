@@ -155,7 +155,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const reload = useCallback(() => {
     void (async () => {
       setCatalogue({ status: 'loading' }); setPlansState({ status: 'loading' })
-      try { await loadCatalogue(); setCatalogue({ status: 'ready' }) }
+      // A stalled request must never leave the app on its loading screen: give up after 15 s, retry once, then explain.
+      const attempt = () => Promise.race([loadCatalogue(), new Promise<never>((_, no) => setTimeout(() => no(new Error('The airport data took too long to load.')), 15000))])
+      try { await attempt().catch(() => attempt()); setCatalogue({ status: 'ready' }) }
       catch (e) { setCatalogue({ status: 'error', error: errText(e) }); return }
       try {
         const mine = await fetchPlans()
@@ -210,7 +212,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (shouldOfferAccess(accessStore.get(), account.status)) {
       // Account Access first; the plan and its destination are kept and opened once the visitor has chosen.
       accessStore.set('pending')
-      if (d) handoffStore.set({ draft: d, then: to }); else handoffStore.clear()
+      if (d || to.name !== 'discover') handoffStore.set({ draft: d, then: to }); else handoffStore.clear()
       setStack([{ name: 'access', then: to.name === 'discover' ? undefined : to }])
     } else setStack(to.name === 'discover' ? [to] : [{ name: 'discover' }, to])
     window.scrollTo(0, 0)

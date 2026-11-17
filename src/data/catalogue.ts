@@ -67,9 +67,11 @@ function toActivities(rows: ActivityRow[]): Activity[] {
 export async function loadCatalogue(): Promise<void> {
   const sb = getSupabase()
   const airports = await listAirports(sb)
-  const perAirport = await Promise.all(airports.map(async (a) => ({
-    activities: await listActivities(sb, a.id), templates: await listTemplates(sb, a.id), graph: await listTransferGraph(sb, a.id),
-  })))
+  // Every airport's activities, templates and transfer graph in parallel (one round trip instead of a chain).
+  const perAirport = await Promise.all(airports.map(async (a) => {
+    const [activities, templates, graph] = await Promise.all([listActivities(sb, a.id), listTemplates(sb, a.id), listTransferGraph(sb, a.id)])
+    return { activities, templates, graph }
+  }))
   AIRPORTS.splice(0, AIRPORTS.length, ...airports.map(toAirport))
   ACTIVITIES.splice(0, ACTIVITIES.length, ...perAirport.flatMap((p) => toActivities(p.activities).map((a) => ({
     ...a, locationIds: p.graph.activityLocations.filter((l) => l.activity_id === a.id).map((l) => l.location_id),

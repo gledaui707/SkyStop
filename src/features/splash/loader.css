@@ -1,0 +1,68 @@
+/* Looping SS loader (no wordmark). One cycle: the S's stand apart side by side → slide together into the stacked logo
+   → the plane flies through and leaves its silhouette → hold → fade and start again. */
+.ss-loader {
+  --ss-cycle: 2.6s;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(155deg, #e35332 0%, #cc432c 62%, #b93727 100%);
+}
+.ss-loader::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -34% -44% auto auto;
+  width: 138%;
+  height: 110%;
+  background: radial-gradient(ellipse at 52% 45%, #ff9b51 0%, #ff7c42 31%, transparent 72%);
+  opacity: .88;
+  transform: translate(-12%, 14%) rotate(-30deg);
+}
+.ss-loader__logo { display: block; width: min(56vw, 15rem); height: auto; overflow: visible; }
+
+.ss-loader__front, .ss-loader__rear, .ss-loader__plane, .ss-loader__cutout, .ss-loader__logo {
+  animation-duration: var(--ss-cycle);
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(.42, 0, .24, 1);
+  animation-fill-mode: both;
+}
+.ss-loader__logo { animation-name: ss-loader-fade; animation-timing-function: linear; }
+.ss-loader__front { animation-name: ss-loader-front; }
+.ss-loader__rear { animation-name: ss-loader-rear; }
+.ss-loader__plane { animation-name: ss-loader-flight; }
+.ss-loader__cutout { animation-name: ss-loader-cutout; }
+
+/* Apart side by side, then together (the rear S sits 100 units right of the front in the stacked logo). */
+@keyframes ss-loader-front {
+  0%, 12% { transform: translateX(-215px); }
+  42%, 100% { transform: translateX(0); }
+}
+@keyframes ss-loader-rear {
+  0%, 12% { transform: translateX(315px); }
+  42%, 100% { transform: translateX(100px); }
+}
+/* The plane enters from the right and passes through the letters, leaving its cut-out silhouette. */
+@keyframes ss-loader-flight {
+  0%, 44% { transform: translateX(420px); opacity: 0; }
+  46% { transform: translateX(420px); opacity: 1; }
+  70%, 100% { transform: translateX(0); opacity: 1; }
+}
+@keyframes ss-loader-cutout {
+  0%, 69.9% { opacity: 0; }
+  70%, 100% { opacity: 1; }
+}
+@keyframes ss-loader-fade {
+  0% { opacity: 0; }
+  6%, 90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-loader__front, .ss-loader__rear, .ss-loader__plane, .ss-loader__cutout, .ss-loader__logo { animation: none; }
+  .ss-loader__rear { transform: translateX(100px); }
+  .ss-loader__cutout { opacity: 1; }
+}

@@ -16,7 +16,7 @@ export function journeyDraft(j: ResolvedJourney, bufferMin = j.layover.bufferMin
 }
 
 /** What the onboarding hands over: the draft and the screen to open after Account Access. */
-export interface Handoff<R> { draft: Draft; then: R }
+export interface Handoff<R> { draft: Draft | null; then: R }
 
 const KEY = 'skystop.onboarding.handoff.v1'
 export const handoffStore = {

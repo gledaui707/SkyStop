@@ -337,3 +337,14 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
 - Fixed during checks: flight path invisible (unlayered CSS beat Tailwind's `absolute`); plane shadow clipped; buffer
   label wrapping; timeline rail showing through badges; sample rows overflowing at 320 px; Back to step 1 could not
   change the booking (field and samples now stay); two Next buttons during a step change (footer swaps one at a time).
+
+### Onboarding before the booking screen; SS loader (owner feedback, 17 Nov 2026)
+
+- Owner: the booking-reference step belongs after the onboarding; three onboarding steps first. Rebuilt as three
+  interactive steps on an example journey (drag the plane → buffer question → pick activities); Get started/Skip →
+  Account Access → booking-reference screen.
+- Owner: stuck on "Loading SkyStop…". Causes: the whole app, onboarding included, waited for ~25 catalogue requests
+  with no timeout. Now: onboarding and Account Access open without waiting; per-airport requests run in parallel;
+  15 s timeout with one automatic retry, then the error with Try again. The spinner is replaced by the looping SS
+  logo animation (no wordmark).
+- Checks: e2e 161/161; unit 148 passed (one hosted skip); layout 0 issues; build OK; captures at 320 and 390 px.
