@@ -326,3 +326,14 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
 - Fixed during checks: header progress collided with the brand (moved to its own row); at 320×640 the three-button
   footer covered the card (only the primary stays pinned); the step-3 time strip scrolled away (now sticky); the card
   stayed blank while growing (content fades in as it unfolds); duplicate screen-reader announcement of errors.
+
+### Onboarding as a guided story (owner feedback, 17 Nov 2026)
+
+- Owner: steps should come one by one, not as choices; very interactive. Rebuilt as six single-task steps (booking →
+  drag the plane → buffer question → mood → activities → plan timeline); the action appears only when the task is
+  done; manual entry and sign-in moved out of the onboarding (Account Access, Add flight).
+- Checks: unit 148 passed (one hosted skip); e2e 166/166 incl. 27 onboarding checks; layout 0 issues; build OK;
+  captures at 320×640, 375×667, 390×844 through all steps into the builder (same time left), no sideways scroll.
+- Fixed during checks: flight path invisible (unlayered CSS beat Tailwind's `absolute`); plane shadow clipped; buffer
+  label wrapping; timeline rail showing through badges; sample rows overflowing at 320 px; Back to step 1 could not
+  change the booking (field and samples now stay); two Next buttons during a step change (footer swaps one at a time).

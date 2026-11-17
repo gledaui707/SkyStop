@@ -1,33 +1,40 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, LayoutGroup, MotionConfig, MotionGlobalConfig, animate, motion, useAnimate, useReducedMotion, type Transition, type Variants } from 'motion/react'
-import { ArrowLeft, Check, Clock, PenLine, Plane, Sparkles } from 'lucide-react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, LayoutGroup, MotionConfig, MotionGlobalConfig, animate, motion, useAnimate, useMotionValue, useReducedMotion, useTransform, type Transition, type Variants } from 'motion/react'
+import { ArrowLeft, ArrowRight, BedDouble, Briefcase, Camera, Check, Clock, Hand, Plane, ShoppingBag, Utensils, type LucideIcon } from 'lucide-react'
 import { useApp } from '../../store'
 import { SAMPLE_JOURNEYS, findSampleJourney, isRefFormat, normaliseRef, resolveJourney, type ResolvedJourney } from '../../data/journeys'
 import { airportInfo } from '../../data/airportDirectory'
-import { getActivities, guestStore, isSupported } from '../../data/mock'
+import { getActivities, isSupported } from '../../data/mock'
 import { BUFFER_OPTIONS, budget, fmtDur } from '../../data/time'
 import { computeItinerary } from '../../data/itinerary'
-import type { Activity } from '../../data/types'
+import type { Activity, Category } from '../../data/types'
 import type { Route } from '../../store'
-import { accessStore } from '../access/accessState'
 import { Photo, cx } from '../../components/ui'
 import { SSMark } from '../../components/SSMark'
 import { journeyDraft } from './handoff'
 import './onboarding.css'
 
-/** First-use onboarding, learned by doing: enter a (sample) booking → see the time to explore → pick activities →
- *  start planning. Everything runs on the app's own data and rules: the sample booking fixtures and their lookup
- *  (`findSampleJourney`), the planner's time budget (`budget`, `computeItinerary`) and the catalogue's activities.
- *  "Start planning" hands a real planning draft to the itinerary builder (through Account Access when it is shown).
- *
- *  Motion: one card stays on screen and morphs between the steps (layout animation); its parts enter and leave in a
- *  short stagger; numbers count to their new value; a soft spring with almost no overshoot. Reduced motion: instant. */
+/** First-use onboarding: a guided story, one task per step. Each step asks for one thing; the next one unlocks when it
+ *  is done (no branches inside the onboarding: manual entry and sign-in come after it, on Account Access and Home).
+ *   1 Booking   pick a sample booking (or type a reference): it types itself in, validates, and moves on
+ *   2 Journey   drag the plane to the connecting airport: landing reveals arrival, onward flight, connection length
+ *   3 Buffer    answer how much time to keep for the airport: the time to explore counts to its value
+ *   4 Mood      choose what you feel like (categories available at that airport)
+ *   5 Pick      pick real activities: the time left counts down; fits / over
+ *   6 Plan      your layover as a timeline → Start planning (hands a real draft to the builder)
+ *  Data and rules are the app's own: `findSampleJourney`, `budget`, `computeItinerary`, the catalogue.
+ *  Motion: one card carries the journey through steps 1–3 and folds into a time strip for 4–6; parts unfold; numbers
+ *  count; soft springs. Reduced motion: instant. */
 
 const STEPS = [
-  { title: 'Your layover, reimagined.', sub: 'Already booked? Let’s find your layover.', label: 'Booking' },
-  { title: 'Know your time to explore.', sub: 'See what fits between your flights.', label: 'Your time' },
-  { title: 'Find your next experience.', sub: 'Make a plan that fits your time.', label: 'Activities' },
+  { title: 'Your layover, reimagined.', label: 'Booking' },
+  { title: 'Here’s your journey.', label: 'Journey' },
+  { title: 'Know your time to explore.', label: 'Buffer' },
+  { title: 'What are you in the mood for?', label: 'Mood' },
+  { title: 'Find your next experience.', label: 'Activities' },
+  { title: 'Your layover, planned.', label: 'Plan' },
 ] as const
+const LAST = STEPS.length - 1
 
 const SPRING: Transition = { type: 'spring', visualDuration: 0.5, bounce: 0.12 }
 const EASE = [0.22, 1, 0.36, 1] as const
@@ -35,9 +42,8 @@ const city = (code: string) => airportInfo(code)?.city ?? code
 const hhmm = (local: string) => local.slice(11, 16)
 const dayOf = (local: string) => new Date(`${local.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 
-/** Parts of the card: rise in, settle; leave quickly. */
 const PART: Variants = {
-  hidden: { opacity: 0, y: 10, filter: 'blur(4px)' },
+  hidden: { opacity: 0, y: 12, filter: 'blur(4px)' },
   show: (i: number = 0) => ({ opacity: 1, y: 0, filter: 'blur(0px)', transition: { ...SPRING, delay: 0.06 * i, opacity: { duration: 0.35, delay: 0.06 * i }, filter: { duration: 0.35, delay: 0.06 * i } } }),
   exit: { opacity: 0, y: -6, filter: 'blur(4px)', transition: { duration: 0.18, ease: [0.4, 0, 1, 1] } },
 }
@@ -50,31 +56,38 @@ const FOLD: Variants = {
 }
 const foldProps = (i = 0) => ({ variants: FOLD, custom: i, initial: 'hidden', animate: 'show', exit: 'exit', className: 'overflow-hidden' } as const)
 
-/** A duration that counts to its new value. */
-function Dur({ min, className }: { min: number; className?: string }) {
+/** A duration that counts to its new value (from `from` on first show). */
+function Dur({ min, from, className }: { min: number; from?: number; className?: string }) {
   const reduce = useReducedMotion()
-  const [v, setV] = useState(min)
-  const cur = useRef(min)
+  const [v, setV] = useState(from ?? min)
+  const cur = useRef(from ?? min)
   useEffect(() => {
     if (reduce) { cur.current = min; setV(min); return }
-    const c = animate(cur.current, min, { duration: 0.6, ease: EASE, onUpdate: (x) => { cur.current = x; setV(x) } })
+    const c = animate(cur.current, min, { duration: from !== undefined && cur.current === from ? 1 : 0.6, ease: EASE, onUpdate: (x) => { cur.current = x; setV(x) } })
     return () => c.stop()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [min, reduce])
   return <span className={cx('tabular-nums', className)}>{fmtDur(v)}</span>
 }
 
-/** Up to four activities to try: airside or not yet confirmed (no border crossing in a first plan), mixed categories. */
-function sampleActivities(code: string): Activity[] {
-  const all = getActivities(code).filter((a) => a.access !== 'Landside')
+/** Activities a first plan can use: airside or not yet confirmed (no border crossing). */
+const poolOf = (code: string) => getActivities(code).filter((a) => a.access !== 'Landside')
+/** Up to four of them in the chosen categories, mixed. */
+function pickable(code: string, moods: Category[]): Activity[] {
   const byCat = new Map<string, Activity[]>()
-  for (const a of all) byCat.set(a.category, [...(byCat.get(a.category) ?? []), a])
+  for (const a of poolOf(code)) if (!moods.length || moods.includes(a.category)) byCat.set(a.category, [...(byCat.get(a.category) ?? []), a])
   const out: Activity[] = []
-  for (let round = 0; out.length < 4 && round < 4; round++) for (const list of byCat.values()) if (list[round] && out.length < 4) out.push(list[round])
+  for (let round = 0; out.length < 4 && round < 6; round++) for (const list of byCat.values()) if (list[round] && out.length < 4) out.push(list[round])
   return out
 }
+const MOOD: Record<Category, { icon: LucideIcon; label: string }> = {
+  Food: { icon: Utensils, label: 'Eat' }, Rest: { icon: BedDouble, label: 'Relax' }, Shopping: { icon: ShoppingBag, label: 'Shop' },
+  Sights: { icon: Camera, label: 'Explore' }, Work: { icon: Briefcase, label: 'Work' },
+}
+const BUFFER_NOTE: Record<number, string> = { 90: 'Quick: short transfers', 120: 'Balanced: suits most connections', 180: 'Relaxed: plenty of margin' }
 
 export function Onboarding() {
-  const { finishWelcome, go: navigate, account, catalogue, plans } = useApp()
+  const { finishWelcome, catalogue, plans } = useApp()
   const reduce = !!useReducedMotion()
   // Reduced motion: every change is instant (no fades, slides, count-ups or unfolding) while the onboarding is open.
   MotionGlobalConfig.instantAnimations = reduce
@@ -85,20 +98,30 @@ export function Onboarding() {
   const [status, setStatus] = useState<'idle' | 'found' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [journey, setJourney] = useState<ResolvedJourney | null>(null)
-  const [samples, setSamples] = useState(false)
-  const [buffer, setBuffer] = useState(120)
+  const [landed, setLanded] = useState(false)
+  const [buffer, setBuffer] = useState<number | null>(null)
+  const [moods, setMoods] = useState<Category[]>([])
   const [picked, setPicked] = useState<string[]>([])
   const [focused, setFocused] = useState(false)
+  const [advance, setAdvance] = useState(0)
   const input = useRef<HTMLInputElement>(null)
   const typing = useRef<number[]>([])
   const [shakeScope, shake] = useAnimate()
   useEffect(() => () => typing.current.forEach(clearTimeout), [])
 
+  const done = [!!journey, landed, buffer !== null, moods.length > 0, picked.length > 0, true]
+  const reachable = (n: number) => n <= 0 || done.slice(0, n).every(Boolean)
   const go = (n: number) => {
-    const next = Math.max(0, Math.min(2, n))
-    if (next === step || (next > 0 && !journey)) return
+    const next = Math.max(0, Math.min(LAST, n))
+    if (next === step || !reachable(next)) return
     setDir(next > step ? 1 : -1); setStep(next); window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
   }
+  // A found booking moves on by itself, after its success state has been seen.
+  useEffect(() => {
+    if (!advance) return
+    const t = window.setTimeout(() => { setDir(1); setStep((s) => (s === 0 ? 1 : s)) }, reduce ? 300 : 1300)
+    return () => clearTimeout(t)
+  }, [advance, reduce])
 
   // Booking lookup: the app's own sample fixtures; nothing else resolves.
   const check = (value: string) => {
@@ -106,22 +129,18 @@ export function Onboarding() {
     if (!isRefFormat(r)) { setStatus('error'); setError('A booking reference has 6 letters or numbers.'); return }
     const j = findSampleJourney(r)
     if (!j) {
-      setStatus('error'); setError('That isn’t one of the sample bookings. Try one below.'); setSamples(true)
+      setStatus('error'); setError('That isn’t one of the sample bookings. Pick one below.')
       if (!reduce && shakeScope.current) void shake(shakeScope.current, { x: [0, -9, 9, -5, 5, 0] }, { duration: 0.42 })
       return
     }
     setStatus('found'); setError(null)
-    if (journey?.ref !== j.ref) {
-      setBuffer(j.layover.bufferMin)
-      if (journey?.connection !== j.connection) setPicked([])
-    }
-    setJourney(j)
-    input.current?.blur()
+    if (journey?.ref !== j.ref) { setLanded(false); setBuffer(null); setMoods([]); setPicked([]) }
+    setJourney(j); input.current?.blur(); setAdvance(Date.now())
   }
   const onType = (v: string) => {
     typing.current.forEach(clearTimeout); typing.current = []
     const r = normaliseRef(v).replace(/[^A-Z0-9]/g, '').slice(0, 6)
-    setRef(r)
+    setRef(r); setAdvance(0)
     if (status !== 'idle') { setStatus('idle'); setError(null) }
     if (journey && r !== journey.ref) setJourney(null)
     if (r.length === 6) check(r)
@@ -129,28 +148,33 @@ export function Onboarding() {
   /** A sample booking types itself in, then validates exactly like a typed reference. */
   const trySample = (code: string) => {
     typing.current.forEach(clearTimeout); typing.current = []
-    setStatus('idle'); setError(null); setJourney(null)
+    setStatus('idle'); setError(null); setAdvance(0)
     if (reduce) { setRef(code); check(code); return }
     setRef('')
-    for (let k = 1; k <= code.length; k++) typing.current.push(window.setTimeout(() => setRef(code.slice(0, k)), k * 55))
-    typing.current.push(window.setTimeout(() => check(code), code.length * 55 + 140))
+    for (let k = 1; k <= code.length; k++) typing.current.push(window.setTimeout(() => setRef(code.slice(0, k)), k * 60))
+    typing.current.push(window.setTimeout(() => check(code), code.length * 60 + 160))
   }
-  const change = () => { setRef(''); setStatus('idle'); setJourney(null); setError(null); setTimeout(() => input.current?.focus(), 0) }
 
-  // Time: the planner's own budget (step 2) and itinerary engine (step 3).
-  const b = journey ? budget(journey.layover.totalMin, buffer, []) : null
-  const acts = useMemo(() => (journey && catalogue.status === 'ready' ? sampleActivities(journey.connection) : []), [journey, catalogue.status])
-  const plan = journey && catalogue.status === 'ready'
-    ? computeItinerary({ airport: journey.connection, arrival: journey.layover.arrivalLocal, departure: journey.layover.departureLocal, bufferMin: buffer, activityIds: picked })
+  // Time: the planner's own budget and itinerary engine.
+  const buf = buffer ?? journey?.layover.bufferMin ?? 120
+  const b = journey ? budget(journey.layover.totalMin, buf, []) : null
+  const ready = catalogue.status === 'ready'
+  const moodsHere = useMemo(() => (journey && ready ? [...new Set(poolOf(journey.connection).map((a) => a.category))] : []), [journey, ready])
+  const acts = useMemo(() => (journey && ready ? pickable(journey.connection, moods) : []), [journey, ready, moods])
+  // Picks outside the chosen moods drop out when the moods change.
+  useEffect(() => { setPicked((p) => p.filter((id) => acts.some((a) => a.id === id))) }, [acts])
+  const plan = journey && ready
+    ? computeItinerary({ airport: journey.connection, arrival: journey.layover.arrivalLocal, departure: journey.layover.departureLocal, bufferMin: buf, activityIds: picked })
     : null
   const remaining = plan ? plan.hero.remaining : b?.usable ?? 0
   const fit = !picked.length ? 'none' : plan && (plan.hero.time === 'exceeds' || remaining < 0) ? 'over' : plan?.hero.time === 'tight' ? 'tight' : 'fits'
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
+  const toggleMood = (c: Category) => setMoods((m) => (m.includes(c) ? m.filter((x) => x !== c) : [...m, c]))
 
-  // Finish: a real planning draft for the builder (or the airport's activities when nothing is picked yet).
+  // Finish: a real planning draft for the builder.
   const startPlanning = () => {
     if (!journey) return
-    const draft = journeyDraft(journey, buffer, picked)
+    const draft = journeyDraft(journey, buf, picked)
     const existing = plans.find((p) => p.bookingRef === journey.ref && p.airport === journey.connection && p.arrival.slice(0, 16) === journey.layover.arrivalLocal.slice(0, 16))
     const d = existing
       ? { ...draft, planId: existing.id, revision: existing.revision, name: existing.name, activityIds: [...existing.activityIds, ...picked.filter((id) => !existing.activityIds.includes(id))] }
@@ -159,12 +183,6 @@ export function Onboarding() {
     finishWelcome(to, d)
   }
   const skip = () => finishWelcome({ name: 'discover' })
-  const manual = () => finishWelcome({ name: 'trip' })
-  const signIn = () => {
-    guestStore.markWelcomed()
-    if (accessStore.get() !== 'done') accessStore.set('pending')
-    navigate({ name: 'access', auth: 'signin' })
-  }
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -175,15 +193,26 @@ export function Onboarding() {
     window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k)
   })
 
-  const s = STEPS[step]
-  const announce = step === 0
-    ? status === 'found' && journey ? `Sample booking found: ${city(journey.origin)} to ${city(journey.destination)}, connecting in ${city(journey.connection)}.` : '' // errors are announced by their own alert
-    : step === 1 && b ? `${fmtDur(b.usable)} to explore.` : picked.length ? `${fmtDur(remaining)} left. ${fit === 'over' ? 'Over your time.' : 'Fits your time.'}` : ''
+  const conn = journey ? city(journey.connection) : ''
+  const sub = [
+    'Already booked? Let’s find your layover.',
+    landed ? `You land in ${conn}. Your next flight leaves later.` : `Drag the plane to ${conn}.`,
+    'How much time should we keep for the airport?',
+    `What would you like to do in ${conn}? Pick one or more.`,
+    'Make a plan that fits your time.',
+    fit === 'over' ? 'A little over your time. Go back and remove one.' : 'It fits between your flights.',
+  ][step]
+  // What the visitor does next, until the step is done; then the button.
+  const hint = ['Pick a sample booking to begin', `Drag the plane to ${conn}`, 'Choose a buffer', 'Choose at least one', 'Pick one or two', ''][step]
+  const cta = ['Continue', 'Next', 'Next', 'Next', 'Review my plan', 'Start planning'][step]
+  const announce = step === 0 && status === 'found' && journey ? `Sample booking found: ${city(journey.origin)} to ${city(journey.destination)}, connecting in ${conn}.`
+    : step === 1 && landed && journey ? `Landed in ${conn} at ${hhmm(journey.layover.arrivalLocal)}. ${fmtDur(journey.layover.totalMin)} connection.`
+    : step === 2 && buffer !== null && b ? `${fmtDur(b.usable)} to explore.`
+    : step >= 4 && picked.length ? `${fmtDur(remaining)} left. ${fit === 'over' ? 'Over your time.' : 'Fits your time.'}` : ''
 
   return (
     <MotionConfig reducedMotion="user" transition={SPRING}>
       <div className="onb relative flex min-h-dvh flex-col" aria-label="Welcome to SkyStop">
-        {/* Top bar: brand or Back, progress, Skip */}
         <header className="sticky top-0 z-20 bg-canvas/90 px-4 pb-1 pt-[calc(var(--safe-top)+0.5rem)] backdrop-blur-md">
           <div className="mx-auto flex max-w-[28rem] items-center justify-between gap-3">
             <div className="flex min-h-11 items-center">
@@ -199,12 +228,11 @@ export function Onboarding() {
             </div>
             <button type="button" onClick={skip} className="press min-h-11 rounded-full px-3 text-sub font-semibold text-muted-text active:bg-ink-tint">Skip</button>
           </div>
-          {/* Progress: three slim segments; visited steps (and the next one once a booking is found) can be tapped */}
-          <ol aria-label="Onboarding progress" className="mx-auto flex max-w-[28rem] gap-1.5 px-1">
+          <ol aria-label="Onboarding progress" className="mx-auto flex max-w-[28rem] gap-1 px-1">
             {STEPS.map((st, n) => (
               <li key={st.label} className="flex-1">
-                <button type="button" onClick={() => go(n)} disabled={n > 0 && !journey} aria-current={n === step ? 'step' : undefined}
-                  aria-label={`Step ${n + 1} of 3: ${st.label}`} className="flex h-6 w-full items-center disabled:cursor-default">
+                <button type="button" onClick={() => go(n)} disabled={!reachable(n)} aria-current={n === step ? 'step' : undefined}
+                  aria-label={`Step ${n + 1} of ${STEPS.length}: ${st.label}`} className="flex h-6 w-full items-center disabled:cursor-default">
                   <span className="block h-1 w-full overflow-hidden rounded-full bg-ink/10">
                     <motion.span className="block h-full origin-left rounded-full bg-accent" initial={false} animate={{ scaleX: n <= step ? 1 : 0 }} />
                   </span>
@@ -214,8 +242,7 @@ export function Onboarding() {
         </header>
 
         <main className="mx-auto flex w-full max-w-[28rem] flex-1 flex-col px-5 pb-4">
-          {/* Headline: slides with the direction of travel */}
-          <div className="relative mt-3 min-h-[7.5rem] [@media(max-height:680px)]:min-h-[6.25rem]">
+          <div className="relative mt-3 min-h-[7.25rem] [@media(max-height:680px)]:min-h-[6rem]">
             <AnimatePresence mode="popLayout" initial={false} custom={dir}>
               <motion.div key={step} custom={dir}
                 variants={{
@@ -224,29 +251,30 @@ export function Onboarding() {
                   out: (d: number) => ({ opacity: 0, x: -20 * d, filter: 'blur(6px)', transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }),
                 }}
                 initial="enter" animate="show" exit="out">
-                <h1 className="text-[2.25rem] font-bold leading-[1.04] tracking-[-0.035em] [@media(max-width:360px)]:text-[1.95rem] [@media(max-height:680px)]:text-[1.95rem]">{s.title}</h1>
-                <p className="mt-2 text-body text-muted-text">{s.sub}</p>
+                <h1 className="text-[2.25rem] font-bold leading-[1.04] tracking-[-0.035em] [@media(max-width:360px)]:text-[1.95rem] [@media(max-height:680px)]:text-[1.95rem]">{STEPS[step].title}</h1>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.p key={sub} {...partProps(1)} className="mt-2 text-body text-muted-text">{sub}</motion.p>
+                </AnimatePresence>
               </motion.div>
             </AnimatePresence>
           </div>
 
           <LayoutGroup>
-            {/* The card: one object for the whole introduction. It grows into the layover and folds into a time strip. */}
-            <div ref={shakeScope} className={cx(step === 2 && 'sticky top-[calc(var(--safe-top)+5.25rem)] z-10')}>
-              <motion.section style={{ borderRadius: 28 }} aria-label={step === 0 ? 'Your booking' : step === 1 ? 'Your layover' : 'Your time'}
+            {/* The card: the booking, then the journey, then the layover; from step 4 a compact time strip. */}
+            <div ref={shakeScope} className={cx(step >= 3 && 'sticky top-[calc(var(--safe-top)+5.25rem)] z-10')}>
+              <section aria-label={['Your booking', 'Your journey', 'Your layover', 'Your time', 'Your time', 'Your time'][step]} style={{ borderRadius: 28 }}
                 className={cx('onb-card relative mt-4 overflow-hidden px-5 py-4', status === 'found' && step === 0 && 'ring-1 ring-accent/30')}>
                 <AnimatePresence initial={false}>
-                  {step === 0 && status !== 'found' && (
-                    <motion.div key="ref" {...foldProps()}><div className="pb-5 pt-1">
+                  {step === 0 && (
+                    <motion.div key="ref" {...foldProps()}><div className="pb-1 pt-1">
                       <label htmlFor="onb-ref" className="text-sub font-semibold text-muted-text">Booking reference</label>
-                      {/* Six slots over one real input */}
                       <div className="relative mt-2" onClick={() => input.current?.focus()}>
                         <div className="grid grid-cols-6 gap-1.5" aria-hidden="true">
                           {Array.from({ length: 6 }, (_, k) => {
                             const ch = ref[k]
                             const active = focused && k === Math.min(ref.length, 5)
                             return (
-                              <span key={k} className="onb-slot" data-active={active} data-state={status === 'error' ? 'error' : undefined}>
+                              <span key={k} className="onb-slot" data-active={active} data-state={status === 'error' ? 'error' : status === 'found' ? 'found' : undefined}>
                                 <AnimatePresence mode="popLayout" initial={false}>
                                   {ch ? <motion.span key={ch + k} initial={{ y: 10, opacity: 0, scale: 0.8 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.1 } }}>{ch}</motion.span>
                                     : active ? <span key="caret" className="onb-caret" /> : null}
@@ -262,139 +290,227 @@ export function Onboarding() {
                           className="absolute inset-0 size-full cursor-text bg-transparent text-[16px] text-transparent caret-transparent outline-none selection:bg-transparent" />
                       </div>
                       <AnimatePresence mode="popLayout" initial={false}>
-                        {error
+                        {status === 'found' ? null : error
                           ? <motion.p key="err" id="onb-ref-help" role="alert" {...partProps()} className="mt-2 text-sub font-medium text-error">{error}</motion.p>
-                          : <motion.p key="help" id="onb-ref-help" {...partProps()} className="mt-2 text-cap text-muted-text">6 letters or numbers, from your booking confirmation.</motion.p>}
+                          : <motion.p key="help" id="onb-ref-help" {...partProps()} className="mt-2 text-cap text-muted-text">Type a reference, or pick a sample booking below.</motion.p>}
                       </AnimatePresence>
-                      <button type="button" onClick={() => setSamples((v) => !v)} aria-expanded={samples} aria-controls="onb-samples"
-                        className="press -ml-2 mt-2 inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-sub font-semibold text-accent-dark active:bg-accent-tint">
-                        <Sparkles size={17} aria-hidden="true" />Try a sample booking</button>
                     </div></motion.div>
                   )}
                   {step === 0 && status === 'found' && journey && (
-                    <motion.div key="found" {...foldProps()}><div className="flex items-center gap-3 pb-5 pt-1">
+                    <motion.div key="found" {...foldProps()}><div className="flex items-center gap-3 pb-4 pt-4">
                       <motion.span initial={{ scale: 0.4, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', visualDuration: 0.45, bounce: 0.35 }}
                         className="grid size-9 shrink-0 place-items-center rounded-full bg-success text-white"><Check size={19} strokeWidth={3} /></motion.span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-body font-semibold">Booking found</span>
                         <span className="block text-cap text-muted-text"><span className="font-mono font-semibold tracking-wider text-ink">{journey.ref}</span> · Sample booking</span>
                       </span>
-                      <button type="button" onClick={change} className="press min-h-11 rounded-full px-3 text-sub font-semibold text-accent-dark active:bg-accent-tint">Change</button>
-                    </div></motion.div>
-                  )}
-
-                  {/* Route: placeholder until a booking is found; it stays through step 2 */}
-                  {step < 2 && (
-                    <motion.div key="route" {...foldProps(1)}><div className="py-1">
-                      <RouteRow j={step === 0 && status !== 'found' ? null : journey} big={step === 0} />
                     </div></motion.div>
                   )}
                   {step === 0 && status === 'found' && journey && (
-                    <motion.div key="teaser" {...foldProps(2)}><p className="mt-4 mb-1 flex items-center gap-2 rounded-2xl bg-accent-tint px-3 py-2.5 text-sub">
-                      <Clock size={16} className="shrink-0 text-accent-dark" aria-hidden="true" />
-                      <span><b className="font-semibold">{fmtDur(journey.layover.totalMin)}</b> connection in {city(journey.connection)}</span>
-                    </p></motion.div>
+                    <motion.div key="route0" {...foldProps(1)}><div className="pb-1"><RouteRow j={journey} big /></div></motion.div>
                   )}
-
-                  {step === 1 && journey && b && (
-                    <motion.div key="layover" {...foldProps(2)}><div className="pb-1 pt-5">
-                      <Layover j={journey} total={b.total} buffer={b.buffer} usable={b.usable} />
-                      <fieldset className="mt-5">
-                        <legend className="text-sub font-semibold">Your planning buffer</legend>
-                        <div className="relative mt-2 grid grid-cols-3 rounded-full bg-ink-tint p-1">
-                          {BUFFER_OPTIONS.map((m) => (
-                            <button key={m} type="button" aria-pressed={buffer === m} onClick={() => setBuffer(m)}
-                              className={cx('relative min-h-11 rounded-full text-sub font-semibold transition-colors', buffer === m ? 'text-ink' : 'text-muted-text')}>
-                              {buffer === m && <motion.span layoutId="onb-buffer" className="absolute inset-0 rounded-full bg-white shadow-[0_1px_3px_rgb(31_26_23/0.14)]" />}
-                              <span className="relative">{fmtDur(m)}</span>
-                            </button>))}
-                        </div>
-                        <p className="mt-2 text-cap text-muted-text">Time kept for transfers and boarding. Your flights stay the same.</p>
-                      </fieldset>
+                  {step === 1 && journey && (
+                    <motion.div key="fly" {...foldProps()}><div className="py-1"><FlyCard j={journey} landed={landed} onLand={() => setLanded(true)} /></div></motion.div>
+                  )}
+                  {step === 2 && journey && b && (
+                    <motion.div key="layover" {...foldProps()}><div className="py-1">
+                      <RouteRow j={journey} big={false} />
+                      <div className="mt-4"><Layover j={journey} total={b.total} buffer={buffer} usable={b.usable} /></div>
                     </div></motion.div>
                   )}
-
-                  {step === 2 && journey && b && (
+                  {step >= 3 && journey && b && (
                     <motion.div key="strip" {...foldProps()}><div className="py-1">
-                      <TimeStrip usable={b.usable} remaining={remaining} fit={fit} city={city(journey.connection)} />
+                      <TimeStrip usable={b.usable} remaining={remaining} fit={fit} city={conn} />
                     </div></motion.div>
                   )}
                 </AnimatePresence>
-              </motion.section>
+              </section>
             </div>
 
-            {/* Sample bookings (step 1): a rail of the four fixtures, clearly labelled */}
-            <AnimatePresence initial={false}>
-              {step === 0 && samples && status !== 'found' && (
-                <motion.section key="samples" id="onb-samples" aria-label="Sample bookings" layout className="scroll-mb-28 overflow-hidden"
-                  onAnimationComplete={() => document.getElementById('onb-samples')?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' })}
-                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                  <p className="mt-4 text-cap font-semibold uppercase tracking-[0.08em] text-muted-text">Sample bookings</p>
-                  <ul className="no-scrollbar -mx-5 mt-2 flex gap-2 overflow-x-auto px-5 pb-5">
+            {/* The step's question */}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {step === 0 && (
+                <motion.section key="samples" aria-label="Sample bookings" {...partProps(1)} className="mt-5">
+                  <p className="text-cap font-semibold uppercase tracking-[0.08em] text-muted-text">Sample bookings</p>
+                  <ul className="mt-2 grid grid-cols-[minmax(0,1fr)] gap-2">
                     {SAMPLE_JOURNEYS.map((sj, k) => {
                       const r = resolveJourney(sj)
                       return (
-                        <motion.li key={sj.ref} {...partProps(k)} className="shrink-0">
+                        <motion.li key={sj.ref} {...partProps(k + 2)}>
                           <button type="button" onClick={() => trySample(sj.ref)} aria-label={`Sample booking ${sj.ref}: ${city(sj.origin)} to ${city(sj.destination)} via ${city(sj.connection)}`}
-                            className="onb-card press flex min-h-[4.5rem] w-[10.5rem] flex-col items-start justify-center rounded-2xl px-3.5 py-2.5 text-left">
-                            <span className="font-mono text-sub font-bold tracking-wider">{sj.ref}</span>
-                            <span className="text-cap text-muted-text">{sj.origin} → <b className="font-semibold text-accent-dark">{sj.connection}</b> → {sj.destination}</span>
-                            <span className="text-cap text-muted-text">{fmtDur(r.layover.totalMin)} layover</span>
+                            aria-current={journey?.ref === sj.ref ? 'true' : undefined}
+                            className={cx('onb-card press flex min-h-14 w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left', journey?.ref === sj.ref && 'ring-2 ring-inset ring-accent')}>
+                            <span className="min-w-0 flex-1">
+                              <span className="block font-mono text-sub font-bold tracking-wider">{sj.ref}</span>
+                              <span className="block truncate text-sub text-muted-text">{city(sj.origin)} → <b className="font-semibold text-accent-dark">{city(sj.connection)}</b> → {city(sj.destination)}</span>
+                            </span>
+                            <span className="shrink-0 text-right text-cap text-muted-text"><b className="block text-sub font-semibold text-ink">{fmtDur(r.layover.totalMin)}</b>layover</span>
                           </button>
                         </motion.li>)
                     })}
                   </ul>
                 </motion.section>
               )}
-            </AnimatePresence>
-
-            {/* Activities (step 3): real catalogue venues at the connecting airport */}
-            <AnimatePresence initial={false}>
               {step === 2 && journey && (
-                <motion.section key="acts" aria-label={`Activities in ${city(journey.connection)}`} layout className="mt-4"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.15 } }}>
-                  {catalogue.status === 'loading' && (
-                    <div className="grid grid-cols-2 gap-3" aria-label="Loading activities">
-                      {[0, 1, 2, 3].map((k) => <span key={k} className="block h-44 rounded-[1.25rem] bg-ink-tint motion-safe:animate-pulse" />)}
+                <motion.fieldset key="buffer" {...partProps(1)} className="mt-5">
+                  <legend className="sr-only">Planning buffer</legend>
+                  <div role="radiogroup" aria-label="Planning buffer" className="grid gap-2">
+                    {BUFFER_OPTIONS.map((m, k) => {
+                      const on = buffer === m
+                      return (
+                        <motion.button key={m} type="button" role="radio" aria-checked={on} onClick={() => setBuffer(m)} {...partProps(k + 2)} whileTap={{ scale: 0.98 }}
+                          className={cx('onb-card press relative flex min-h-16 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left', on && 'ring-2 ring-inset ring-accent')}>
+                          <span className="w-[4.75rem] shrink-0 whitespace-nowrap text-card font-bold tabular-nums">{fmtDur(m)}</span>
+                          <span className="min-w-0 flex-1 text-sub text-muted-text">{BUFFER_NOTE[m] ?? ''}{m === journey.layover.bufferMin && <span className="ml-1.5 rounded-full bg-accent-tint px-2 py-0.5 text-micro font-semibold text-accent-dark">Suggested</span>}</span>
+                          <span className={cx('grid size-6 shrink-0 place-items-center rounded-full border-2 transition-colors', on ? 'border-accent bg-accent text-white' : 'border-ink/20')}>
+                            {on && <Check size={14} strokeWidth={3} />}</span>
+                        </motion.button>)
+                    })}
+                  </div>
+                  <p className="mt-2 text-cap text-muted-text">Time kept for transfers and boarding. Your flights stay the same.</p>
+                </motion.fieldset>
+              )}
+              {step === 3 && journey && (
+                <motion.section key="mood" aria-label="Moods" {...partProps(1)} className="mt-5">
+                  {!ready ? <div className="grid grid-cols-2 gap-3">{[0, 1, 2, 3].map((k) => <span key={k} className="block h-28 rounded-[1.25rem] bg-ink-tint motion-safe:animate-pulse" />)}</div> : (
+                    <div className="grid grid-cols-2 gap-3">
+                      {moodsHere.map((c, k) => {
+                        const on = moods.includes(c), M = MOOD[c], n = poolOf(journey.connection).filter((a) => a.category === c).length
+                        return (
+                          <motion.button key={c} type="button" aria-pressed={on} onClick={() => toggleMood(c)} {...partProps(k + 2)} whileTap={{ scale: 0.96 }}
+                            className={cx('onb-card press relative flex min-h-28 flex-col items-start justify-between rounded-[1.25rem] p-4 text-left', on && 'ring-2 ring-inset ring-accent')}>
+                            <motion.span animate={{ scale: on ? 1.04 : 1, rotate: on ? -4 : 0 }} className={cx('grid size-11 place-items-center rounded-2xl transition-colors', on ? 'bg-accent text-white' : 'bg-accent-tint text-accent-dark')}>
+                              <M.icon size={22} aria-hidden="true" /></motion.span>
+                            <span><span className="block text-card font-bold">{M.label}</span><span className="block text-cap text-muted-text">{n} {n === 1 ? 'place' : 'places'}</span></span>
+                            <AnimatePresence>{on && <motion.span key="ok" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="absolute right-3 top-3 grid size-6 place-items-center rounded-full bg-accent text-white"><Check size={14} strokeWidth={3} /></motion.span>}</AnimatePresence>
+                          </motion.button>)
+                      })}
                     </div>)}
-                  {catalogue.status === 'error' && <p className="text-sub text-muted-text">Activities could not be loaded. You can still start planning.</p>}
-                  {catalogue.status === 'ready' && (
-                    <ul className="grid grid-cols-2 gap-3">
-                      {acts.map((a, k) => (
-                        <motion.li key={a.id} {...partProps(k + 1)}>
-                          <ActivityCard a={a} order={picked.indexOf(a.id) + 1} onToggle={() => toggle(a.id)} />
-                        </motion.li>))}
-                    </ul>)}
                 </motion.section>
               )}
-            </AnimatePresence>
-            {/* Step 1 alternatives, in the page flow so the pinned action bar stays small on short phones */}
-            <AnimatePresence initial={false}>
-              {step === 0 && (
-                <motion.div key="alt" layout {...partProps(2)} className="mt-5 grid gap-1">
-                  <button type="button" onClick={manual} className="onb-btn-secondary press inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-full text-body font-semibold">
-                    <PenLine size={18} aria-hidden="true" />Enter flight details manually</button>
-                  {account.status !== 'registered' && (
-                    <p className="text-center text-sub text-muted-text">Have an account? <button type="button" onClick={signIn} className="min-h-11 px-1 font-semibold text-accent-dark">Sign in</button></p>)}
-                </motion.div>)}
+              {step === 4 && journey && (
+                <motion.section key="acts" aria-label={`Activities in ${conn}`} {...partProps(1)} className="mt-4">
+                  {catalogue.status === 'error' && <p className="text-sub text-muted-text">Activities could not be loaded. You can still start planning.</p>}
+                  <ul className="grid grid-cols-2 gap-3">
+                    {acts.map((a, k) => (
+                      <motion.li key={a.id} {...partProps(k + 2)}>
+                        <ActivityCard a={a} order={picked.indexOf(a.id) + 1} onToggle={() => toggle(a.id)} />
+                      </motion.li>))}
+                  </ul>
+                </motion.section>
+              )}
+              {step === 5 && journey && plan && (
+                <motion.section key="plan" aria-label="Your plan" {...partProps(1)} className="onb-card mt-4 rounded-[1.75rem] px-5 py-4">
+                  <PlanTimeline j={journey} items={plan.items} transfers={plan.hero.transferMin} />
+                </motion.section>
+              )}
             </AnimatePresence>
           </LayoutGroup>
           <p className="sr-only" aria-live="polite">{announce}</p>
         </main>
 
-        {/* Actions */}
+        {/* One action, revealed when the step's task is done; until then, what to do */}
         <footer className="sticky bottom-0 z-10 bg-gradient-to-t from-canvas from-70% to-canvas/0 px-5 pb-[calc(var(--safe-bottom)+1rem)] pt-5">
-          <div className="mx-auto grid w-full max-w-[28rem] gap-2">
-            {step === 0 && <button type="button" onClick={() => go(1)} disabled={!journey} className="btn-coral press min-h-[3.25rem] rounded-full text-card font-bold disabled:opacity-40 disabled:shadow-none">Continue</button>}
-            {step === 1 && <button type="button" onClick={() => go(2)} className="btn-coral press min-h-[3.25rem] rounded-full text-card font-bold">Continue</button>}
-            {step === 2 && (<>
-              <button type="button" onClick={startPlanning} className="btn-coral press min-h-[3.25rem] rounded-full text-card font-bold">Start planning</button>
-              <p className="text-center text-cap text-muted-text">{picked.length ? `${picked.length} selected · you can change everything later` : 'Pick one or two, or start with an empty plan'}</p>
-            </>)}
+          <div className="mx-auto grid min-h-[3.25rem] w-full max-w-[28rem]">
+            <AnimatePresence mode="wait" initial={false}>
+              {done[step] ? (
+                <motion.button key={`cta-${step}`} type="button" onClick={step === LAST ? startPlanning : () => go(step + 1)}
+                  initial={{ opacity: 0, y: 16, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, transition: { duration: 0.15 } }}
+                  className="btn-coral press inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-full text-card font-bold">
+                  {cta}{step < LAST && <ArrowRight size={20} aria-hidden="true" />}</motion.button>
+              ) : (
+                <motion.p key={`hint-${step}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                  className="flex min-h-[3.25rem] items-center justify-center gap-2 text-sub font-medium text-muted-text">
+                  <motion.span animate={reduce ? undefined : { y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}><Hand size={17} aria-hidden="true" /></motion.span>{hint}</motion.p>
+              )}
+            </AnimatePresence>
           </div>
         </footer>
       </div>
     </MotionConfig>
+  )
+}
+
+/** Step 2: drag the plane along the first flight to the connecting airport (or tap it to fly). Landing reveals the
+ *  arrival time, the onward flight and the connection, which counts up. */
+function FlyCard({ j, landed, onLand }: { j: ResolvedJourney; landed: boolean; onLand: () => void }) {
+  const track = useRef<HTMLDivElement>(null)
+  const x = useMotionValue(0)
+  const [max, setMax] = useState(0)
+  const [touched, setTouched] = useState(false)
+  const dragged = useRef(false)
+  useLayoutEffect(() => {
+    const measure = () => setMax(Math.max(0, (track.current?.offsetWidth ?? 0) - 48))
+    measure()
+    const ro = new ResizeObserver(measure); if (track.current) ro.observe(track.current)
+    return () => ro.disconnect()
+  }, [])
+  useEffect(() => { if (landed) x.set(max) }, [landed, max, x])
+  const fill = useTransform(x, (v) => (max ? (v + 24) / (max + 48) : 0))
+  const land = () => { void animate(x, max, { duration: 0.35, ease: EASE }).then(onLand) }
+  const fly = () => { setTouched(true); void animate(x, max, { duration: 1.1, ease: [0.45, 0, 0.2, 1] }).then(onLand) }
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <div><p className="text-[1.625rem] font-bold leading-none tracking-[-0.02em]">{j.origin}</p><p className="mt-1.5 text-cap text-muted-text">{city(j.origin)} · {hhmm(j.legs[0].departLocal)}</p></div>
+        <div className="text-right">
+          <motion.p animate={landed ? { scale: [1, 1.12, 1] } : {}} transition={{ duration: 0.45 }}
+            className={cx('inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[1.625rem] font-bold leading-none tracking-[-0.02em] transition-colors', landed ? 'bg-accent text-white' : 'bg-ink-tint text-ink')}>
+            {j.connection}</motion.p>
+          <p className="mt-1.5 text-cap text-muted-text">{city(j.connection)}</p>
+        </div>
+      </div>
+      {/* The flight: a dashed path that fills with coral behind the plane */}
+      <div ref={track} className="relative mt-3 h-[4.5rem]">
+        <span className="absolute inset-x-6 top-1/2 -translate-y-1/2"><span className="onb-path block"><motion.i style={{ scaleX: fill }} /></span></span>
+        <motion.button type="button" aria-label={landed ? `Landed in ${city(j.connection)}` : `Fly to ${city(j.connection)}`} disabled={landed}
+          drag={landed ? false : 'x'} dragConstraints={{ left: 0, right: max }} dragElastic={0.04} dragMomentum={false} style={{ x }}
+          onDragStart={() => { dragged.current = true; setTouched(true) }}
+          onDragEnd={() => { if (x.get() > max * 0.72) land(); else void animate(x, 0, { type: 'spring', visualDuration: 0.4, bounce: 0.2 }) }}
+          onClick={() => { if (dragged.current) { dragged.current = false; return } if (!landed) fly() }}
+          whileTap={{ scale: 0.92 }}
+          className="absolute left-0 top-3 grid size-12 cursor-grab touch-none place-items-center rounded-full bg-accent text-white shadow-[0_6px_16px_-4px_rgb(234_81_57/0.6)] active:cursor-grabbing disabled:cursor-default">
+          <motion.span animate={!touched && !landed ? { x: [0, 5, 0] } : { x: 0 }} transition={{ duration: 1.2, repeat: !touched && !landed ? Infinity : 0, ease: 'easeInOut' }}>
+            <Plane size={22} className="rotate-45" aria-hidden="true" /></motion.span>
+        </motion.button>
+      </div>
+      <AnimatePresence initial={false}>
+        {landed && (
+          <motion.div key="landed" {...foldProps()}>
+            <div className="pt-4">
+              <div className="flex items-end justify-between gap-3">
+                <div><p className="text-cap text-muted-text">Landed</p><p className="text-h2 font-bold leading-tight tabular-nums">{hhmm(j.layover.arrivalLocal)}</p><p className="text-cap text-muted-text">{dayOf(j.layover.arrivalLocal)}</p></div>
+                <div className="text-right"><p className="text-cap text-muted-text">Next flight · {j.destination}</p><p className="text-h2 font-bold leading-tight tabular-nums">{hhmm(j.layover.departureLocal)}</p><p className="text-cap text-muted-text">{dayOf(j.layover.departureLocal)}</p></div>
+              </div>
+              <p className="mt-3 flex items-center justify-between rounded-2xl bg-accent-tint px-4 py-3">
+                <span className="flex items-center gap-2 text-sub font-semibold"><Clock size={17} className="text-accent-dark" aria-hidden="true" />Connection</span>
+                <span className="whitespace-nowrap text-[1.75rem] font-bold leading-none tracking-[-0.03em] text-accent-dark [@media(max-width:360px)]:text-[1.5rem]"><Dur min={j.layover.totalMin} from={0} /></span>
+              </p>
+            </div>
+          </motion.div>)}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/** Step 6: the layover as a timeline: land, the picked activities, board. Drawn top to bottom. */
+function PlanTimeline({ j, items, transfers }: { j: ResolvedJourney; items: Activity[]; transfers: number }) {
+  const rows = [
+    { k: 'land', time: hhmm(j.layover.arrivalLocal), title: `Land in ${city(j.connection)}`, meta: dayOf(j.layover.arrivalLocal), strong: true },
+    ...items.map((a) => ({ k: a.id, time: '', title: a.name, meta: `${fmtDur(a.durationMin)} · ${a.category}`, strong: false })),
+    { k: 'board', time: hhmm(j.layover.departureLocal), title: `Board for ${city(j.destination)}`, meta: transfers ? `${fmtDur(transfers)} of walking between stops counted` : 'Planning buffer kept free', strong: true },
+  ]
+  return (
+    <ol className="relative grid gap-4">
+      <motion.span aria-hidden="true" className="absolute bottom-3 left-[0.6875rem] top-3 w-0.5 origin-top rounded-full bg-accent/35" initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.8, ease: EASE, delay: 0.1 }} />
+      {rows.map((r, k) => (
+        <motion.li key={r.k} {...partProps(k + 1)} className="relative flex items-start gap-3 pl-9">
+          <span className={cx('absolute left-0 top-0.5 z-10 grid size-6 place-items-center rounded-full ring-4 ring-white', r.strong ? 'bg-accent text-white' : 'bg-[#fde8e3] text-accent-dark')}>
+            {r.strong ? <Plane size={12} className="-rotate-45" aria-hidden="true" /> : <span className="text-micro font-bold">{k}</span>}</span>
+          <span className="min-w-0 flex-1"><span className="block text-body font-semibold leading-snug">{r.title}</span><span className="block text-cap text-muted-text">{r.meta}</span></span>
+          {r.time && <span className="text-body font-bold tabular-nums">{r.time}</span>}
+        </motion.li>))}
+    </ol>
   )
 }
 
@@ -427,7 +543,7 @@ function RouteRow({ j, big }: { j: ResolvedJourney | null; big: boolean }) {
 
 /** The layover at the connecting airport: arrival and onward departure, the connection split into the planning buffer
  *  and the time to explore, and the arithmetic in one short line each. */
-function Layover({ j, total, buffer, usable }: { j: ResolvedJourney; total: number; buffer: number; usable: number }) {
+function Layover({ j, total, buffer, usable }: { j: ResolvedJourney; total: number; buffer: number | null; usable: number }) {
   const pct = (n: number) => `${(n / Math.max(total, 1)) * 100}%`
   const When = ({ label, at, end }: { label: string; at: string; end?: boolean }) => (
     <div className={end ? 'text-right' : ''}>
@@ -443,15 +559,16 @@ function Layover({ j, total, buffer, usable }: { j: ResolvedJourney; total: numb
         <When label={`Depart ${j.connection}`} at={j.layover.departureLocal} end />
       </div>
       <div className="mt-3 flex h-3 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
-        <motion.span className="onb-hatch h-full rounded-l-full" initial={false} animate={{ width: pct(buffer) }} transition={{ duration: 0.55, ease: EASE }} />
+        <motion.span className="onb-hatch h-full rounded-l-full" initial={false} animate={{ width: pct(buffer ?? 0) }} transition={{ duration: 0.55, ease: EASE }} />
         <motion.span className="h-full flex-1 rounded-r-full bg-accent" initial={false} animate={{ opacity: usable > 0 ? 1 : 0.3 }} />
       </div>
       <dl className="mt-4 grid gap-1 text-sub">
         <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-text">Connection</dt><dd className="font-semibold tabular-nums">{fmtDur(total)}</dd></div>
-        <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-text">Planning buffer</dt><dd className="font-semibold tabular-nums">− <Dur min={buffer} /></dd></div>
+        <div className="flex items-baseline justify-between gap-3"><dt className="text-muted-text">Planning buffer</dt>
+          <dd className="font-semibold tabular-nums">{buffer === null ? <span className="text-muted">Choose below</span> : <>− <Dur min={buffer} /></>}</dd></div>
         <div className="mt-1 flex items-baseline justify-between gap-3 border-t border-line pt-2">
           <dt className="text-body font-semibold">To explore</dt>
-          <dd className="text-[2rem] font-bold leading-none tracking-[-0.03em] text-accent-dark"><Dur min={usable} /></dd>
+          <dd className="text-[2rem] font-bold leading-none tracking-[-0.03em] text-accent-dark">{buffer === null ? <span className="text-muted">?</span> : <Dur min={usable} />}</dd>
         </div>
       </dl>
     </div>
@@ -461,7 +578,7 @@ function Layover({ j, total, buffer, usable }: { j: ResolvedJourney; total: numb
 /** Step 3's compact strip: the time to explore, what is left after the picks, and whether they fit. */
 function TimeStrip({ usable, remaining, fit, city: place }: { usable: number; remaining: number; fit: 'none' | 'fits' | 'tight' | 'over'; city: string }) {
   const used = Math.min(1, Math.max(0, (usable - remaining) / Math.max(usable, 1)))
-  const chip = { none: ['bg-ink-tint text-muted-text', `${fmtDur(usable)} in ${place}`], fits: ['bg-success-tint text-success', 'Fits your time'],
+  const chip = { none: ['bg-ink-tint text-muted-text', `In ${place}`], fits: ['bg-success-tint text-success', 'Fits your time'],
     tight: ['bg-accent-tint text-accent-dark', 'Tight fit'], over: ['bg-error-tint text-error', `Over by ${fmtDur(-remaining)}`] }[fit]
   return (
     <div>
