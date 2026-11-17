@@ -279,72 +279,126 @@ try {
     await v.ctx.close();
   }
 
-  // ---- 4b. Onboarding: first visit only, three screens, Next/Back/swipe/keys, Skip, replay, reduced motion
+  // ---- 4b. Onboarding: interactive and booking-first. Booking -> time to explore -> activities -> Start planning,
+  //      with the plan handed to the builder through Account Access. Plus Skip, Back, keys, manual entry, Sign in,
+  //      replay and reduced motion.
   const signupsBefore = fake.calls.filter((c) => c.includes('/auth/v1/signup')).length;
-  const o = await newGuest(undefined, { firstVisit: true, reducedMotion: 'no-preference' });
-  await o.page.goto(BASE);
-  await o.page.getByText('Your layover, reimagined.').waitFor();
-  check('onboarding: first visit shows screen 1 with Skip and 3 progress dots', await o.page.getByRole('button', { name: 'Skip' }).isVisible() && (await o.page.getByRole('tab', { name: /Screen \d of 3/ }).count()) === 3);
-  check('onboarding: no account is created by viewing it', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
-  await o.page.getByRole('button', { name: 'Get started' }).click();
-  check('onboarding: Get started -> screen 2', await o.page.getByText('Discover what’s possible.').isVisible());
+  const appReady = (pg) => pg.waitForFunction(() => !document.querySelector('[inert]')); // after the launch splash
   {
-    // Transition: the card is one persistent element that morphs; text crossfades through a blur; nothing slides sideways.
-    const card = () => o.page.evaluate(() => { const c = document.querySelector('[aria-roledescription="carousel"] .glass-dark.overflow-hidden'); const r = c.getBoundingClientRect(); return { w: Math.round(r.width), tagged: c.dataset.probe === '1' }; });
-    await o.page.waitForTimeout(1200);
-    const settled2 = await card();
-    await o.page.evaluate(() => { document.querySelector('[aria-roledescription="carousel"] .glass-dark.overflow-hidden').dataset.probe = '1'; });
-    await o.page.getByRole('tab', { name: 'Screen 1 of 3' }).click();
-    await o.page.waitForTimeout(120);
-    const mid = await o.page.evaluate(() => [...document.querySelectorAll('[aria-roledescription="carousel"] h1')].map((h) => ({ t: h.textContent, blur: parseFloat((/blur\(([\d.]+)px\)/.exec(getComputedStyle(h).filter) || [0, 0])[1]) })));
-    const midCard = await card();
-    await o.page.waitForTimeout(1200);
-    const settled1 = await card();
-    const h1s = await o.page.locator('[aria-roledescription="carousel"] h1').count();
-    check('onboarding transition: old and new headlines overlap, the outgoing one blurred', mid.length === 2 && mid.some((h) => h.t.startsWith('Discover') && h.blur > 0), JSON.stringify(mid));
-    check('onboarding transition: the same card element morphs between steps (compact tile <-> full card)', midCard.tagged && settled1.tagged && settled2.w < settled1.w && midCard.w > settled2.w && midCard.w < settled1.w, JSON.stringify({ settled2, midCard, settled1 }));
-    check('onboarding transition: settles to a single headline', h1s === 1 && await o.page.getByText('Your layover, reimagined.').isVisible());
-    check('onboarding transition: no horizontal photo strip', await o.page.evaluate(() => document.querySelectorAll('[aria-roledescription="carousel"] img').length === 1));
-    await o.page.getByRole('button', { name: 'Get started' }).click();
+    const o = await newGuest(undefined, { firstVisit: true, reducedMotion: 'no-preference' });
+    const P = o.page;
+    await P.goto(BASE);
+    await P.getByText('Your layover, reimagined.').waitFor(); await appReady(P);
+    const cont = P.getByRole('button', { name: 'Continue', exact: true });
+    check('onboarding: first visit opens on the booking step (Skip, 3-step progress, Continue waits for a booking)',
+      await P.getByRole('button', { name: 'Skip' }).isVisible() && (await P.getByRole('button', { name: /^Step \d of 3/ }).count()) === 3 && await cont.isDisabled() && await visible(P, 'Already booked? Let’s find your layover.'));
+    check('onboarding: no account is created by viewing it', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
+    // Unknown and malformed references
+    await P.getByLabel('Booking reference').click(); await P.keyboard.type('ZZZ999', { delay: 20 });
+    await P.getByText('That isn’t one of the sample bookings').waitFor();
+    check('onboarding: an unknown reference is refused with a clear message and the sample bookings appear', await P.getByRole('region', { name: 'Sample bookings' }).isVisible() && await cont.isDisabled() && !(await visible(P, 'Booking found')));
+    await P.keyboard.press('ControlOrMeta+a'); await P.keyboard.type('AB1', { delay: 20 }); await P.keyboard.press('Enter');
+    check('onboarding: a malformed reference explains the format', await visible(P, 'A booking reference has 6 letters or numbers.'));
+    // A sample types itself in and validates through the same lookup
+    await P.getByRole('button', { name: /^Sample booking BQ3LMV/ }).click();
+    await P.getByText('Booking found', { exact: true }).waitFor();
+    const found = (await P.getByRole('region', { name: 'Your booking' }).innerText()).replace(/\s+/g, ' ');
+    check('onboarding: a sample booking populates the card: origin, connection, destination, labelled as a sample', /BQ3LMV/.test(found) && /Sample booking/.test(found) && /OPO.*Porto.*LIS.*Lisbon.*JFK.*New York/.test(found) && /5h 20m connection in Lisbon/.test(found) && await cont.isEnabled(), found);
+    // A typed (lower-case) reference works the same way
+    await P.getByRole('button', { name: 'Change' }).click(); await P.keyboard.type('axr7kd', { delay: 20 });
+    await P.getByText('Booking found', { exact: true }).waitFor();
+    check('onboarding: a typed reference is recognised (AXR7KD: Jakarta → Singapore → Paris)', /CGK.*SIN.*CDG/.test((await P.getByRole('region', { name: 'Your booking' }).innerText()).replace(/\s+/g, ' ')));
+    await cont.click();
+    // Step 2: the layover from the booking, the buffer and the time to explore
+    const lay = async () => (await P.getByRole('region', { name: 'Your layover' }).innerText()).replace(/\s+/g, ' ');
+    await P.getByText('Know your time to explore.').waitFor(); await P.waitForTimeout(700);
+    const l1 = await lay();
+    check('onboarding step 2: arrival, onward departure and time to explore come from the booking (12h 20m − 2h = 10h 20m)', /11:15/.test(l1) && /23:35/.test(l1) && /Connection 12h 20m/.test(l1) && /Planning buffer − 2h/.test(l1) && /To explore 10h 20m/.test(l1), l1);
+    await P.getByRole('button', { name: '3h', exact: true }).click(); await P.waitForTimeout(900);
+    check('onboarding step 2: changing the buffer updates the time to explore (− 3h = 9h 20m); flight times unchanged', /To explore 9h 20m/.test(await lay()) && /11:15.*23:35/.test(await lay()));
+    // Back keeps answers; arrow key forward again
+    await P.getByRole('button', { name: 'Back' }).click();
+    await P.getByText('Your layover, reimagined.').waitFor();
+    check('onboarding: Back returns to the booking step with the booking kept', await visible(P, 'Booking found') && await cont.isEnabled());
+    await P.waitForTimeout(600); await P.getByRole('heading', { name: 'Your layover, reimagined.' }).click(); await P.keyboard.press('ArrowRight');
+    await P.getByText('Know your time to explore.').waitFor();
+    check('onboarding: ArrowRight moves forward; the chosen buffer is kept', (await P.getByRole('button', { name: '3h', exact: true }).getAttribute('aria-pressed')) === 'true');
+    await cont.click();
+    // Step 3: real catalogue activities at the connecting airport
+    await P.getByText('Find your next experience.').waitFor();
+    const cards = P.getByRole('region', { name: 'Activities in Singapore' }).getByRole('button');
+    await cards.first().waitFor();
+    const strip = async () => (await P.getByRole('region', { name: 'Your time' }).innerText()).replace(/\s+/g, ' ');
+    check('onboarding step 3: up to four activities from the Singapore catalogue, nothing selected yet', (await cards.count()) >= 2 && (await cards.count()) <= 4 && /Time left to explore 9h 20m/.test(await strip()));
+    const label0 = await cards.nth(0).getAttribute('aria-label'), label1 = await cards.nth(1).getAttribute('aria-label');
+    const dur = (l) => { const m = /, (?:(\d+)h)? ?(?:(\d+)m)?$/.exec(l); return (+(m[1] ?? 0)) * 60 + (+(m[2] ?? 0)); };
+    await cards.nth(0).click(); await cards.nth(1).click(); await P.waitForTimeout(900);
+    const s2 = await strip();
+    const leftMin = ((m) => (+(m[1] ?? 0)) * 60 + (+(m[2] ?? 0)))(/Time left to explore (?:(\d+)h)? ?(?:(\d+)m)?/.exec(s2));
+    check('onboarding step 3: two selections update the time left and show that they fit (planner rules: activities and known transfers)',
+      (await cards.nth(0).getAttribute('aria-pressed')) === 'true' && leftMin <= 560 - dur(label0) - dur(label1) && leftMin > 0 && /Fits your time/.test(s2), `${s2} | ${label0} | ${label1}`);
+    await cards.nth(1).click(); await P.waitForTimeout(700);
+    check('onboarding step 3: tapping again deselects and gives the time back', (await cards.nth(1).getAttribute('aria-pressed')) === 'false' && (/Time left to explore (\S+ ?\S*)/.exec(await strip())?.[1] ?? '') !== (/Time left to explore (\S+ ?\S*)/.exec(s2)?.[1] ?? ''));
+    await cards.nth(1).click(); await P.waitForTimeout(700);
+    const left = /Time left to explore (\d+h(?: \d+m)?|\d+m)/.exec(await strip())[1];
+    // Start planning: Account Access first (optional), then the builder with the same plan
+    await P.getByRole('button', { name: 'Start planning' }).click();
+    await P.getByRole('button', { name: /Continue as guest/ }).waitFor();
+    check('onboarding: Start planning shows Account Access with Continue as guest; the plan is kept for later', await P.getByRole('button', { name: 'Create account' }).isVisible()
+      && await P.evaluate(() => !!JSON.parse(localStorage.getItem('skystop.onboarding.handoff.v1') || 'null')?.draft?.activityIds?.length));
+    await P.reload(); await P.getByRole('button', { name: /Continue as guest/ }).waitFor(); await appReady(P);
+    await P.getByRole('button', { name: /Continue as guest/ }).click();
+    await P.getByLabel('Time budget').waitFor();
+    const hero = (await P.getByLabel('Time budget').innerText()).replace(/\s+/g, ' '), plan = (await P.getByLabel('Itinerary').innerText()).replace(/\s+/g, ' ');
+    const name0 = label0.replace(/, [^,]+$/, ''), name1 = label1.replace(/, [^,]+$/, '');
+    check('onboarding hand-off: after a reload and Continue as guest, the builder has the booking, the 3h buffer, both activities and the same time left',
+      hero.includes(left) && /Buffer 3h/.test(hero) && /Layover 12h 20m/.test(hero) && plan.includes(name0) && plan.includes(name1), `${left} | ${hero.slice(0, 160)}`);
+    check('onboarding hand-off: guest continues without an account; the kept plan is cleared once used', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore && await P.evaluate(() => localStorage.getItem('skystop.onboarding.handoff.v1') === null));
+    await P.reload(); await P.waitForTimeout(2400);
+    check('onboarding + access: a returning visitor sees neither again', !(await visible(P, 'Your layover, reimagined.')) && !(await visible(P, 'Create account')));
+    await P.getByRole('button', { name: 'Home' }).first().click();
+    await P.getByRole('button', { name: 'Profile' }).click();
+    await P.getByRole('button', { name: /^About & data/ }).click();
+    {
+      const about = (await P.getByRole('dialog', { name: 'About & data' }).innerText()).replace(/\s+/g, ' ');
+      check('about: one central page covers sample bookings, venue sources, simulated directions, the time model and entry checks',
+        about.includes('AXR7KD') && /changiairport\.com/.test(about) && /simulated/i.test(about) && /planning buffer/i.test(about) && /never decides whether you may enter/.test(about), about.slice(0, 200));
+      await P.getByRole('button', { name: 'Close' }).click();
+    }
+    await P.getByRole('button', { name: 'Replay introduction' }).click();
+    await P.getByText('Your layover, reimagined.').waitFor();
+    await P.getByRole('button', { name: 'Skip' }).click();
+    await P.waitForTimeout(500);
+    check('onboarding: replay from Profile; Skip returns to the app without a second Account Access', !(await visible(P, 'Create account')) && !(await visible(P, 'Your layover, reimagined.')));
+    await o.ctx.close();
   }
-  const box = (await o.page.locator('[aria-roledescription="carousel"]').boundingBox());
-  await o.page.mouse.move(box.width * 0.8, box.height * 0.45); await o.page.mouse.down(); await o.page.mouse.move(box.width * 0.2, box.height * 0.47, { steps: 8 }); await o.page.mouse.up();
-  await o.page.getByText('Make every minute count.').waitFor();
-  await o.page.getByRole('button', { name: 'Skip' }).waitFor({ state: 'detached' });
-  check('onboarding: swipe left -> screen 3 with Get started + Sign in and no Skip', await o.page.getByRole('button', { name: 'Get started' }).isVisible() && await o.page.getByRole('button', { name: 'Sign in' }).isVisible() && !(await o.page.getByRole('button', { name: 'Skip' }).isVisible()));
-  await o.page.getByRole('tab', { name: 'Screen 2 of 3' }).click();
-  check('onboarding: progress dot -> back to screen 2', await o.page.getByText('Discover what’s possible.').isVisible());
-  await o.page.keyboard.press('ArrowLeft');
-  check('onboarding: keyboard ArrowLeft -> screen 1', await o.page.getByText('Your layover, reimagined.').isVisible());
-  await o.page.getByRole('button', { name: 'Skip' }).click();
-  await o.page.getByRole('button', { name: 'Create account' }).waitFor();
-  check('onboarding: Skip opens Account Access (Create account, Sign in, Continue as guest)', await o.page.getByRole('heading', { name: 'SkyStop', level: 1 }).isVisible() && await o.page.getByText('Plan your layover', { exact: true }).isVisible() && await o.page.getByRole('button', { name: 'Sign in' }).isVisible() && await o.page.getByRole('button', { name: /Continue as guest/ }).isVisible());
-  check('access: decorative layers ignore pointer events; glass uses a real backdrop blur', await o.page.evaluate(() => getComputedStyle(document.querySelector('.access__stage')).pointerEvents === 'none' && /blur/.test(getComputedStyle(document.querySelector('.access__strip')).backdropFilter)));
-  check('access: no account is created by viewing it', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
-  await o.page.reload();
-  await o.page.getByRole('button', { name: 'Create account' }).waitFor();
-  check('access: leaving without choosing shows it again on the next launch', !(await visible(o.page, 'Discover what’s possible.')));
-  await o.page.getByRole('button', { name: /Continue as guest/ }).click();
-  await o.page.getByRole('button', { name: /^Add flight/ }).first().waitFor();
-  check('access: Continue as guest opens Home without creating an account', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
-  await o.page.reload();
-  await o.page.waitForTimeout(800);
-  check('onboarding + access: a returning guest is not shown either again', !(await visible(o.page, 'Your layover, reimagined.')) && await o.page.getByRole('button', { name: /^Add flight/ }).first().isVisible());
-  await o.page.getByRole('button', { name: 'Profile' }).click();
-  await o.page.getByRole('button', { name: /^About & data/ }).click();
   {
-    const about = (await o.page.getByRole('dialog', { name: 'About & data' }).innerText()).replace(/\s+/g, ' ');
-    check('about: one central page covers sample bookings, venue sources, simulated directions, the time model and entry checks',
-      about.includes('AXR7KD') && /changiairport\.com/.test(about) && /simulated/i.test(about) && /planning buffer/i.test(about) && /never decides whether you may enter/.test(about), about.slice(0, 200));
-    await o.page.getByRole('button', { name: 'Close' }).click();
+    // Skip -> Account Access (unchanged screen and rules)
+    const o = await newGuest(undefined, { firstVisit: true, reducedMotion: 'no-preference' });
+    await o.page.goto(BASE); await o.page.getByText('Your layover, reimagined.').waitFor();
+    await o.page.getByRole('button', { name: 'Skip' }).click();
+    await o.page.getByRole('button', { name: 'Create account' }).waitFor();
+    check('onboarding: Skip opens Account Access (Create account, Sign in, Continue as guest)', await o.page.getByRole('heading', { name: 'SkyStop', level: 1 }).isVisible() && await o.page.getByText('Plan your layover', { exact: true }).isVisible() && await o.page.getByRole('button', { name: 'Sign in' }).isVisible() && await o.page.getByRole('button', { name: /Continue as guest/ }).isVisible());
+    check('access: decorative layers ignore pointer events; glass uses a real backdrop blur', await o.page.evaluate(() => getComputedStyle(document.querySelector('.access__stage')).pointerEvents === 'none' && /blur/.test(getComputedStyle(document.querySelector('.access__strip')).backdropFilter)));
+    check('access: no account is created by viewing it', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
+    await o.page.reload();
+    await o.page.getByRole('button', { name: 'Create account' }).waitFor();
+    check('access: leaving without choosing shows it again on the next launch', !(await visible(o.page, 'Your layover, reimagined.')));
+    await o.page.getByRole('button', { name: /Continue as guest/ }).click();
+    await o.page.getByRole('button', { name: /^Add flight/ }).first().waitFor();
+    check('access: Continue as guest opens Home without creating an account', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
+    await o.ctx.close();
   }
-  await o.page.getByRole('button', { name: 'Replay introduction' }).click();
-  await o.page.getByText('Your layover, reimagined.').waitFor();
-  for (let k = 0; k < 2; k++) { await o.page.getByRole('button', { name: 'Get started' }).click(); await o.page.waitForTimeout(250); }
-  await o.page.getByRole('button', { name: 'Get started' }).click();
-  await o.page.waitForTimeout(400);
-  check('onboarding: replay from Home works and its final CTA opens the planning flow (no second Account Access)', (await o.page.getByRole('heading', { level: 1 }).first().innerText()).includes('Plan a layover') || await visible(o.page, 'Find your journey'));
-  await o.ctx.close();
+  {
+    // Manual entry from the booking step -> the existing manual flight form (after Account Access)
+    const m = await newGuest(undefined, { firstVisit: true });
+    await m.page.goto(BASE); await m.page.getByText('Your layover, reimagined.').waitFor(); await appReady(m.page);
+    await m.page.getByRole('button', { name: 'Enter flight details manually' }).click();
+    await m.page.getByRole('button', { name: /Continue as guest/ }).click();
+    await m.page.getByRole('combobox', { name: 'Connecting airport' }).waitFor();
+    check('onboarding: "Enter flight details manually" opens the manual flight form', await m.page.getByRole('region', { name: 'Connection' }).isVisible());
+    await m.ctx.close();
+  }
   // Account Access -> the email field opens on the same screen
   for (const [action, submit] of [['Create account', 'Send confirmation link'], ['Sign in', 'Send sign-in link']]) {
     const a = await newGuest(undefined, { firstVisit: true });
@@ -368,28 +422,25 @@ try {
     await s.close();
   }
   const rm = await newGuest(undefined, { firstVisit: true, reducedMotion: 'reduce' });
-  await rm.page.goto(BASE); await rm.page.getByText('Your layover, reimagined.').waitFor();
-  await rm.page.getByRole('button', { name: 'Get started' }).click();
+  await rm.page.goto(BASE); await rm.page.getByText('Your layover, reimagined.').waitFor(); await appReady(rm.page);
+  await rm.page.getByRole('button', { name: 'Try a sample booking' }).click();
+  await rm.page.getByRole('button', { name: /^Sample booking AXR7KD/ }).click();
+  const rmFound = await visible(rm.page, 'Booking found');
+  await rm.page.getByRole('button', { name: 'Continue', exact: true }).click();
   await rm.page.waitForTimeout(60);
-  const rmState = await rm.page.evaluate(() => [...document.querySelectorAll('[aria-roledescription="carousel"] h1')].map((h) => `${h.textContent}|${getComputedStyle(h).opacity}|${getComputedStyle(h).filter}`));
-  check('onboarding: reduced motion changes steps instantly (no crossfade, blur or scaling)', rmState.length === 1 && rmState[0].startsWith('Discover') && /\|1\|(none|blur\(0px\))$/.test(rmState[0]), JSON.stringify(rmState));
+  const rmState = await rm.page.evaluate(() => [...document.querySelectorAll('h1')].map((h) => `${h.textContent}|${getComputedStyle(h.parentElement).opacity}|${getComputedStyle(h.parentElement).filter}`));
+  check('onboarding: reduced motion: the sample fills in at once and steps change instantly (no crossfade, blur or slide)', rmFound && rmState.length === 1 && rmState[0].startsWith('Know your time') && /\|1\|(none|blur\(0px\))$/.test(rmState[0]), JSON.stringify(rmState));
   {
-    // Sign in on every onboarding step opens the email sign-in form; Not now comes back; the account screen then resumes on launch.
+    // Sign in from the booking step opens the email sign-in form; Not now comes back; the account screen then resumes on launch.
     const si = await newGuest(undefined, { firstVisit: true });
     await si.page.goto(BASE); await si.page.getByText('Your layover, reimagined.').waitFor();
-    const onEvery = [];
-    for (let k = 0; k < 3; k++) {
-      onEvery.push(await si.page.getByRole('button', { name: 'Get started' }).isVisible() && await si.page.getByRole('button', { name: 'Sign in' }).isVisible());
-      if (k < 2) { await si.page.getByRole('button', { name: 'Get started' }).click(); await si.page.waitForTimeout(250); }
-    }
-    check('onboarding: Get started and Sign in on every step; SkyStop name beside the SS', onEvery.every(Boolean) && await si.page.locator('[aria-roledescription="carousel"]').getByText('SkyStop', { exact: true }).isVisible(), JSON.stringify(onEvery));
-    await si.page.getByRole('tab', { name: 'Screen 1 of 3' }).click();
+    check('onboarding: SkyStop name beside the SS; Sign in offered on the booking step', await si.page.getByText('SkyStop', { exact: true }).first().isVisible() && await si.page.getByRole('button', { name: 'Sign in' }).isVisible());
     await si.page.getByRole('button', { name: 'Sign in' }).click();
     await si.page.getByRole('button', { name: 'Send sign-in link' }).waitFor();
     check('onboarding: Sign in opens the email sign-in form', await si.page.getByLabel('Email').isVisible());
     await si.page.getByRole('button', { name: 'Not now' }).click();
     await si.page.getByText('Your layover, reimagined.').waitFor();
-    check('onboarding: Not now returns to onboarding', await si.page.getByRole('button', { name: 'Get started' }).isVisible());
+    check('onboarding: Not now returns to onboarding', await si.page.getByLabel('Booking reference').isVisible());
     await si.page.reload(); await si.page.waitForTimeout(800);
     check('onboarding: after choosing Sign in, the next launch resumes at the account screen', await si.page.getByRole('button', { name: 'Create account' }).isVisible() && !(await visible(si.page, 'Your layover, reimagined.')));
     await si.ctx.close();

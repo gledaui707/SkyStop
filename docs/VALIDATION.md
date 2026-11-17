@@ -314,3 +314,15 @@ Reviewed every main screen at 390 px against `design-references/`. One overlap i
 Checks: `npm run build` (tsc + vite) OK; `npx vitest run` 145 passed, 1 hosted skipped; `npm run test:e2e` 157/157;
 `node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430 px. Captures reviewed at 320 and 390 px (journey
 overview, builder, airport list and map). Styling and markup only; no data, Supabase or logic changes.
+
+### Interactive booking-first onboarding (owner brief, 17 Nov 2026)
+
+- Replaced the three photo slides with an interactive flow on the app's own data: sample booking lookup → time to
+  explore (planner budget, adjustable buffer) → real activities with live time left (itinerary engine) → Start planning
+  hands a draft to the builder, kept through Account Access (and a reload). Details: `docs/ONBOARDING.md`.
+- Checks: `tsc` clean; unit 149 (148 passed, one hosted skip) incl. 3 hand-off tests; e2e 164/164 incl. 25 onboarding
+  checks; layout 0 issues; build OK. Captures at 320×640, 375×667, 390×844 for every state; transition measured
+  mid-flight (card grows 243 → 460 px over ≈0.35 s; time to explore counts 3h 50m → 2h 20m); reduced motion instant.
+- Fixed during checks: header progress collided with the brand (moved to its own row); at 320×640 the three-button
+  footer covered the card (only the primary stays pinned); the step-3 time strip scrolled away (now sticky); the card
+  stayed blank while growing (content fades in as it unfolds); duplicate screen-reader announcement of errors.

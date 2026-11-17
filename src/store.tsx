@@ -9,6 +9,7 @@ import { getAccount, type Account } from './api/account'
 import { getProfile, type DataError } from './api/repositories'
 import type { TravelerProfileRow } from './types/database.types'
 import { accessStore, resumeAccessOnLaunch, shouldOfferAccess } from './features/access/accessState'
+import { handoffStore } from './features/onboarding/handoff'
 
 export type LoadState = { status: 'loading' | 'ready' | 'error'; error?: string }
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -17,7 +18,8 @@ export type Route =
   | { name: 'welcome' }
   /** Account Access: Create account / Sign in / Continue as guest, once after onboarding. */
   /** Account access (SS screen). With `auth`, opens with the email field for that choice (e.g. from Profile). */
-  | { name: 'access'; auth?: 'create' | 'signin' }
+  /** `then`: where to continue afterwards (the onboarding's planning hand-off), instead of Home. */
+  | { name: 'access'; auth?: 'create' | 'signin'; then?: Route }
   | { name: 'discover' }
   | { name: 'find' }
   | { name: 'trip'; airport?: string; templateId?: string }
@@ -84,7 +86,8 @@ interface Ctx {
   notice: string | null
   setNotice: (n: string | null) => void
   welcomed: boolean
-  finishWelcome: (to: Route) => void
+  /** `handoff`: a planning draft built in the onboarding; it is kept through Account Access. */
+  finishWelcome: (to: Route, handoff?: Draft) => void
   /** Leaves Account Access for good: Home, with `to` (e.g. the account form) opened on top. */
   finishAccess: (to?: Route) => void
   /** Shows the onboarding again (from Home's "How SkyStop works"). */
@@ -105,7 +108,11 @@ function init() {
   let hint: HintStage = 1
   try { const v = sessionStorage.getItem(HINT_KEY); if (v) hint = v === 'done' ? 'done' : (Number(v) as HintStage) } catch { /* ignore */ }
   const welcomed = guestStore.hasWelcomed()
-  return { hint, welcomed, access: resumeAccessOnLaunch(welcomed, accessStore.get()) }
+  const access = resumeAccessOnLaunch(welcomed, accessStore.get())
+  // The onboarding's plan, kept while Account Access is open (survives a reload or an email sign-in link).
+  const handoff = access ? handoffStore.get<Route>() : null
+  if (!access) handoffStore.clear()
+  return { hint, welcomed, access, handoff }
 }
 
 /** Screen-to-screen motion with the View Transitions API: pushes slide in from the trailing edge, back slides out,
@@ -126,11 +133,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const refreshAccountRef = useRef<(() => Promise<void>) | null>(null)
   const [boot] = useState(init)
   const [welcomed, setWelcomed] = useState(boot.welcomed)
-  const [stack, setStack] = useState<Route[]>([{ name: !boot.welcomed ? 'welcome' : boot.access ? 'access' : 'discover' }])
+  const [stack, setStack] = useState<Route[]>([!boot.welcomed ? { name: 'welcome' } : boot.access ? { name: 'access', then: boot.handoff?.then } : { name: 'discover' }])
   const [plans, setPlans] = useState<Plan[]>([])
   const [catalogue, setCatalogue] = useState<LoadState>({ status: 'loading' })
   const [plansState, setPlansState] = useState<LoadState>({ status: 'loading' })
-  const [draft, setDraftState] = useState<Draft | null>(null)
+  const [draft, setDraftState] = useState<Draft | null>(boot.handoff?.draft ?? null)
   /** Every unsaved draft gets one client-generated id, reused if a save has to be retried. */
   const setDraft = useCallback((d: Draft | null) => setDraftState(d && !d.planId && !d.newId ? { ...d, newId: crypto.randomUUID() } : d), [])
   const [picked, setPicked] = useState<Picked | null>(null)
@@ -196,15 +203,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return p
   }
   /** Leaves the onboarding for good. It is replaced by Home, and the chosen route opens on top of Home. */
-  const finishWelcome = (to: Route) => {
+  const finishWelcome = (to: Route, handoff?: Draft) => {
     guestStore.markWelcomed(); setWelcomed(true)
-    if (shouldOfferAccess(accessStore.get(), account.status)) { accessStore.set('pending'); setStack([{ name: 'access' }]) }
-    else setStack(to.name === 'discover' ? [to] : [{ name: 'discover' }, to])
+    const d = handoff ? { ...handoff, newId: handoff.newId ?? crypto.randomUUID() } : null
+    if (d) setDraftState(d)
+    if (shouldOfferAccess(accessStore.get(), account.status)) {
+      // Account Access first; the plan and its destination are kept and opened once the visitor has chosen.
+      accessStore.set('pending')
+      if (d) handoffStore.set({ draft: d, then: to }); else handoffStore.clear()
+      setStack([{ name: 'access', then: to.name === 'discover' ? undefined : to }])
+    } else setStack(to.name === 'discover' ? [to] : [{ name: 'discover' }, to])
     window.scrollTo(0, 0)
   }
   const finishAccess = useCallback((to?: Route) => {
-    accessStore.set('done'); setNotice(null)
-    setStack(to ? [{ name: 'discover' }, to] : [{ name: 'discover' }]); window.scrollTo(0, 0)
+    accessStore.set('done'); setNotice(null); handoffStore.clear()
+    setStack((s) => {
+      const top = s[s.length - 1]
+      const next = to ?? (top?.name === 'access' ? top.then : undefined)
+      return next ? [{ name: 'discover' }, next] : [{ name: 'discover' }]
+    }); window.scrollTo(0, 0)
   }, [])
   const replayOnboarding = () => { setNotice(null); setStack((s) => [...s, { name: 'welcome' }]); window.scrollTo(0, 0) }
   const advanceHint = (to: 2 | 3) => { if (hint !== 'done' && hint < to) setHint(to) }

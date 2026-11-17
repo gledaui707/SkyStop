@@ -2,6 +2,8 @@ import type { Activity } from './types'
 import { localToInstant } from '../domain'
 
 export const DEFAULT_BUFFER = 120
+/** Planning buffer choices offered wherever a buffer is set (trip form, onboarding). */
+export const BUFFER_OPTIONS = [90, 120, 180]
 
 export function fmtDur(min: number) {
   const sign = min < 0 ? '-' : ''

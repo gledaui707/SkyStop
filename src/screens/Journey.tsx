@@ -6,6 +6,7 @@ import { airportInfo } from '../data/airportDirectory'
 import { getAirport, isSupported } from '../data/mock'
 import { fmtDur } from '../data/time'
 import { IMAGES, sized } from '../data/images'
+import { journeyDraft } from '../features/onboarding/handoff'
 import { ActionBar, Backdrop, Button, Header, cx } from '../components/ui'
 
 const day = (local: string) => new Date(`${local.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -105,8 +106,7 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
   )
   const conn = getAirport(j.connection), supported = isSupported(j.connection)
   const pct = (n: number) => `${(n / Math.max(j.layover.totalMin, 1)) * 100}%`
-  const flight = { name: `${city(j.connection)} layover`, airport: j.connection, arrival: j.layover.arrivalLocal, departure: j.layover.departureLocal,
-    bufferMin: j.layover.bufferMin, activityIds: [] as string[], origin: j.origin, destination: j.destination, bookingRef: j.ref }
+  const flight = journeyDraft(j)
   // The same sample journey is not saved twice: open the existing flight instead.
   const existing = plans.find((p) => p.bookingRef === j.ref && p.airport === j.connection && p.arrival.slice(0, 16) === j.layover.arrivalLocal.slice(0, 16))
   /** Saves the flight on its own (no activities yet), through the normal save path. */

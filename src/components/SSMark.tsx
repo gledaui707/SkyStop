@@ -3,7 +3,7 @@ import { cutout, letter } from '../features/splash/geometry'
 
 /** The SS monogram in white for dark or photographic backgrounds: a solid front S with the airplane cutout over a
  *  translucent rear S. Same geometry and layering as splashscreen/ss-coral-layered.svg. Decorative (aria-hidden). */
-export function SSMark({ className, rearOpacity = 0.45 }: { className?: string; rearOpacity?: number }) {
+export function SSMark({ className, rearOpacity = 0.45, color = '#fff' }: { className?: string; rearOpacity?: number; color?: string }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '')
   return (
     <svg className={className} viewBox="420 312 474 296" fill="none" aria-hidden="true" focusable="false">
@@ -16,8 +16,8 @@ export function SSMark({ className, rearOpacity = 0.45 }: { className?: string; 
         </mask>
       </defs>
       {/* Mask on the untransformed group, as in the original file, so it does not shift with the rear S. */}
-      <g mask={`url(#${id}-behind)`}><path d={letter} transform="translate(100 0)" fill="#fff" fillOpacity={rearOpacity} /></g>
-      <path d={letter} fill="#fff" mask={`url(#${id}-cut)`} />
+      <g mask={`url(#${id}-behind)`}><path d={letter} transform="translate(100 0)" fill={color} fillOpacity={rearOpacity} /></g>
+      <path d={letter} fill={color} mask={`url(#${id}-cut)`} />
     </svg>
   )
 }

@@ -114,8 +114,9 @@ Domain components reuse these: `BudgetHero` (time budget, `sunset`), `TripTicket
   fall back to the CSS screen fade.
 - Patterns: press-scale (`press`), sheet slide (`anim-sheet`), rise (`anim-rise`), Ken Burns on heroes, the coral tab
   indicator gliding between tabs.
-  Onboarding uses Motion springs (≈0.75 s) for its card morph; Account Access animates its light with CSS transforms.
-- Reduced motion: no view transitions, global CSS rule plus `useReducedMotion` in onboarding; everything becomes instant or still.
+  Onboarding (light `.onb` scope, `docs/ONBOARDING.md`) uses soft Motion springs, unfolding card parts and counting
+  numbers; Account Access animates its light with CSS transforms.
+- Reduced motion: no view transitions, global CSS rule plus `MotionGlobalConfig.instantAnimations` in onboarding; everything becomes instant or still.
 
 ## Accessibility rules
 Touch targets ≥ 44 px (`IconButton sm`, `Button sm`, chips `min-h-11`). Icon-only buttons need `label`. Coral text uses

@@ -1,0 +1,65 @@
+/* Interactive onboarding: a warm, light scope inside the dark app. The token overrides make the shared Tailwind
+   utilities (text-ink, bg-canvas, text-muted-text, …) render light here without touching the rest of the app.
+   Solid white surfaces with a hairline and a soft shadow; coral only for the booking's connection, the time to
+   explore, selections and the one primary action. No glass, no glow. */
+.onb {
+  --color-canvas: #f7f2ee;
+  --color-surface: #ffffff;
+  --color-ink: #1f1a17;
+  --color-muted-text: #6e625b;
+  --color-muted: #a2958e;
+  --color-line: rgb(31 26 23 / 0.09);
+  --color-ink-tint: rgb(31 26 23 / 0.05);
+  --color-accent-dark: #c23b24;
+  --color-accent-tint: rgb(234 81 57 / 0.1);
+  --color-aqua: #ffb5a5;
+  --color-success: #1d7f4c;
+  --color-success-tint: rgb(29 127 76 / 0.1);
+  --color-error: #b9321f;
+  --color-error-tint: rgb(185 50 31 / 0.08);
+  --onb-shadow: 0 1px 2px rgb(60 35 25 / 0.06), 0 10px 30px -8px rgb(60 35 25 / 0.14);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  color-scheme: light;
+}
+.onb .ph { background: linear-gradient(135deg, #efe5de, #f6ede7); }
+.onb-card {
+  background: #fff;
+  border: 1px solid rgb(31 26 23 / 0.06);
+  box-shadow: var(--onb-shadow);
+}
+.onb-btn-secondary {
+  background: #fff;
+  color: var(--color-ink);
+  border: 1px solid rgb(31 26 23 / 0.12);
+}
+.onb-btn-secondary:active { background: #f1ebe6; }
+
+/* Booking reference: six character slots over one real input (keyboard, paste, autofill and screen readers work). */
+.onb-slot {
+  display: grid;
+  place-items: center;
+  height: 3.5rem;
+  border-radius: 0.875rem;
+  background: #f7f2ee;
+  border: 1.5px solid transparent;
+  font: 700 1.5rem/1 ui-monospace, 'SF Mono', Menlo, monospace;
+  color: var(--color-ink);
+  transition: border-color 160ms, background-color 160ms;
+}
+.onb-slot[data-active='true'] { border-color: #ea5139; background: #fff; }
+.onb-slot[data-state='found'] { background: rgb(234 81 57 / 0.08); color: #c23b24; }
+.onb-slot[data-state='error'] { border-color: rgb(185 50 31 / 0.5); }
+.onb-caret { width: 2px; height: 1.6rem; border-radius: 2px; background: #ea5139; animation: onb-blink 1s steps(1) infinite; }
+@keyframes onb-blink { 50% { opacity: 0; } }
+
+/* Flight path between airports: a dashed line that fills with coral as the plane travels. */
+.onb-path { position: relative; height: 2px; flex: 1; min-width: 1rem; background-image: linear-gradient(90deg, rgb(31 26 23 / 0.22) 50%, transparent 0); background-size: 7px 2px; }
+.onb-path > i { position: absolute; inset: 0; transform-origin: left; background: #ea5139; border-radius: 2px; }
+
+/* Buffer bar: the part kept for the airport is hatched; the part to explore is coral. */
+.onb-hatch { background: repeating-linear-gradient(135deg, rgb(31 26 23 / 0.16) 0 3px, rgb(31 26 23 / 0.06) 3px 6px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .onb-caret { animation: none; }
+}

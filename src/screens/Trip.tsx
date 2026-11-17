@@ -3,13 +3,13 @@ import { Clock, ListChecks, Sparkles, X } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, AIRPORTS, TEMPLATES, getAirport, isSupported } from '../data/mock'
 import { airportInfo } from '../data/airportDirectory'
-import { budget, fmtDur, isOvernight, layoverMinutesAt, timeSpan } from '../data/time'
+import { BUFFER_OPTIONS, budget, fmtDur, isOvernight, layoverMinutesAt, timeSpan } from '../data/time'
 import { validateLayover } from '../domain'
 import { AirportPicker } from '../components/AirportPicker'
 import { ActionBar, Backdrop, Button, Header, Field, InfoTip, Photo, cx, inputCls, IconButton } from '../components/ui'
 import { IMAGES } from '../data/images'
 
-const BUFFERS = [90, 120, 180]
+const BUFFERS = BUFFER_OPTIONS
 const split = (v: string) => { const [d = '', t = ''] = v.split('T'); return { date: d, time: t.slice(0, 5) } }
 
 /** Plan a layover: enter the connecting airport and times.
