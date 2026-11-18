@@ -1,11 +1,15 @@
-# Onboarding: a short conversation, then Account Access
+# Onboarding: three photo slides, a short conversation, then Account Access
 
-First run: **Splash (unchanged) → Conversational onboarding → Account Access → Home.**
+First run: **Splash (unchanged) → three intro slides → conversational onboarding → Account Access → Home.**
+The slides are the original photographic screens ("Your layover, reimagined.", "Discover what's possible.", "Make every
+minute count.") restored unchanged in `src/features/onboarding/IntroSlides.tsx`: Get started moves through them and on
+the last one crossfades into the conversation; Skip goes to Account Access; Sign in opens the email sign-in form.
+`src/screens/Welcome.tsx` sequences the two.
 Code: `src/features/onboarding/Onboarding.tsx` (+ `onboarding.css`), `src/features/access/AccountAccess.tsx`,
 `enterAsGuest` in `src/store.tsx`, `src/features/splash/SSLoader.tsx` (+ `loader.css`).
 
 ## The conversation (scripted, deterministic; no AI, no typing)
-One async timeline (cancelled on unmount or Skip). It starts when the launch splash leaves the screen.
+One async timeline (cancelled on unmount or Skip). It starts after the slides (and never under the launch splash).
 
 | State | SkyStop | Visitor |
 |---|---|---|

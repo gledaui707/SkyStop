@@ -287,13 +287,27 @@ try {
   //      Create one). Only Get started plays the SS loader, starts the guest session and opens Home.
   const signupsBefore = fake.calls.filter((c) => c.includes('/auth/v1/signup')).length;
   const appReady = (pg) => pg.waitForFunction(() => !document.querySelector('[inert]')); // after the launch splash
+  // The three photo intro slides come first: Get started moves through them and the last one opens the conversation.
+  const throughSlides = async (pg) => {
+    await pg.getByText('Your layover, reimagined.').waitFor({ timeout: 6000 });
+    for (let k = 0; k < 3; k++) { await pg.getByRole('button', { name: 'Get started' }).click(); await pg.waitForTimeout(450); }
+  };
   const loaderSeen = (pg) => pg.evaluate(() => { window.__ssl = false; new MutationObserver(() => { if (document.querySelector('.ss-loader')) window.__ssl = true; }).observe(document.body, { childList: true, subtree: true }); });
   {
     const o = await newGuest(undefined, { firstVisit: true, reducedMotion: 'no-preference' });
     const P = o.page;
     await P.goto(BASE);
     await appReady(P); await loaderSeen(P);
-    // The conversation starts by itself after the splash
+    // First the three photo slides (after the splash), then the conversation
+    await P.getByText('Your layover, reimagined.').waitFor();
+    check('intro: the three photo slides come first (progress for 3 screens, Get started, Sign in, Skip)',
+      (await P.getByRole('tab', { name: /Screen \d of 3/ }).count()) === 3 && await P.getByRole('button', { name: 'Get started' }).isVisible()
+      && await P.getByRole('button', { name: 'Sign in' }).isVisible() && await P.getByRole('button', { name: 'Skip' }).isVisible() && !(await visible(P, 'Already have a flight booked?')));
+    await P.getByRole('button', { name: 'Get started' }).click(); await P.getByText('Discover what’s possible.').waitFor();
+    await P.waitForTimeout(450); await P.getByRole('button', { name: 'Get started' }).click(); await P.getByText('Make every minute count.').waitFor();
+    check('intro: Get started moves through the slides (2: Discover what’s possible, 3: Make every minute count)', true);
+    await P.waitForTimeout(450); await P.getByRole('button', { name: 'Get started' }).click();
+    // The conversation starts by itself after the last slide
     await P.getByText('Hi, I’m SkyStop.').waitFor({ timeout: 4000 });
     await P.getByRole('button', { name: 'Yes, I’m booked' }).waitFor({ timeout: 4000 });
     check('onboarding: the conversation starts by itself; SkyStop asks and the choices appear, with Skip and no Next/Continue buttons',
@@ -341,6 +355,7 @@ try {
     // Replay: plays the conversation again; it does not sign out, ask for access again or replay the guest loader
     await loaderSeen(P);
     await P.getByRole('button', { name: 'Replay introduction' }).click();
+    await throughSlides(P);
     await P.getByRole('button', { name: 'Not yet' }).waitFor({ timeout: 4000 });
     await P.getByRole('button', { name: 'Not yet' }).click();
     await P.getByText('You can explore your options before booking.').waitFor({ timeout: 3000 });
@@ -355,12 +370,24 @@ try {
     await o.page.goto(BASE); await appReady(o.page);
     await o.page.getByRole('button', { name: 'Skip' }).click();
     await o.page.getByRole('button', { name: 'Get started' }).waitFor();
-    check('onboarding: Skip opens Account Access without signing in', await o.page.getByRole('heading', { name: 'SkyStop', level: 1 }).isVisible() && await o.page.getByText('Plan your layover', { exact: true }).isVisible() && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore + 1);
+    check('onboarding: Skip on the slides opens Account Access without signing in', await o.page.getByRole('heading', { name: 'SkyStop', level: 1 }).isVisible() && await o.page.getByText('Plan your layover', { exact: true }).isVisible() && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore + 1);
     check('access: decorative layers ignore pointer events; glass uses a real backdrop blur', await o.page.evaluate(() => getComputedStyle(document.querySelector('.access__stage')).pointerEvents === 'none' && /blur/.test(getComputedStyle(document.querySelector('.access__strip')).backdropFilter)));
     await o.page.reload();
     await o.page.getByRole('button', { name: 'Get started' }).waitFor();
     check('access: leaving without choosing shows it again on the next launch', !(await visible(o.page, 'Already have a flight booked?')));
     await o.ctx.close();
+  }
+  {
+    // Sign in on the slides opens the email sign-in form; Not now comes back to the slides
+    const si = await newGuest(undefined, { firstVisit: true });
+    await si.page.goto(BASE); await si.page.getByText('Your layover, reimagined.').waitFor(); await appReady(si.page);
+    await si.page.getByRole('button', { name: 'Sign in' }).click();
+    await si.page.getByRole('button', { name: 'Send sign-in link' }).waitFor();
+    check('intro: Sign in on the slides opens the email sign-in form', await si.page.getByLabel('Email').isVisible());
+    await si.page.getByRole('button', { name: 'Not now' }).click();
+    await si.page.getByText('Your layover, reimagined.').waitFor();
+    check('intro: Not now returns to the slides', await si.page.getByRole('button', { name: 'Get started' }).isVisible());
+    await si.ctx.close();
   }
   // Log in / Create one: straight to the email form, never the guest loader
   for (const [action, form, submit] of [['Log in', 'Log in', 'Send sign-in link'], ['Create one', 'Create account', 'Send confirmation link']]) {
@@ -413,6 +440,7 @@ try {
     // Reduced motion: the same automatic progression, with instant changes
     const rm = await newGuest(undefined, { firstVisit: true, reducedMotion: 'reduce' });
     await rm.page.goto(BASE);
+    await throughSlides(rm.page);
     await rm.page.getByRole('button', { name: 'Yes, I’m booked' }).waitFor({ timeout: 4000 });
     const line = await rm.page.getByText('Already have a flight booked?').evaluate((e) => [...e.querySelectorAll('span')].map((s) => getComputedStyle(s).opacity + getComputedStyle(s).filter).join('|'));
     await rm.page.getByRole('button', { name: 'Yes, I’m booked' }).click();

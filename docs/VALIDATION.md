@@ -370,3 +370,10 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   conversation starting under the splash (now waits for it) and a distorted choice-to-reply morph (replaced by a
   glide-in reply).
 - Checks: e2e 156/156; unit 148 passed (one hosted skip); layout 0 issues; build OK.
+
+### Intro slides restored before the conversation (owner feedback, 18 Nov 2026)
+
+- Owner: the first three screens should not have been removed. Restored the original photographic slides unchanged
+  (from history) as `IntroSlides`; the flow is splash → slides → conversation → Account Access → Home.
+- Checks: e2e 161/161 (new: slides first, Get started through the slides, Sign in / Not now on the slides); build OK;
+  captures at 390 and 320 px through the slides into the conversation, no sideways scroll.
