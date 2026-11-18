@@ -10,6 +10,7 @@ import { getProfile, type DataError } from './api/repositories'
 import type { TravelerProfileRow } from './types/database.types'
 import { accessStore, resumeAccessOnLaunch, shouldOfferAccess } from './features/access/accessState'
 import { handoffStore } from './features/onboarding/handoff'
+import { ensureGuestSession } from './api/session'
 
 export type LoadState = { status: 'loading' | 'ready' | 'error'; error?: string }
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -90,6 +91,10 @@ interface Ctx {
   finishWelcome: (to: Route, handoff?: Draft) => void
   /** Leaves Account Access for good: Home, with `to` (e.g. the account form) opened on top. */
   finishAccess: (to?: Route) => void
+  /** Get started on Account Access: the guest-entry transition (SS loader) → anonymous session (reused if present)
+   *  and the airport data → Home. One run at a time. 'error' when it failed (the screen offers a retry). */
+  enterAsGuest: () => Promise<void>
+  entering: 'idle' | 'loading' | 'error'
   /** Shows the onboarding again (from Home's "How SkyStop works"). */
   replayOnboarding: () => void
   hint: HintStage
@@ -107,6 +112,10 @@ function init() {
   if (q === 'new') { guestStore.reset(); accessStore.reset(); try { sessionStorage.removeItem(HINT_KEY) } catch { /* ignore */ } }
   let hint: HintStage = 1
   try { const v = sessionStorage.getItem(HINT_KEY); if (v) hint = v === 'done' ? 'done' : (Number(v) as HintStage) } catch { /* ignore */ }
+  // A browser that already has a SkyStop session (a guest or a signed-in account) has been here: no onboarding again.
+  let hasSession = false
+  try { hasSession = Object.keys(localStorage).some((k) => /^sb-.*-auth-token$/.test(k)) } catch { /* ignore */ }
+  if (hasSession && !guestStore.hasWelcomed()) guestStore.markWelcomed()
   const welcomed = guestStore.hasWelcomed()
   const access = resumeAccessOnLaunch(welcomed, accessStore.get())
   // The onboarding's plan, kept while Account Access is open (survives a reload or an email sign-in link).
@@ -225,12 +234,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return next ? [{ name: 'discover' }, next] : [{ name: 'discover' }]
     }); window.scrollTo(0, 0)
   }, [])
+  // Guest entry (Get started). The loader shows for at least one assembly of the logo so it reads as a transition.
+  const [entering, setEntering] = useState<'idle' | 'loading' | 'error'>('idle')
+  const enteringRef = useRef(false)
+  const catalogueRef = useRef(catalogue); catalogueRef.current = catalogue
+  const enterAsGuest = useCallback(async () => {
+    if (enteringRef.current) return
+    enteringRef.current = true; setEntering('loading')
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+    const reduce = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const t0 = performance.now()
+    try {
+      await ensureGuestSession(getSupabase())
+      await refreshAccountRef.current?.()
+      // Home needs the airport data; wait for the load already in flight (it has its own timeout and retry).
+      while (catalogueRef.current.status === 'loading') await sleep(80)
+      if (catalogueRef.current.status === 'error') { reload(); throw new Error('catalogue') }
+      const rest = (reduce ? 300 : 1900) - (performance.now() - t0)
+      if (rest > 0) await sleep(rest)
+      finishAccess()
+      setEntering('idle')
+    } catch {
+      setEntering('error')
+    } finally { enteringRef.current = false }
+  }, [finishAccess, reload])
   const replayOnboarding = () => { setNotice(null); setStack((s) => [...s, { name: 'welcome' }]); window.scrollTo(0, 0) }
   const advanceHint = (to: 2 | 3) => { if (hint !== 'done' && hint < to) setHint(to) }
   const nextHint = () => { if (hint === 'done') return; setHint(hint >= 3 ? 'done' : ((hint + 1) as HintStage)) }
   const skipHints = () => setHint('done')
   return (
-    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, finishAccess, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
+    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, finishAccess, enterAsGuest, entering, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
       {children}
     </C.Provider>
   )

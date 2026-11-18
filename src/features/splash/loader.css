@@ -10,7 +10,12 @@
   overflow: hidden;
   isolation: isolate;
   background: linear-gradient(155deg, #e35332 0%, #cc432c 62%, #b93727 100%);
+  animation: ss-loader-in 220ms ease-out both;
+  z-index: 2147483000;
 }
+.ss-loader--out { animation: ss-loader-away 380ms ease-in both; pointer-events: none; }
+@keyframes ss-loader-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ss-loader-away { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.04); } }
 .ss-loader::before {
   content: "";
   position: absolute;

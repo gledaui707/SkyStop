@@ -68,10 +68,11 @@ function GlassMonogram() {
   )
 }
 
-/** Account Access: shown once after onboarding. The animated light and glass are the screen; three plain choices sit below.
- *  Create account / Sign in open the email field here (also when opened from Profile); guests go to Home (no account). */
+/** Account Access: shown once after onboarding. The animated light and glass are the screen; three choices sit below:
+ *  Get started (guest: the SS loader transition, an anonymous session, then Home), Log in, and "No account yet? Create
+ *  one". Log in / Create one open the email field here (also when opened from Profile), without the guest transition. */
 export function AccountAccess() {
-  const { finishAccess, account, route, back, plans, refreshAccount } = useApp()
+  const { finishAccess, account, route, back, refreshAccount, enterAsGuest, entering } = useApp()
   const root = useRef<HTMLDivElement>(null)
   const opened = route.name === 'access' ? route.auth : undefined // opened from Profile with a choice
   const [mode, setMode] = useState<'create' | 'signin' | null>(opened ?? null)
@@ -90,12 +91,13 @@ export function AccountAccess() {
   // First-run only: a visitor who already has a session (a guest who saved something, or an email link that just
   // signed them in) has chosen. When opened from Profile, the visitor is here on purpose.
   useEffect(() => {
-    if (opened) return
+    // Not while Get started is running: it opens Home itself once the transition has played.
+    if (opened || entering !== 'idle') return
     if (account.status !== 'none') { finishAccess(); return }
     let live = true
     void getSupabase().auth.getSession().then(({ data }) => { if (live && data.session) finishAccess() }).catch(() => { /* offline: stay */ })
     return () => { live = false }
-  }, [account.status, finishAccess, opened])
+  }, [account.status, finishAccess, opened, entering])
 
   // Battery: pause the ambient motion while the page is in the background.
   useEffect(() => {
@@ -140,9 +142,9 @@ export function AccountAccess() {
               <button type="button" className="access__guest press" onClick={() => (opened ? back() : finishAccess())}>Done<ArrowRight size={18} aria-hidden="true" /></button>
             </div>
           ) : (
-            <form className="access__actions" aria-label={mode === 'create' ? 'Create account' : 'Sign in'} noValidate
+            <form className="access__actions" aria-label={mode === 'create' ? 'Create account' : 'Log in'} noValidate
               onSubmit={(e) => { e.preventDefault(); void submit() }}>
-              <p className="access__title access__title--start">{mode === 'create' ? 'Create account' : 'Sign in'}</p>
+              <p className="access__title access__title--start">{mode === 'create' ? 'Create account' : 'Log in'}</p>
               {/* the whole form sits in the frosted tray */}
               <div className="access__tray glass-premium grid grid-cols-[minmax(0,1fr)] gap-3 rounded-tray p-4">
                 <label className="access__label">Email
@@ -152,21 +154,23 @@ export function AccountAccess() {
                 <Button type="submit" className="w-full" disabled={busy || !email.trim()}>
                   {busy ? 'Sending…' : mode === 'create' ? 'Send confirmation link' : 'Send sign-in link'}</Button>
               </div>
-              <p className="access__switch">{mode === 'create' ? 'Already have an account?' : 'New to SkyStop?'}{' '}
-                <button type="button" onClick={() => { setMode(mode === 'create' ? 'signin' : 'create'); setError(null) }}>{mode === 'create' ? 'Sign in' : 'Create account'}</button></p>
+              <p className="access__switch">{mode === 'create' ? 'Already have an account?' : 'No account yet?'}{' '}
+                <button type="button" onClick={() => { setMode(mode === 'create' ? 'signin' : 'create'); setError(null) }}>{mode === 'create' ? 'Log in' : 'Create one'}</button></p>
               <button type="button" className="access__guest press" onClick={close}>Not now</button>
             </form>
           )
         ) : (
           <div className="access__actions" role="group" aria-label="Account">
+            {entering === 'error' && (
+              <p role="alert" className="access__error access__error--center">Couldn’t start. Check your connection and try again.</p>)}
             {/* Same frosted tray and pills as the app's action bar (e.g. Explore / Save to My flights). */}
             <div className="access__tray glass-premium grid grid-cols-[minmax(0,1fr)] gap-2 rounded-tray p-2.5">
-              <Button className="w-full" onClick={() => setMode('create')}>Create account</Button>
-              <Button variant="secondary" className="w-full" onClick={() => setMode('signin')}>Sign in</Button>
+              <Button className="w-full" disabled={entering === 'loading'} aria-busy={entering === 'loading'} onClick={() => void enterAsGuest()}>
+                {entering === 'error' ? 'Try again' : 'Get started'}</Button>
+              <Button variant="secondary" className="w-full" disabled={entering === 'loading'} onClick={() => setMode('signin')}>Log in</Button>
             </div>
-            <button type="button" className="access__guest press" onClick={() => finishAccess()}>
-              Continue as guest<ArrowRight size={18} aria-hidden="true" />
-            </button>
+            <p className="access__switch">No account yet?{' '}
+              <button type="button" disabled={entering === 'loading'} onClick={() => setMode('create')}>Create one</button></p>
           </div>
         )}
       </div>

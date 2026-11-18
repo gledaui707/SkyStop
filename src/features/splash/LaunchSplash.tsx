@@ -3,7 +3,11 @@ import { airplane, cutout, letter } from './geometry'
 import './splash.css'
 
 export function LaunchSplash({ children }: { children: ReactNode }) {
-  const [playing, setPlaying] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const [playing, setPlaying] = useState(() => {
+    const on = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (on) document.documentElement.dataset.splash = 'on' // set before the app's own effects run
+    return on
+  })
   const id = useId()
   const flightMask = (
     <>
@@ -11,6 +15,14 @@ export function LaunchSplash({ children }: { children: ReactNode }) {
       <path className="launch-splash__cutout" d={cutout} fill="black" />
     </>
   )
+
+  // Tell the app when the splash is on screen (the onboarding conversation starts only after it). Visuals unchanged.
+  useEffect(() => {
+    const root = document.documentElement
+    if (playing) { root.dataset.splash = 'on'; return }
+    delete root.dataset.splash
+    window.dispatchEvent(new Event('skystop:splash-done'))
+  }, [playing])
 
   useEffect(() => {
     if (!playing) return

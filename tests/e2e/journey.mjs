@@ -283,78 +283,53 @@ try {
     await v.ctx.close();
   }
 
-  // ---- 4b. Onboarding: interactive and booking-first. Booking -> time to explore -> activities -> Start planning,
-  //      with the plan handed to the builder through Account Access. Plus Skip, Back, keys, manual entry, Sign in,
-  //      replay and reduced motion.
+  // ---- 4b. Onboarding: a scripted conversation (one tap, no Next buttons) → Account Access (Get started / Log in /
+  //      Create one). Only Get started plays the SS loader, starts the guest session and opens Home.
   const signupsBefore = fake.calls.filter((c) => c.includes('/auth/v1/signup')).length;
   const appReady = (pg) => pg.waitForFunction(() => !document.querySelector('[inert]')); // after the launch splash
+  const loaderSeen = (pg) => pg.evaluate(() => { window.__ssl = false; new MutationObserver(() => { if (document.querySelector('.ss-loader')) window.__ssl = true; }).observe(document.body, { childList: true, subtree: true }); });
   {
     const o = await newGuest(undefined, { firstVisit: true, reducedMotion: 'no-preference' });
     const P = o.page;
-    // The airport data is slow on purpose here: the onboarding must not wait for it.
-    let slow = true;
-    await o.ctx.route('**/rest/v1/airports**', async (r) => { if (slow) await new Promise((z) => setTimeout(z, 4000)); return fake.handler(r); });
     await P.goto(BASE);
-    await P.getByText('Your layover, reimagined.').waitFor({ timeout: 3500 }); await appReady(P);
-    slow = false;
-    const next = () => P.getByRole('button', { name: /^(Next|Get started)/ });
-    const title = async (t) => { await P.getByRole('heading', { name: t, level: 1 }).waitFor(); await P.waitForTimeout(450); };
-    check('onboarding: opens at once, without waiting for the airport data (no loading screen first)', !(await visible(P, 'Loading SkyStop')));
-    check('onboarding: 3 steps on an example journey, Skip, no action until the step is done, no booking entry inside it',
-      await P.getByRole('button', { name: 'Skip' }).isVisible() && (await P.getByRole('button', { name: /^Step \d of 3/ }).count()) === 3 && (await next().count()) === 0
-      && await visible(P, 'Example journey · AXR7KD') && (await P.getByLabel('Booking reference').count()) === 0);
-    check('onboarding: no account is created by viewing it', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
-    // Step 1: drag the plane along the flight
-    await P.waitForTimeout(600);
-    const pb = await P.getByRole('button', { name: 'Fly to Singapore' }).boundingBox();
-    await P.mouse.move(pb.x + 24, pb.y + 24); await P.mouse.down();
-    for (let k = 1; k <= 4; k++) await P.mouse.move(pb.x + 24 + k * 15, pb.y + 24);
-    await P.mouse.up(); await P.waitForTimeout(700);
-    check('onboarding step 1: a short drag springs back (not landed yet)', (await P.getByRole('button', { name: 'Fly to Singapore' }).count()) === 1 && (await next().count()) === 0 && await visible(P, 'Drag the plane to Singapore'));
-    await P.mouse.move(pb.x + 24, pb.y + 24); await P.mouse.down();
-    for (let k = 1; k <= 14; k++) await P.mouse.move(pb.x + 24 + k * 25, pb.y + 24);
-    await P.mouse.up();
-    await P.getByRole('button', { name: 'Landed in Singapore' }).waitFor(); await P.waitForTimeout(1200);
-    const jr = (await P.getByRole('region', { name: 'Your journey' }).innerText()).replace(/\s+/g, ' ');
-    check('onboarding step 1: dragging the plane to Singapore lands it: arrival, onward flight and the connection appear', /Landed 11:15/.test(jr) && /Next flight · CDG 23:35/.test(jr) && /Connection 12h 20m/.test(jr) && (await next().count()) === 1, jr);
-    await next().click();
-    // Step 2: buffer question
-    await title('Know your time to explore.');
-    const lay = async () => (await P.getByRole('region', { name: 'Your layover' }).innerText()).replace(/\s+/g, ' ');
-    check('onboarding step 2: asks for a buffer before showing the time to explore', /Choose below/.test(await lay()) && (await next().count()) === 0);
-    await P.getByRole('radio', { name: /^2h/ }).click(); await P.waitForTimeout(800);
-    check('onboarding step 2: 2h → 12h 20m − 2h = 10h 20m to explore', /Connection 12h 20m/.test(await lay()) && /To explore 10h 20m/.test(await lay()));
-    await P.getByRole('radio', { name: /^3h/ }).click(); await P.waitForTimeout(800);
-    check('onboarding step 2: changing to 3h counts down to 9h 20m; flight times unchanged', /To explore 9h 20m/.test(await lay()) && /11:15.*23:35/.test(await lay()));
-    await P.locator('h1').click(); await P.keyboard.press('ArrowLeft'); await title('Your layover, reimagined.');
-    check('onboarding: Back (arrow key) keeps the landed plane', await P.getByRole('button', { name: 'Landed in Singapore' }).isVisible());
-    await P.keyboard.press('ArrowRight'); await title('Know your time to explore.');
-    check('onboarding: forward again keeps the chosen buffer', (await P.getByRole('radio', { name: /^3h/ }).getAttribute('aria-checked')) === 'true');
-    await next().click();
-    // Step 3: real Changi activities; time left updates
-    await title('Find your next experience.');
-    const cards = P.getByRole('region', { name: 'Activities in Singapore' }).getByRole('button');
-    await cards.first().waitFor();
-    const strip = async () => (await P.getByRole('region', { name: 'Your time' }).innerText()).replace(/\s+/g, ' ');
-    check('onboarding step 3: real activities at Changi, nothing picked, no action yet', (await cards.count()) >= 2 && (await next().count()) === 0 && /Time left to explore 9h 20m/.test(await strip()));
-    const label0 = await cards.nth(0).getAttribute('aria-label'), label1 = await cards.nth(1).getAttribute('aria-label');
-    const dur = (l) => { const m = /, (?:(\d+)h)? ?(?:(\d+)m)?$/.exec(l); return (+(m[1] ?? 0)) * 60 + (+(m[2] ?? 0)); };
-    await cards.nth(0).click(); await cards.nth(1).click(); await P.waitForTimeout(900);
-    const s2 = await strip();
-    const leftMin = ((m) => (+(m[1] ?? 0)) * 60 + (+(m[2] ?? 0)))(/Time left to explore (?:(\d+)h)? ?(?:(\d+)m)?/.exec(s2));
-    check('onboarding step 3: two picks update the time left (planner rules) and show they fit', leftMin <= 560 - dur(label0) - dur(label1) && leftMin > 0 && /Fits your time/.test(s2), `${s2} | ${label0} | ${label1}`);
-    await cards.nth(1).click(); await P.waitForTimeout(700);
-    check('onboarding step 3: tapping again deselects and gives the time back', (await cards.nth(1).getAttribute('aria-pressed')) === 'false' && (await strip()) !== s2);
-    // Get started: Account Access (optional) → the booking-reference screen
-    await P.getByRole('button', { name: /^Get started/ }).click();
-    await P.getByRole('button', { name: /Continue as guest/ }).waitFor();
-    check('onboarding: Get started opens Account Access (Create account, Sign in, Continue as guest)', await P.getByRole('button', { name: 'Create account' }).isVisible() && await P.getByRole('button', { name: 'Sign in' }).isVisible());
-    await P.getByRole('button', { name: /Continue as guest/ }).click();
-    await P.getByRole('heading', { name: 'Find your journey' }).waitFor();
-    check('onboarding → booking: after Continue as guest, the booking-reference screen opens', await P.getByLabel('Booking reference').isVisible() && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
-    await P.reload(); await P.waitForTimeout(2400);
-    check('onboarding + access: a returning visitor sees neither again', !(await visible(P, 'Your layover, reimagined.')) && !(await visible(P, 'Create account')));
-    await P.getByRole('button', { name: 'Home' }).first().click();
+    await appReady(P); await loaderSeen(P);
+    // The conversation starts by itself after the splash
+    await P.getByText('Hi, I’m SkyStop.').waitFor({ timeout: 4000 });
+    await P.getByRole('button', { name: 'Yes, I’m booked' }).waitFor({ timeout: 4000 });
+    check('onboarding: the conversation starts by itself; SkyStop asks and the choices appear, with Skip and no Next/Continue buttons',
+      await visible(P, 'Already have a flight booked?') && await P.getByRole('button', { name: 'Not yet' }).isVisible() && await P.getByRole('button', { name: 'Skip' }).isVisible()
+      && (await P.getByRole('button', { name: /^(Next|Continue|Get started)$/ }).count()) === 0);
+    check('onboarding: no account or guest session is created by the conversation', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
+    await P.getByRole('button', { name: 'Yes, I’m booked' }).click();
+    await P.waitForTimeout(120);
+    const feedback = await P.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.includes('Yes, I’m booked')); return b ? getComputedStyle(b).backgroundColor : '' });
+    // Rapid extra taps are ignored (the answer is taken once)
+    await P.getByRole('button', { name: 'Yes, I’m booked' }).click({ timeout: 300 }).catch(() => {});
+    check('onboarding: the tapped choice turns coral at once and the other choice folds away', /234, 81, 57|rgb\(234/.test(feedback) && (await P.getByRole('button', { name: 'Not yet' }).count()) === 0, feedback);
+    await P.getByText('Perfect. Let’s make the most of your layover.').waitFor({ timeout: 3000 });
+    check('onboarding: the answer becomes a reply and SkyStop acknowledges it, with no button to press', (await P.getByText('Yes, I’m booked', { exact: true }).count()) === 1 && (await P.getByRole('button', { name: /^(Next|Continue)$/ }).count()) === 0);
+    await P.getByText('There’s more to a layover than waiting.').waitFor({ timeout: 3000 });
+    await P.getByRole('list', { name: 'Airport experiences' }).waitFor();
+    check('onboarding: then, by itself: a preview of airport experiences (Dining, Shopping, Relaxation, Attractions)',
+      ['Dining', 'Shopping', 'Relaxation', 'Attractions'].every((t) => true) && /Dining.*Shopping.*Relaxation.*Attractions/s.test(await P.getByRole('list', { name: 'Airport experiences' }).innerText()));
+    await P.getByText('Make every minute count.').waitFor({ timeout: 4000 }); await P.waitForTimeout(1900);
+    const demo = (await P.getByLabel(/^Example: 5h layover/).innerText()).replace(/\s+/g, ' ');
+    check('onboarding: then a time demonstration counts to the result: 5h − 1h 30m = 3h 30m to explore', /Layover 5h/.test(demo) && /Planning buffer − 1h 30m/.test(demo) && /To explore 3h 30m/.test(demo), demo);
+    // Ends at Account Access by itself
+    await P.getByRole('button', { name: 'Get started' }).waitFor({ timeout: 5000 });
+    const actions = await P.getByRole('group', { name: 'Account' }).getByRole('button').allInnerTexts();
+    check('onboarding → Account Access by itself: Get started, Log in, No account yet? Create one', JSON.stringify(actions) === JSON.stringify(['Get started', 'Log in', 'Create one']) && await visible(P, 'No account yet?'), JSON.stringify(actions));
+    check('loading: the SS loader has not appeared during onboarding or Account Access', !(await P.evaluate(() => window.__ssl)));
+    // Get started → SS loader → guest session → Home
+    await P.getByRole('button', { name: 'Get started' }).click();
+    await P.locator('.ss-loader').waitFor({ timeout: 1000 });
+    const during = { loader: await P.locator('.ss-loader').isVisible(), text: (await P.locator('.ss-loader').innerText()).trim(), disabled: await P.getByRole('button', { name: 'Get started' }).isDisabled() };
+    check('Get started: the SS loader plays at once (no progress text), the button stops taking taps', during.loader && during.disabled && !/fetch|initiali|prepar|loading airport|sample/i.test(during.text), JSON.stringify(during));
+    await P.getByRole('button', { name: /^Add flight/ }).first().waitFor({ timeout: 8000 });
+    await P.waitForTimeout(500);
+    check('Get started: one anonymous guest session is created, then Home opens and the loader leaves', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore + 1 && (await P.locator('.ss-loader').count()) === 0);
+    await P.reload(); await P.waitForTimeout(2600);
+    check('returning guest: neither the conversation nor Account Access again; straight to Home', !(await visible(P, 'Already have a flight booked?')) && !(await visible(P, 'No account yet?')) && await P.getByRole('button', { name: /^Add flight/ }).first().isVisible());
     await P.getByRole('button', { name: 'Profile' }).click();
     await P.getByRole('button', { name: /^About & data/ }).click();
     {
@@ -363,60 +338,55 @@ try {
         about.includes('AXR7KD') && /changiairport\.com/.test(about) && /simulated/i.test(about) && /planning buffer/i.test(about) && /never decides whether you may enter/.test(about), about.slice(0, 200));
       await P.getByRole('button', { name: 'Close' }).click();
     }
+    // Replay: plays the conversation again; it does not sign out, ask for access again or replay the guest loader
+    await loaderSeen(P);
     await P.getByRole('button', { name: 'Replay introduction' }).click();
-    await P.getByText('Your layover, reimagined.').waitFor();
-    await P.getByRole('button', { name: 'Skip' }).click();
-    await P.getByRole('heading', { name: 'Find your journey' }).waitFor();
-    check('onboarding: replay from Profile; Skip goes to the booking screen without a second Account Access', !(await visible(P, 'Create account')) && !(await visible(P, 'Your layover, reimagined.')));
+    await P.getByRole('button', { name: 'Not yet' }).waitFor({ timeout: 4000 });
+    await P.getByRole('button', { name: 'Not yet' }).click();
+    await P.getByText('You can explore your options before booking.').waitFor({ timeout: 3000 });
+    check('replay: the other answer gets its own acknowledgement', true);
+    await P.getByRole('button', { name: /^Add flight/ }).first().waitFor({ timeout: 15000 });
+    check('replay: ends at Home for an existing guest: no Account Access, no guest loader, same session', !(await visible(P, 'No account yet?')) && !(await P.evaluate(() => window.__ssl)) && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore + 1);
     await o.ctx.close();
   }
   {
-    // A returning visitor whose airport data is slow sees the SS loader (no wordmark), then Home.
-    const l = await newGuest(undefined, { reducedMotion: 'no-preference' });
-    await l.ctx.addInitScript(() => { try { localStorage.setItem('skystop.access.v1', 'done'); } catch { /* ignore */ } });
-    await l.ctx.route('**/rest/v1/airports**', async (r) => { await new Promise((z) => setTimeout(z, 3500)); return fake.handler(r); });
-    await l.page.goto(BASE); await l.page.waitForTimeout(2300);
-    const ld = await l.page.evaluate(() => { const s = document.querySelector('.ss-loader'); return s ? { text: s.innerText.trim(), svg: !!s.querySelector('svg'), anim: getComputedStyle(s.querySelector('.ss-loader__front')).animationName } : null; });
-    check('loading: a slow start shows the looping SS logo (no "Loading SkyStop…" text on screen), then Home', !!ld && ld.svg && ld.anim === 'ss-loader-front' && !(await l.page.getByText('Loading SkyStop…').count()), JSON.stringify(ld));
-    await l.page.getByRole('button', { name: /^Add flight/ }).first().waitFor({ timeout: 15000 });
-    await l.ctx.close();
-  }
-  {
-    // Skip -> Account Access (unchanged screen and rules)
+    // Skip → Account Access (not signed in); the screen comes back on the next launch until a choice is made
     const o = await newGuest(undefined, { firstVisit: true, reducedMotion: 'no-preference' });
-    await o.page.goto(BASE); await o.page.getByText('Your layover, reimagined.').waitFor();
+    await o.page.goto(BASE); await appReady(o.page);
     await o.page.getByRole('button', { name: 'Skip' }).click();
-    await o.page.getByRole('button', { name: 'Create account' }).waitFor();
-    check('onboarding: Skip opens Account Access (Create account, Sign in, Continue as guest)', await o.page.getByRole('heading', { name: 'SkyStop', level: 1 }).isVisible() && await o.page.getByText('Plan your layover', { exact: true }).isVisible() && await o.page.getByRole('button', { name: 'Sign in' }).isVisible() && await o.page.getByRole('button', { name: /Continue as guest/ }).isVisible());
+    await o.page.getByRole('button', { name: 'Get started' }).waitFor();
+    check('onboarding: Skip opens Account Access without signing in', await o.page.getByRole('heading', { name: 'SkyStop', level: 1 }).isVisible() && await o.page.getByText('Plan your layover', { exact: true }).isVisible() && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore + 1);
     check('access: decorative layers ignore pointer events; glass uses a real backdrop blur', await o.page.evaluate(() => getComputedStyle(document.querySelector('.access__stage')).pointerEvents === 'none' && /blur/.test(getComputedStyle(document.querySelector('.access__strip')).backdropFilter)));
-    check('access: no account is created by viewing it', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
     await o.page.reload();
-    await o.page.getByRole('button', { name: 'Create account' }).waitFor();
-    check('access: leaving without choosing shows it again on the next launch', !(await visible(o.page, 'Your layover, reimagined.')));
-    await o.page.getByRole('button', { name: /Continue as guest/ }).click();
-    await o.page.getByRole('heading', { name: 'Find your journey' }).waitFor();
-    check('access: Continue as guest continues to the booking screen without creating an account', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
+    await o.page.getByRole('button', { name: 'Get started' }).waitFor();
+    check('access: leaving without choosing shows it again on the next launch', !(await visible(o.page, 'Already have a flight booked?')));
     await o.ctx.close();
   }
-  {
-    // Manual entry comes after onboarding: Skip -> guest -> booking screen -> "I can't find my flight"
-    const m = await newGuest(undefined, { firstVisit: true });
-    await m.page.goto(BASE); await m.page.getByText('Your layover, reimagined.').waitFor(); await appReady(m.page);
-    await m.page.getByRole('button', { name: 'Skip' }).click();
-    await m.page.getByRole('button', { name: /Continue as guest/ }).click();
-    await m.page.getByRole('button', { name: "I can't find my flight" }).click();
-    await m.page.getByRole('combobox', { name: 'Connecting airport' }).waitFor();
-    check('onboarding: manual flight entry is one tap away on the booking screen after onboarding (I can’t find my flight)', await m.page.getByRole('region', { name: 'Connection' }).isVisible());
-    await m.ctx.close();
-  }
-  // Account Access -> the email field opens on the same screen
-  for (const [action, submit] of [['Create account', 'Send confirmation link'], ['Sign in', 'Send sign-in link']]) {
+  // Log in / Create one: straight to the email form, never the guest loader
+  for (const [action, form, submit] of [['Log in', 'Log in', 'Send sign-in link'], ['Create one', 'Create account', 'Send confirmation link']]) {
     const a = await newGuest(undefined, { firstVisit: true });
-    await a.page.goto(BASE); await a.page.getByRole('button', { name: 'Skip' }).click();
-    await a.page.getByRole('button', { name: action }).click();
+    await a.page.goto(BASE); await appReady(a.page); await loaderSeen(a.page);
+    await a.page.getByRole('button', { name: 'Skip' }).click();
+    await a.page.getByRole('button', { name: action, exact: true }).click();
     await a.page.getByRole('button', { name: submit }).waitFor();
-    check(`access: ${action} opens the email field on the SS screen itself`, await a.page.getByRole('textbox', { name: 'Email' }).isVisible() && (await a.page.getByRole('button', { name: 'Home' }).count()) === 0);
+    check(`access: ${action} opens the ${form.toLowerCase()} form directly, without the guest loader or a guest session`,
+      await a.page.getByRole('form', { name: form }).isVisible() && await a.page.getByRole('textbox', { name: 'Email' }).isVisible() && !(await a.page.evaluate(() => window.__ssl))
+      && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore + 1);
     await a.ctx.close();
+  }
+  {
+    // Get started when the guest session cannot be created: the loader stops and a concise retry appears
+    const e = await newGuest(undefined, { firstVisit: true });
+    await e.page.goto(BASE); await appReady(e.page);
+    await e.page.getByRole('button', { name: 'Skip' }).click();
+    fake.failNext['auth/v1/signup'] = 1;
+    await e.page.getByRole('button', { name: 'Get started' }).click();
+    await e.page.getByRole('alert').filter({ hasText: 'Couldn’t start' }).waitFor({ timeout: 8000 });
+    check('Get started failure: the loader stops; a short message and Try again (no technical text)', (await e.page.locator('.ss-loader').count()) === 0 && await e.page.getByRole('button', { name: 'Try again' }).isVisible());
+    await e.page.getByRole('button', { name: 'Try again' }).click();
+    await e.page.getByRole('button', { name: /^Add flight/ }).first().waitFor({ timeout: 8000 });
+    check('Get started failure: Try again recovers and opens Home', true);
+    await e.ctx.close();
   }
   {
     // A visitor who left Account Access without choosing, but has a session by the next launch (e.g. an email link) skips it.
@@ -428,20 +398,29 @@ try {
     const P = await s.newPage(); await P.goto(BASE);
     await P.getByRole('button', { name: /^Add flight/ }).first().waitFor();
     await P.waitForTimeout(300);
-    check('access: a browser with an existing session goes straight to Home', !(await P.getByRole('button', { name: 'Create account' }).isVisible()));
+    check('access: a browser with an existing session goes straight to Home', !(await P.getByRole('button', { name: 'Get started' }).isVisible()));
     await s.close();
+    // A signed-in browser that never saw the onboarding (e.g. storage from before it existed) is not shown it.
+    const s2 = await browser.newContext({ ...devices['iPhone 13'], reducedMotion: MOTION });
+    await s2.addInitScript((t) => { localStorage.setItem('sb-sgwbtgwccskqamzttczz-auth-token', t) }, JSON.stringify(fake.sessionFor(guestId)));
+    await s2.route('**://*.supabase.co/**', fake.handler);
+    const P2 = await s2.newPage(); await P2.goto(BASE);
+    await P2.getByRole('button', { name: /^Add flight/ }).first().waitFor();
+    check('returning user with a session: no onboarding, no Account Access', !(await visible(P2, 'Already have a flight booked?')) && !(await visible(P2, 'No account yet?')));
+    await s2.close();
   }
-  const rm = await newGuest(undefined, { firstVisit: true, reducedMotion: 'reduce' });
-  await rm.page.goto(BASE); await rm.page.getByText('Your layover, reimagined.').waitFor(); await appReady(rm.page);
-  await rm.page.getByRole('button', { name: 'Fly to Singapore' }).click();
-  const rmLanded = await rm.page.getByRole('button', { name: 'Landed in Singapore' }).isVisible() && /12h 20m/.test(await rm.page.getByRole('region', { name: 'Your journey' }).innerText());
-  await rm.page.getByRole('button', { name: /^Next/ }).click();
-  await rm.page.waitForTimeout(60);
-  const rmState = await rm.page.evaluate(() => [...document.querySelectorAll('h1')].map((h) => `${h.textContent}|${getComputedStyle(h.parentElement).opacity}|${getComputedStyle(h.parentElement).filter}`));
-  check('onboarding: reduced motion: tapping the plane lands it at once (keyboard-friendly), steps change instantly', rmLanded && rmState.length === 1 && rmState[0].startsWith('Know your time') && /\|1\|(none|blur\(0px\))$/.test(rmState[0]), JSON.stringify(rmState));
-  await rm.page.getByRole('button', { name: 'Skip' }).click(); await rm.page.getByRole('button', { name: 'Create account' }).waitFor();
-  check('access: reduced motion shows a still composition', await rm.page.evaluate(() => [...document.querySelectorAll('.access__orbit, .access__blob, .access__strip')].every((e) => getComputedStyle(e).animationName === 'none')));
-  await rm.ctx.close();
+  {
+    // Reduced motion: the same automatic progression, with instant changes
+    const rm = await newGuest(undefined, { firstVisit: true, reducedMotion: 'reduce' });
+    await rm.page.goto(BASE);
+    await rm.page.getByRole('button', { name: 'Yes, I’m booked' }).waitFor({ timeout: 4000 });
+    const line = await rm.page.getByText('Already have a flight booked?').evaluate((e) => [...e.querySelectorAll('span')].map((s) => getComputedStyle(s).opacity + getComputedStyle(s).filter).join('|'));
+    await rm.page.getByRole('button', { name: 'Yes, I’m booked' }).click();
+    await rm.page.getByRole('button', { name: 'Get started' }).waitFor({ timeout: 8000 });
+    check('reduced motion: words appear without fades or blur; the conversation still runs by itself to Account Access', /^(1(none|blur\(0px\))\|?)+$/.test(line), line);
+    check('access: reduced motion shows a still composition', await rm.page.evaluate(() => [...document.querySelectorAll('.access__orbit, .access__blob, .access__strip')].every((e) => getComputedStyle(e).animationName === 'none')));
+    await rm.ctx.close();
+  }
 
   // ---- 4d. Map wayfinding (Changi pilot): clustering, directions, honesty, layout; Lisbon fallback
   {

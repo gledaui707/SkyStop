@@ -115,7 +115,8 @@ function Shell() {
   if (catalogue.status !== 'ready' && route.name !== 'welcome' && route.name !== 'access') return (
     <div className="mx-auto grid min-h-dvh max-w-[480px] place-items-center px-6 text-center">
       {catalogue.status === 'loading' ? (
-        <SSLoader />
+        // A quiet wait: the SS loader is reserved for the Get started transition.
+        <span role="status" className="sr-only">Loading</span>
       ) : (
         <div role="alert" className="panel anim-rise rounded-surface p-6">
           <p className="text-h2 font-bold">We could not load the airports</p>
@@ -158,6 +159,23 @@ function Shell() {
   )
 }
 
+/** The guest-entry transition (Get started on Account Access): the SS loader over everything while the guest session
+ *  and the airport data get ready, then it fades out over Home. Nowhere else shows it. */
+function GuestTransition() {
+  const { entering } = useApp()
+  const [shown, setShown] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  useEffect(() => {
+    if (entering === 'loading') { setShown(true); setLeaving(false); return }
+    if (!shown) return
+    if (entering === 'error') { setShown(false); return }
+    setLeaving(true)
+    const t = setTimeout(() => { setShown(false); setLeaving(false) }, 380)
+    return () => clearTimeout(t)
+  }, [entering]) // eslint-disable-line react-hooks/exhaustive-deps
+  return shown ? <SSLoader leaving={leaving} /> : null
+}
+
 export default function App() {
-  return <AppProvider><div aria-hidden="true" className="ambient" /><Shell /></AppProvider>
+  return <AppProvider><div aria-hidden="true" className="ambient" /><Shell /><GuestTransition /></AppProvider>
 }

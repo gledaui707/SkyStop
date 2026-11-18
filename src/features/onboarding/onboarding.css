@@ -63,3 +63,9 @@
 @media (prefers-reduced-motion: reduce) {
   .onb-caret { animation: none; }
 }
+
+/* The conversation: earlier lines drift up and dissolve into the top edge. */
+.onb-thread {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 22%);
+}

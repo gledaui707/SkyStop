@@ -361,3 +361,12 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   0 issues at 320/375/390/430 px. Captures reviewed: builder now shows the first timeline stop above the fold at
   390 px. `npm run test:e2e` 162/162 (two steps that left focused screens via the tab bar now use Back; new
   check that the builder has no tab bar). Not run: hosted tests (owner approval required).
+### Conversational onboarding; Get started guest transition (owner brief, 17–18 Nov 2026)
+
+- Onboarding rebuilt as a scripted conversation (one tap, then automatic): question → tapped answer → acknowledgement
+  → experience preview → time-budget demo → Account Access. Account Access: Get started / Log in / No account yet?
+  Create one. The SS loader plays only on Get started (anonymous session + airport data → Home).
+- Visual review: recorded the full first-run at 390×844 and captured 320×640 and 375×667 frame sequences; fixed the
+  conversation starting under the splash (now waits for it) and a distorted choice-to-reply morph (replaced by a
+  glide-in reply).
+- Checks: e2e 156/156; unit 148 passed (one hosted skip); layout 0 issues; build OK.
