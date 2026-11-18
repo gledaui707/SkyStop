@@ -101,6 +101,8 @@
   /* Glass edge: one quiet hairline of light along the top, nothing glossy. */
   --glass-edge: inset 0 1px 0 rgb(255 240 232 / 0.08);
 }
+/* Focused screens have no tab bar: the floating action tray drops to the safe-area edge. */
+[data-focused] { --nav-h: var(--nav-lift); }
 /* Inside the desktop device frame: room for the drawn status bar / Dynamic Island and home indicator. */
 html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
 

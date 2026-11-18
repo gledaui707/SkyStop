@@ -348,3 +348,16 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   15 s timeout with one automatic retry, then the error with Try again. The spinner is replaced by the looping SS
   logo animation (no wordmark).
 - Checks: e2e 161/161; unit 148 passed (one hosted skip); layout 0 issues; build OK; captures at 320 and 390 px.
+
+### Focused screens without the tab bar (scheduled redesign run, 18 Nov 2026)
+
+- Finding (390 px captures): the builder, layover setup, booking lookup, journey overview and flight screens stacked
+  two floating bars (action tray over the tab bar), hiding the itinerary timeline and weakening the one primary action.
+- Change: those routes (`builder`, `trip`, `booking`, `journey`, `results`, `flight`, `compare`) hide the tab bar like
+  iOS pushed screens; each keeps its back button, and the action tray drops to the safe-area edge (`[data-focused]`
+  redefines `--nav-h`, so all bottom paddings follow). Browse screens (Home, Airports, airport detail/map, My Plans,
+  Profile) keep the tab bar. No data, Supabase or logic changes.
+- Checks: `npm run build` OK; `npx vitest run` 148 passed, 1 skipped (hosted); `node tests/e2e/layout-audit.mjs`
+  0 issues at 320/375/390/430 px. Captures reviewed: builder now shows the first timeline stop above the fold at
+  390 px. `npm run test:e2e` 162/162 (two steps that left focused screens via the tab bar now use Back; new
+  check that the builder has no tab bar). Not run: hosted tests (owner approval required).

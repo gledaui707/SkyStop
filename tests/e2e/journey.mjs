@@ -7,6 +7,8 @@ const { chromium, devices } = createRequire(import.meta.url)('playwright');
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { createFakeSupabase } from './fake-supabase.mjs';
+/** Focused screens (builder, booking, journey…) hide the tab bar: go Back until the tabs return. */
+const backToTabs = async (p) => { for (let i = 0; i < 5 && !(await p.getByRole('navigation', { name: 'Primary' }).count()); i++) await p.getByRole('button', { name: 'Back' }).first().click(); };
 
 const PORT = 4179, BASE = `http://localhost:${PORT}`, SHOTS = process.env.SHOTS;
 let failed = 0; const results = [];
@@ -228,7 +230,9 @@ try {
   await e.page.getByRole('button', { name: 'Build my itinerary' }).click();
   await e.page.getByRole('heading', { name: 'Your plan' }).waitFor();
   check('explore-first: builder contains both selected activities (1h 30m planned, 2h left)', await visible(e.page, 'ANA Lounge') && await visible(e.page, 'Lisboa Duty Free') && (await barText(e.page)).includes('2h left'));
-  await e.page.getByRole('button', { name: 'Home' }).click();
+  check('builder is a focused screen: no tab bar, one action tray', (await e.page.getByRole('navigation', { name: 'Primary' }).count()) === 0);
+  // leave the builder with Back (focused screens hide the tab bar) until the tabs return
+  await backToTabs(e.page);
   await e.page.getByRole('button', { name: 'My Plans' }).click();
   check('explore-first: nothing saved without pressing Save', await e.page.getByText('No saved itineraries yet').isVisible());
   await e.ctx.close();
@@ -654,12 +658,12 @@ try {
     check('stack: tapping a card brings that journey to the front', await G.getByRole('region', { name: 'Journey JFK to SIN via LHR' }).isVisible() && (await G.getByRole('button', { name: /^Show flight CGK to CDG via SIN/ }).count()) === 1);
     await G.getByRole('button', { name: 'View layover' }).click();
     check('stack: View layover opens the selected journey (London)', await visible(G, 'London'));
-    await G.getByRole('button', { name: 'Home' }).click();
+    await backToTabs(G); await G.getByRole('button', { name: 'Home' }).click();
     // a sample journey is not saved twice
     await G.getByRole('button', { name: /^Add flight/ }).click();
     await G.getByLabel('Booking reference').fill('AXR7KD'); await G.getByRole('button', { name: 'Find my journey' }).click();
     check('flights: a saved sample journey offers "Open in My flights" instead of a duplicate', await G.getByRole('button', { name: 'Open in My flights' }).isVisible());
-    await G.getByRole('button', { name: 'Home' }).click();
+    await backToTabs(G); await G.getByRole('button', { name: 'Home' }).click();
     // details come back from the database, not just this browser
     await G.evaluate(() => localStorage.removeItem('skystop.planmeta.v1'));
     await G.reload(); await G.getByRole('region', { name: 'My flights' }).waitFor();

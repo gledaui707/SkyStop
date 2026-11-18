@@ -106,6 +106,8 @@ function TopBlur() {
   )
 }
 
+const FOCUSED = new Set<string>(['builder', 'trip', 'booking', 'journey', 'results', 'flight', 'compare'])
+
 function Shell() {
   const { route, switchTab, catalogue, reload } = useApp()
   const active = tabOf(route)
@@ -125,13 +127,17 @@ function Shell() {
     </div>
   )
   // Re-keying on the route plays a short entrance transition on every navigation (disabled under reduced motion).
+  // Task-focused screens (one dominant action in a floating tray, a back button in the header) hide the tab bar, as
+  // iOS does for pushed detail screens: the action tray then sits alone at the bottom instead of stacking on the tabs.
+  const focused = FOCUSED.has(route.name)
   const key = Object.entries(route).map(([k, v]) => `${k}:${typeof v === 'object' || typeof v === 'function' ? '' : String(v)}`).join('|')
   if (route.name === 'welcome' || route.name === 'access') return <div className="mx-auto max-w-[480px]"><main key={key} className="anim-fade"><Screen /></main></div>
   return (
-    <div className="mx-auto min-h-dvh max-w-[480px] pb-[var(--nav-h)]">
+    <div data-focused={focused || undefined} className="mx-auto min-h-dvh max-w-[480px] pb-[var(--nav-h)]">
       <main key={key} className="vt-screen anim-screen"><TopBlur /><Screen /></main>
       <Toast />
       {/* Floating capsule tab bar: the selected tab is a coral icon and label (no fill; one primary per screen). */}
+      {!focused && <>
       <div aria-hidden="true" className="bottom-fade fixed inset-x-0 bottom-0 z-20 mx-auto h-[calc(var(--nav-h)+1.5rem)] max-w-[480px]" />
       <nav aria-label="Primary" className="vt-tabbar pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] px-4 pb-[var(--nav-lift)]">
         <div className="glass-medium pointer-events-auto relative mx-auto grid h-16 max-w-[24rem] grid-cols-3 rounded-full p-1.5">
@@ -147,6 +153,7 @@ function Shell() {
         })}
         </div>
       </nav>
+      </>}
     </div>
   )
 }
