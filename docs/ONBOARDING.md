@@ -9,26 +9,26 @@ Code: `src/features/onboarding/Onboarding.tsx` (+ `onboarding.css`), `src/featur
 `enterAsGuest` in `src/store.tsx`, `src/features/splash/SSLoader.tsx` (+ `loader.css`).
 
 ## The conversation (scripted, deterministic; no AI, no typing)
-One async timeline (cancelled on unmount or Skip). It starts after the slides (and never under the launch splash).
+One cancellable timeline; a tap counts once, and only while SkyStop is asking (it listens from the moment the question
+starts). Two taps in total, everything else unfolds by itself.
 
-| State | SkyStop | Visitor |
+| State | SkyStop (streams in) | Visitor |
 |---|---|---|
 | intro | "Hi, I'm SkyStop." | |
-| ask | "Already have a flight booked?" + choices | taps **Yes, I'm booked** or **Not yet** (the only tap) |
-| picked (~210 ms) | | tapped choice fills coral with a check; the other folds away |
-| answered → ack | "Perfect. Let's make the most of your layover." / "You can explore your options before booking." | reply pill on the right |
-| product preview | "There's more to a layover than waiting." + Dining, Shopping, Relaxation, Attractions cards (real SkyStop venue photos) | |
-| time preview | "Make every minute count." + example 5h layover − 1h 30m buffer = **3h 30m to explore** (planner's `budget()`; counts up) | |
-| closing → done | "Ready when you are." → fade → Account Access (Home if the visitor already has a session) | |
+| askBooked | "Already have a flight booked?" | taps **Yes, I'm booked** / **Not yet** |
+| ackBooked | "Perfect. Let's make the most of your layover." / "You can explore your options before booking." | answer moves into the trail |
+| askExperience | "There's more to a layover than waiting. What would you do first?" + Dining, Shopping, Relaxation, Attractions photo cards | taps one |
+| ackExperience | "Good choice. I'll keep dining in mind." | pick moves into the trail |
+| time | "Make every minute count." + example 5h − 1h 30m = **3h 30m to explore** (counts up), then "That leaves time for dining, and more." | |
+| closing → done | "Ready when you are." → fade → Account Access (Home with an existing session) | |
 
-No Next or Continue buttons. **Skip** (always visible) goes to Account Access without signing in. A tap is accepted
-only in `ask`, once. Nothing is written to the backend during the conversation.
-
-Motion: before each line a short typing pulse (three coral dots, ~0.4 s); the line reveals word by word (fade, rise,
-blur, 28 ms stagger). Earlier lines shrink and soften and drift up into a fade at the top (layout animation), so the
-conversation is one evolving composition anchored low on the screen. Pace: tap feedback ~0.2 s, acknowledgement ~0.3 s
-later, the whole conversation ≈ 9 s after the tap. Reduced motion: same automatic progression, no typing pulse,
-instant changes, shorter pauses.
+Composition: one stage, not a transcript. SkyStop's current line sits centre stage; before each line a brief
+"thinking" pulse (three coral dots, the SS mark breathes), then the line writes itself letter by letter with a coral
+caret. When the talk moves on, the line lifts away (fade, rise, blur) before the next one starts. The tapped choice fills
+coral with a check, the other folds away, and the answer shrinks into a coral chip in the **answer trail** under the
+header ("✓ Yes, I'm booked  ✓ Dining"). The picked experience card lights up, the others dim. A soft coral light drifts
+to a new spot with each phase. Pace: tap feedback ~0.2 s, acknowledgement right after, the whole talk ≈ 15 s.
+Reduced motion: same progression; lines appear whole; no pulse; instant changes; shorter pauses.
 
 ## Account Access
 Primary **Get started**, secondary **Log in**, tertiary **No account yet? Create one**. Log in and Create one open the

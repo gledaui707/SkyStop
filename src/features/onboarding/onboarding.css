@@ -64,8 +64,5 @@
   .onb-caret { animation: none; }
 }
 
-/* The conversation: earlier lines drift up and dissolve into the top edge. */
-.onb-thread {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 22%);
-}
+/* Streaming caret at the end of SkyStop's line while it is being written. */
+.onb-caret--inline { display: inline-block; width: 3px; height: 0.9em; margin-left: 3px; vertical-align: -0.1em; }

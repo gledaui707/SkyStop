@@ -341,3 +341,14 @@
 
 /* Form heading: left-aligned, white over the glow */
 .access__title--start { text-align: left; color: #fff; text-shadow: 0 1px 12px rgb(120 30 10 / .25); padding-left: .25rem; }
+
+/* Log in (secondary) on the light tray: the app-wide secondary is styled for dark screens (light text on clear glass),
+   which disappears here. A solid white pill with dark text and a hairline. */
+.access .btn-secondary {
+  background: #fff;
+  color: #231a17;
+  border: 1px solid rgb(35 26 23 / .14);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.access .btn-secondary:active { background: #f4eeea; }

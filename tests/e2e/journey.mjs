@@ -306,10 +306,14 @@ try {
     await P.getByRole('button', { name: 'Get started' }).click(); await P.getByText('Discover what’s possible.').waitFor();
     await P.waitForTimeout(450); await P.getByRole('button', { name: 'Get started' }).click(); await P.getByText('Make every minute count.').waitFor();
     check('intro: Get started moves through the slides (2: Discover what’s possible, 3: Make every minute count)', true);
+    await P.evaluate(() => { window.__caret = false; window.__hi = false; new MutationObserver(() => {
+      if (document.querySelector('.onb-caret--inline')) window.__caret = true;
+      if ([...document.querySelectorAll('main .sr-only')].some((e) => e.textContent === 'Hi, I’m SkyStop.')) window.__hi = true;
+    }).observe(document.body, { childList: true, subtree: true, characterData: true }); });
     await P.waitForTimeout(450); await P.getByRole('button', { name: 'Get started' }).click();
     // The conversation starts by itself after the last slide
-    await P.getByText('Hi, I’m SkyStop.').waitFor({ timeout: 4000 });
-    await P.getByRole('button', { name: 'Yes, I’m booked' }).waitFor({ timeout: 4000 });
+    await P.getByRole('button', { name: 'Yes, I’m booked' }).waitFor({ timeout: 6000 });
+    check('onboarding: SkyStop greets and its lines stream in by themselves (writing caret), no tap needed', await P.evaluate(() => window.__hi && window.__caret));
     check('onboarding: the conversation starts by itself; SkyStop asks and the choices appear, with Skip and no Next/Continue buttons',
       await visible(P, 'Already have a flight booked?') && await P.getByRole('button', { name: 'Not yet' }).isVisible() && await P.getByRole('button', { name: 'Skip' }).isVisible()
       && (await P.getByRole('button', { name: /^(Next|Continue|Get started)$/ }).count()) === 0);
@@ -320,13 +324,22 @@ try {
     // Rapid extra taps are ignored (the answer is taken once)
     await P.getByRole('button', { name: 'Yes, I’m booked' }).click({ timeout: 300 }).catch(() => {});
     check('onboarding: the tapped choice turns coral at once and the other choice folds away', /234, 81, 57|rgb\(234/.test(feedback) && (await P.getByRole('button', { name: 'Not yet' }).count()) === 0, feedback);
-    await P.getByText('Perfect. Let’s make the most of your layover.').waitFor({ timeout: 3000 });
-    check('onboarding: the answer becomes a reply and SkyStop acknowledges it, with no button to press', (await P.getByText('Yes, I’m booked', { exact: true }).count()) === 1 && (await P.getByRole('button', { name: /^(Next|Continue)$/ }).count()) === 0);
-    await P.getByText('There’s more to a layover than waiting.').waitFor({ timeout: 3000 });
-    await P.getByRole('list', { name: 'Airport experiences' }).waitFor();
-    check('onboarding: then, by itself: a preview of airport experiences (Dining, Shopping, Relaxation, Attractions)',
-      ['Dining', 'Shopping', 'Relaxation', 'Attractions'].every((t) => true) && /Dining.*Shopping.*Relaxation.*Attractions/s.test(await P.getByRole('list', { name: 'Airport experiences' }).innerText()));
-    await P.getByText('Make every minute count.').waitFor({ timeout: 4000 }); await P.waitForTimeout(1900);
+    await P.locator('main .sr-only', { hasText: 'Perfect. Let’s make the most of your layover.' }).waitFor({ state: 'attached', timeout: 3000 });
+    check('onboarding: the answer moves into the answer trail and SkyStop acknowledges it, with no button to press',
+      /Yes, I’m booked/.test(await P.getByRole('list', { name: 'Your answers' }).innerText()) && (await P.getByRole('button', { name: /^(Next|Continue)$/ }).count()) === 0);
+    await P.waitForTimeout(400);
+    await P.locator('main .sr-only', { hasText: 'There’s more to a layover than waiting. What would you do first?' }).waitFor({ state: 'attached', timeout: 4000 });
+    const cards = P.getByRole('list', { name: 'Airport experiences' }).getByRole('button');
+    await cards.nth(3).waitFor(); await P.waitForTimeout(900);
+    check('onboarding: then, by itself, the second question: four airport experiences to pick from (Dining, Shopping, Relaxation, Attractions)',
+      (await cards.count()) === 4 && /Dining.*Shopping.*Relaxation.*Attractions/s.test(await P.getByRole('list', { name: 'Airport experiences' }).innerText()));
+    await P.getByRole('button', { name: /Dining/ }).click();
+    await P.waitForTimeout(150);
+    const dim = await P.evaluate(() => [...document.querySelectorAll('[aria-label="Airport experiences"] li')].map((l) => +getComputedStyle(l).opacity));
+    check('onboarding: the picked card lights up; the others dim', (await P.getByRole('button', { name: /Dining/ }).getAttribute('aria-pressed')) === 'true' && dim.filter((o) => o < 0.6).length === 3, JSON.stringify(dim));
+    await P.locator('main .sr-only', { hasText: 'Good choice. I’ll keep dining in mind.' }).waitFor({ state: 'attached', timeout: 3000 });
+    check('onboarding: SkyStop answers the pick by name; both answers sit in the trail', /Yes, I’m booked.*Dining/s.test(await P.getByRole('list', { name: 'Your answers' }).innerText()));
+    await P.locator('main .sr-only', { hasText: 'Make every minute count.' }).waitFor({ state: 'attached', timeout: 4000 }); await P.waitForTimeout(1900);
     const demo = (await P.getByLabel(/^Example: 5h layover/).innerText()).replace(/\s+/g, ' ');
     check('onboarding: then a time demonstration counts to the result: 5h − 1h 30m = 3h 30m to explore', /Layover 5h/.test(demo) && /Planning buffer − 1h 30m/.test(demo) && /To explore 3h 30m/.test(demo), demo);
     // Ends at Account Access by itself
@@ -358,8 +371,11 @@ try {
     await throughSlides(P);
     await P.getByRole('button', { name: 'Not yet' }).waitFor({ timeout: 4000 });
     await P.getByRole('button', { name: 'Not yet' }).click();
-    await P.getByText('You can explore your options before booking.').waitFor({ timeout: 3000 });
+    await P.locator('main .sr-only', { hasText: 'You can explore your options before booking.' }).waitFor({ state: 'attached', timeout: 3000 });
     check('replay: the other answer gets its own acknowledgement', true);
+    await P.getByRole('list', { name: 'Airport experiences' }).getByRole('button').nth(3).waitFor({ timeout: 5000 }); await P.waitForTimeout(900);
+    await P.getByRole('button', { name: /Relaxation/ }).click();
+    await P.locator('main .sr-only', { hasText: 'Good choice. I’ll keep relaxation in mind.' }).waitFor({ state: 'attached', timeout: 3000 });
     await P.getByRole('button', { name: /^Add flight/ }).first().waitFor({ timeout: 15000 });
     check('replay: ends at Home for an existing guest: no Account Access, no guest loader, same session', !(await visible(P, 'No account yet?')) && !(await P.evaluate(() => window.__ssl)) && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore + 1);
     await o.ctx.close();
@@ -441,11 +457,15 @@ try {
     const rm = await newGuest(undefined, { firstVisit: true, reducedMotion: 'reduce' });
     await rm.page.goto(BASE);
     await throughSlides(rm.page);
-    await rm.page.getByRole('button', { name: 'Yes, I’m booked' }).waitFor({ timeout: 4000 });
-    const line = await rm.page.getByText('Already have a flight booked?').evaluate((e) => [...e.querySelectorAll('span')].map((s) => getComputedStyle(s).opacity + getComputedStyle(s).filter).join('|'));
+    await rm.page.getByRole('button', { name: 'Yes, I’m booked' }).waitFor({ timeout: 4000 }); await rm.page.waitForTimeout(150);
+    const line = await rm.page.evaluate(() => ({ caret: !!document.querySelector('.onb-caret--inline'),
+      whole: [...document.querySelectorAll('main p')].filter((p) => p.querySelector('.sr-only')).every((p) => p.querySelector('span[aria-hidden="true"]').textContent === p.querySelector('.sr-only').textContent),
+      asked: [...document.querySelectorAll('main p .sr-only')].some((e) => e.textContent === 'Already have a flight booked?') }));
     await rm.page.getByRole('button', { name: 'Yes, I’m booked' }).click();
+    await rm.page.getByRole('list', { name: 'Airport experiences' }).getByRole('button').nth(3).waitFor({ timeout: 5000 }); await rm.page.waitForTimeout(300);
+    await rm.page.getByRole('button', { name: /Dining/ }).click();
     await rm.page.getByRole('button', { name: 'Get started' }).waitFor({ timeout: 8000 });
-    check('reduced motion: words appear without fades or blur; the conversation still runs by itself to Account Access', /^(1(none|blur\(0px\))\|?)+$/.test(line), line);
+    check('reduced motion: lines appear whole (no streaming); the conversation still runs by itself to Account Access', !line.caret && line.whole && line.asked, JSON.stringify(line));
     check('access: reduced motion shows a still composition', await rm.page.evaluate(() => [...document.querySelectorAll('.access__orbit, .access__blob, .access__strip')].every((e) => getComputedStyle(e).animationName === 'none')));
     await rm.ctx.close();
   }

@@ -377,3 +377,14 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   (from history) as `IntroSlides`; the flow is splash → slides → conversation → Account Access → Home.
 - Checks: e2e 161/161 (new: slides first, Get started through the slides, Sign in / Not now on the slides); build OK;
   captures at 390 and 320 px through the slides into the conversation, no sideways scroll.
+
+### Conversation reworked to feel conversational (owner feedback, 19 Nov 2026)
+
+- Owner: keep the three slides; the conversation was not conversational enough. Now two exchanges (booked? → which
+  experience first?), lines stream in letter by letter after a thinking pulse, one line on stage at a time, answers
+  collect in a chip trail, SkyStop refers back to the pick, a soft light drifts per phase.
+- Fixed during review: taps made while a question was still streaming were ignored (now counted); the thinking dots
+  overlapped the outgoing line (now one at a time); Log in on Account Access was invisible on the white tray (the
+  dark-theme secondary style; now a solid white pill); the drifting light was too strong (softened).
+- Checks: e2e 164/164; unit 148 passed (one hosted skip); layout 0 issues; build OK; recorded at 390×844; frame
+  sequences at 320×640 and 375×667.
