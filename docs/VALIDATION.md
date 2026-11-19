@@ -388,3 +388,15 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   dark-theme secondary style; now a solid white pill); the drifting light was too strong (softened).
 - Checks: e2e 164/164; unit 148 passed (one hosted skip); layout 0 issues; build OK; recorded at 390×844; frame
   sequences at 320×640 and 375×667.
+
+### Booking-first conversation, saved flight, Home card timing, empty itinerary (owner brief, 19 Nov 2026)
+
+- Conversation (engine and motion kept): booking reference with animated lookup → journey drawing itself with a trip
+  timeline → airport photo and connection − buffer = time to explore → multi-select interests → guest session and the
+  flight saved (same save path as Add flight, never twice) → Home directly. Not yet and manual entry paths.
+- Home card: Arrive SIN · Connection · Depart SIN grouped in one strip; "connection − buffer" under Time to explore;
+  View layover kept. Layover details: "No activities planned yet" → Explore activities. Discovery orders by interests.
+- Checks: e2e 171/171; unit 148 passed (one hosted skip); layout 0 issues; build OK; recorded at 390×844; frames at
+  320×640, 375×667 and 390×844; overnight card (DXB 00:45 → 07:45) checked at 320 px.
+- Fixed during review: journey step left half the screen empty (now a trip timeline); 320 px wrapping in the journey
+  card and the Home card; interest cards' accessible names began with photo descriptions (now their labels).

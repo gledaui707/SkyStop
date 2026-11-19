@@ -1,57 +1,54 @@
-# Onboarding: three photo slides, a short conversation, then Account Access
+# Onboarding: slides, then a conversation that builds your trip
 
-First run: **Splash (unchanged) → three intro slides → conversational onboarding → Account Access → Home.**
-The slides are the original photographic screens ("Your layover, reimagined.", "Discover what's possible.", "Make every
-minute count.") restored unchanged in `src/features/onboarding/IntroSlides.tsx`: Get started moves through them and on
-the last one crossfades into the conversation; Skip goes to Account Access; Sign in opens the email sign-in form.
-`src/screens/Welcome.tsx` sequences the two.
-Code: `src/features/onboarding/Onboarding.tsx` (+ `onboarding.css`), `src/features/access/AccountAccess.tsx`,
-`enterAsGuest` in `src/store.tsx`, `src/features/splash/SSLoader.tsx` (+ `loader.css`).
+First run: **Splash (unchanged) → three intro slides → conversation → Home** (with the imported flight saved).
+Skip (slides or conversation) still leads to Account Access, which stays available from Profile.
+Code: `src/features/onboarding/IntroSlides.tsx`, `Onboarding.tsx` (+ `onboarding.css`), `completeOnboarding` in
+`src/store.tsx`, `src/data/interests.ts`.
 
-## The conversation (scripted, deterministic; no AI, no typing)
-One cancellable timeline; a tap counts once, and only while SkyStop is asking (it listens from the moment the question
-starts). Two taps in total, everything else unfolds by itself.
+## The conversation
+One cancellable timeline; SkyStop's line streams in at the top (thinking pulse first, previous line lifts away), the
+visual for the current state fills the middle, answers collect as chips under the header. No Next buttons except the
+confirm for multi-select interests.
 
-| State | SkyStop (streams in) | Visitor |
-|---|---|---|
-| intro | "Hi, I'm SkyStop." | |
-| askBooked | "Already have a flight booked?" | taps **Yes, I'm booked** / **Not yet** |
-| ackBooked | "Perfect. Let's make the most of your layover." / "You can explore your options before booking." | answer moves into the trail |
-| askExperience | "There's more to a layover than waiting. What would you do first?" + Dining, Shopping, Relaxation, Attractions photo cards | taps one |
-| ackExperience | "Good choice. I'll keep dining in mind." | pick moves into the trail |
-| time | "Make every minute count." + example 5h − 1h 30m = **3h 30m to explore** (counts up), then "That leaves time for dining, and more." | |
-| closing → done | "Ready when you are." → fade → Account Access (Home with an existing session) | |
+| State | SkyStop | Visual | Visitor |
+|---|---|---|---|
+| askBooked | "Already have a flight booked?" | choice pills | Yes, I'm booked / Not yet |
+| findFlight | "Let's find your flight." | booking card: 6 slots, Find my flight, Try a sample booking (AXR7KD, BQ3LMV, CJ8NWT, DH5PRZ), Enter flight details manually | types or picks a reference |
+| lookup | | slots bounce, a plane crosses (≈0.65 s) | |
+| journey | "Found your journey!" · "You're flying from {origin} to {destination}, with a stop in {connection}." | journey card draws itself: origin → coral connection → destination, then the trip timeline (depart, arrive, connection in coral counting up, depart, arrive; airport-local times and dates) | |
+| airport | "You'll have {connection} at {airport}." · "You've got time to explore {airport}." | airport photo, name and code, route chip; connection − planning buffer = time to explore (budget(), counting) | |
+| notYet | "You can explore your options before booking." | compare-by-layover bars, the four guide airports | |
+| interests | "What would you like to do during your layover?" | Dining, Shopping, Relaxation, Attractions photo cards (multi-select) | picks, "That's it", or "Not sure yet" |
+| closing → finishing | "Perfect. Let's find something worth your time." | SS transition | |
 
-Composition: one stage, not a transcript. SkyStop's current line sits centre stage; before each line a brief
-"thinking" pulse (three coral dots, the SS mark breathes), then the line writes itself letter by letter with a coral
-caret. When the talk moves on, the line lifts away (fade, rise, blur) before the next one starts. The tapped choice fills
-coral with a check, the other folds away, and the answer shrinks into a coral chip in the **answer trail** under the
-header ("✓ Yes, I'm booked  ✓ Dining"). The picked experience card lights up, the others dim. A soft coral light drifts
-to a new spot with each phase. Pace: tap feedback ~0.2 s, acknowledgement right after, the whole talk ≈ 15 s.
-Reduced motion: same progression; lines appear whole; no pulse; instant changes; shorter pauses.
+The lookup is the app's own `findSampleJourney` (nothing else resolves). Wrong references get an inline error with the
+samples and manual entry. Manual entry ends the conversation and opens the existing manual flight form after the guest
+session starts.
 
-## Account Access
-Primary **Get started**, secondary **Log in**, tertiary **No account yet? Create one**. Log in and Create one open the
-email form on the same screen (no loader, no guest session). Get started runs `enterAsGuest()` in the store:
+## Finishing: completeOnboarding()
+1. Guest session: `ensureGuestSession` (reuses any session, signed-in accounts included; never a second anonymous user).
+2. Flight: `journeyDraft(booking)` saved through `savePlan` → `saveDraft` → `save_plan` RPC and `layover_details`, the same
+   path as Add flight. One client id per onboarding, so a retried save is the same row; a booking already saved by this
+   visitor (same reference, airport and arrival) is reused, not saved again. No activities are added.
+3. Interests: kept in this browser (`skystop.interests.v1`); they only order discovery.
+4. Home opens; the SS loader covers the work and fades out. Any failure stops it and shows "Your flight isn't saved yet."
+   (or "SkyStop couldn't start.") with Try again.
 
-1. the button stops taking taps and the **SS loader** fades in (the two S's slide together, the plane leaves its
-   silhouette; no text on screen);
-2. the Supabase anonymous session is reused or created (`ensureGuestSession`), and the airport data is awaited;
-3. Home opens and the loader fades out (shown for at least one logo assembly, ~1.9 s).
-
-On failure the loader stops and the screen shows "Couldn't start. Check your connection and try again." with
-**Try again**. The SS loader is used nowhere else; a slow data load elsewhere shows a quiet blank screen.
-
-## Returning visitors and replay
-A browser with a Supabase session, or that finished the onboarding, goes straight to Home. Profile → Settings →
-*Replay introduction* plays the conversation again and returns to Home: no sign-out, no Account Access, no guest
-loader, saved plans untouched.
+## After onboarding
+- Home card: journey codes on top; a strip for the transit airport: **Arrive SIN · Connection · Depart SIN** (airport-local,
+  dates, +1 when the departure is on a later day); Time to explore with "{connection} connection − {buffer} buffer".
+  The CTA stays **View layover**.
+- Layover details with no activities: "No activities planned yet" · "Discover what you can do during your layover." ·
+  **Explore activities** → airport discovery for that saved flight (adding activities and saving updates the same flight).
+- Discovery: with interests, activities come first and in interest order ("Dining and Attractions first, from your
+  interests"), before curated itineraries. Nothing is selected for the visitor; My Plans lists only saved itineraries.
 
 ## Tests
-`tests/e2e/journey.mjs` §4b (conversation, auto-progression, no Next buttons, tap feedback, Account Access actions,
-loader only on Get started, one anonymous session, failure and retry, Skip, Log in / Create one without the loader,
-returning users, replay, reduced motion).
+`tests/e2e/journey.mjs` §4b: the full 27-step scenario (booking, lookup, journey, airport, interests, saved flight, Home
+card, View layover, empty state, Explore activities, interest order, add and save, refresh, replay without duplicates),
+plus invalid reference, Not yet, manual entry, guest-session error, save failure and retry, overnight connection (DXB),
+reduced motion, returning visitors.
 
 ## Limitations
-The reference recording did not arrive; the rhythm follows the written brief. The experience preview and the time
-budget are examples, not the visitor's flight.
+Interests are stored per browser, not in the account. Only the four sample references resolve. The reference recording
+mentioned in earlier briefs never arrived.

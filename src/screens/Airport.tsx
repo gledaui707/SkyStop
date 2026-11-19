@@ -7,8 +7,11 @@ import { budget, fmtDur, layoverMinutesAt, timeSpan } from '../data/time'
 import { ActionBar, ActivityRow, ActivitySheet, Button, CATEGORIES, Chip, ChipRow, Photo, cx, IconButton } from '../components/ui'
 import { MapView } from '../features/wayfinding/MapView'
 import type { Category } from '../data/types'
+import { byInterest, interestsStore } from '../data/interests'
 
 type View = 'map' | 'list'
+const INTEREST_LABEL: Record<Category, string> = { Food: 'Dining', Shopping: 'Shopping', Rest: 'Relaxation', Sights: 'Attractions', Work: 'Work' }
+const LABEL_LIST = (c: Category[]) => { const l = c.map((x) => INTEREST_LABEL[x]); return l.length > 1 ? `${l.slice(0, -1).join(', ')} and ${l[l.length - 1]}` : l[0] }
 
 /** Discover a layover airport. List first (curated itineraries, then activities); the map shows the real airport
  *  with a pin per terminal behind a toggle. Planning state lives in the store, so switching views keeps everything. */
@@ -19,7 +22,8 @@ export function Airport({ code, view: initialView, directions, venue, branch }: 
   const [cat, setCat] = useState<'All' | Category>('All')
   const startTrip = (templateId?: string) => go({ name: 'trip', airport: code, templateId })
 
-  const acts = getActivities(code)
+  // Interests from the onboarding put matching activities first (they never select anything).
+  const acts = byInterest(getActivities(code))
   const ready = !!draft && draft.airport === code
   // Before layover times exist, activities can still be selected; they are carried into the setup form.
   const planned = ready ? draft!.activityIds : picked?.airport === code ? picked.ids : []
@@ -72,34 +76,13 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
   const ap = getAirport(code)
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
-  const acts = getActivities(code)
+  const acts = byInterest(getActivities(code))
+  const interests = interestsStore.get()
   const shown = acts.filter((a) => (cat === 'All' || a.category === cat) && a.name.toLowerCase().includes(q.toLowerCase()))
   const usable = b?.usable
   const templates = getTemplates(code)
-  return (
-    <div className="pb-[calc(var(--nav-h)+6.5rem)]">
-      <div className="ph relative h-[26rem] overflow-hidden rounded-b-tray">
-        <img src={sized(ap.image, 900, 800)} alt={ap.image.alt} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-[66%] bg-gradient-to-t from-deep/85 via-deep/35 to-transparent" />
-        {bar}
-        <div className="absolute inset-x-5 bottom-5 text-white">
-          <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold">{ap.code} · {ap.country}</p>
-          <h1 className="mt-2 text-title font-bold leading-tight">{ap.name}</h1>
-          <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/30 pt-3 text-sub text-white/90">
-            <li className="flex items-center gap-1.5"><ListChecks size={16} aria-hidden="true" /><span>{acts.length} {acts.length === 1 ? 'activity' : 'activities'}</span></li>
-            <li className="flex items-center gap-1.5"><Sparkles size={16} aria-hidden="true" /><span>{templates.length} {templates.length === 1 ? 'itinerary' : 'itineraries'}</span></li>
-          </ul>
-        </div>
-      </div>
-      <div className="relative px-5">
-        {usable !== undefined && (
-          <p className="panel-accent mt-4 rounded-control px-4 py-3 text-sub text-ink">
-            <b>{fmtDur(usable)}</b> usable time
-            {b?.over ? <> · <b className="text-error">{fmtDur(-b.remaining)} over budget</b></> : b ? <> · <b>{fmtDur(b.remaining)}</b> still free</> : null}
-          </p>
-        )}
-        <h2 className="mb-3 mt-8 text-h2 font-bold">Curated itineraries</h2>
+  const curatedBlock = (<>
+        <h2 className="mb-3 mt-9 text-h2 font-bold">Curated itineraries</h2>
         <ul className="grid gap-4">
           {templates.map((t) => {
             const items = t.activityIds.map((id) => ACTIVITIES.find((a) => a.id === id)!)
@@ -129,7 +112,13 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
           })}
         </ul>
 
-        <h2 className="mb-3 mt-9 text-h2 font-bold">Activities</h2>
+  </>)
+  const activitiesBlock = (<>
+        <h2 className="mb-1 mt-8 text-h2 font-bold">Activities</h2>
+        {interests.length > 0 && (
+          <p className="mb-3 flex items-center gap-1.5 text-sub text-muted-text"><Sparkles size={15} className="text-accent-dark" aria-hidden="true" />
+            {LABEL_LIST(interests)} first, from your interests</p>)}
+        {!interests.length && <div className="mb-2" />}
         <label className="relative block">
           <span className="sr-only">Search activities</span>
           <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
@@ -145,6 +134,32 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
           })}
           {!shown.length && <li className="py-6 text-center text-muted-text">No activities match.</li>}
         </ul>
+  </>)
+  return (
+    <div className="pb-[calc(var(--nav-h)+6.5rem)]">
+      <div className="ph relative h-[26rem] overflow-hidden rounded-b-tray">
+        <img src={sized(ap.image, 900, 800)} alt={ap.image.alt} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[66%] bg-gradient-to-t from-deep/85 via-deep/35 to-transparent" />
+        {bar}
+        <div className="absolute inset-x-5 bottom-5 text-white">
+          <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold">{ap.code} · {ap.country}</p>
+          <h1 className="mt-2 text-title font-bold leading-tight">{ap.name}</h1>
+          <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/30 pt-3 text-sub text-white/90">
+            <li className="flex items-center gap-1.5"><ListChecks size={16} aria-hidden="true" /><span>{acts.length} {acts.length === 1 ? 'activity' : 'activities'}</span></li>
+            <li className="flex items-center gap-1.5"><Sparkles size={16} aria-hidden="true" /><span>{templates.length} {templates.length === 1 ? 'itinerary' : 'itineraries'}</span></li>
+          </ul>
+        </div>
+      </div>
+      <div className="relative px-5">
+        {usable !== undefined && (
+          <p className="panel-accent mt-4 rounded-control px-4 py-3 text-sub text-ink">
+            <b>{fmtDur(usable)}</b> usable time
+            {b?.over ? <> · <b className="text-error">{fmtDur(-b.remaining)} over budget</b></> : b ? <> · <b>{fmtDur(b.remaining)}</b> still free</> : null}
+          </p>
+        )}
+        {/* With interests from the onboarding, the matching activities come first; otherwise curated itineraries lead */}
+        {interests.length > 0 ? <>{activitiesBlock}{curatedBlock}</> : <>{curatedBlock}{activitiesBlock}</>}
       </div>
       <ActionBar>
         {ready ? <Button className="w-full" onClick={() => go({ name: 'builder' })}>Build itinerary ({planned.length})</Button>

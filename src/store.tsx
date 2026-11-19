@@ -11,6 +11,8 @@ import type { TravelerProfileRow } from './types/database.types'
 import { accessStore, resumeAccessOnLaunch, shouldOfferAccess } from './features/access/accessState'
 import { handoffStore } from './features/onboarding/handoff'
 import { ensureGuestSession } from './api/session'
+import { interestsStore } from './data/interests'
+import type { Category } from './data/types'
 
 export type LoadState = { status: 'loading' | 'ready' | 'error'; error?: string }
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -95,6 +97,10 @@ interface Ctx {
    *  and the airport data → Home. One run at a time. 'error' when it failed (the screen offers a retry). */
   enterAsGuest: () => Promise<void>
   entering: 'idle' | 'loading' | 'error'
+  /** End of the onboarding conversation: guest session (reused if any) → the imported flight saved like any Add flight
+   *  (an identical booking already saved is reused, never duplicated) → interests kept → Home, with `then` on top.
+   *  Plays the same SS transition. Resolves false on failure (nothing is claimed as saved). */
+  completeOnboarding: (o: { flight?: Draft; interests?: Category[]; then?: Route }) => Promise<boolean>
   /** Shows the onboarding again (from Home's "How SkyStop works"). */
   replayOnboarding: () => void
   hint: HintStage
@@ -206,6 +212,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await removeSaved(id)
     setPlans((cur) => cur.filter((p) => p.id !== id))
   }
+  const savePlanRef = useRef<((d: Draft) => Promise<Plan>) | null>(null)
   const savePlan = async (d: Draft) => {
     const p = await saveDraft(d)
     setPlans((cur) => (cur.some((x) => x.id === p.id) ? cur.map((x) => (x.id === p.id ? p : x)) : [p, ...cur]))
@@ -213,6 +220,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void refreshAccountRef.current?.() // the first save starts a guest session
     return p
   }
+  savePlanRef.current = savePlan
   /** Leaves the onboarding for good. It is replaced by Home, and the chosen route opens on top of Home. */
   const finishWelcome = (to: Route, handoff?: Draft) => {
     guestStore.markWelcomed(); setWelcomed(true)
@@ -258,12 +266,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setEntering('error')
     } finally { enteringRef.current = false }
   }, [finishAccess, reload])
+  const completeOnboarding = useCallback(async ({ flight, interests, then }: { flight?: Draft; interests?: Category[]; then?: Route }) => {
+    if (enteringRef.current) return false
+    enteringRef.current = true; setEntering('loading')
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+    const reduce = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const t0 = performance.now()
+    try {
+      await ensureGuestSession(getSupabase())
+      await refreshAccountRef.current?.()
+      while (catalogueRef.current.status === 'loading') await sleep(80)
+      if (catalogueRef.current.status === 'error') { reload(); throw new Error('catalogue') }
+      if (flight) {
+        // The same booking (same reference, airport and arrival) is opened, not saved a second time.
+        const mine = await fetchPlans()
+        const same = mine.find((p) => p.bookingRef && p.bookingRef === flight.bookingRef && p.airport === flight.airport && p.arrival.slice(0, 16) === flight.arrival.slice(0, 16))
+        if (same) { setPlans(mine); setPlansState({ status: 'ready' }) }
+        else await savePlanRef.current!(flight)
+      }
+      if (interests) interestsStore.set(interests)
+      const rest = (reduce ? 250 : 1200) - (performance.now() - t0) // long enough for the logo to assemble once
+      if (rest > 0) await sleep(rest)
+      guestStore.markWelcomed(); setWelcomed(true); accessStore.set('done'); handoffStore.clear(); setNotice(null)
+      setStack(then ? [{ name: 'discover' }, then] : [{ name: 'discover' }]); window.scrollTo(0, 0)
+      setEntering('idle')
+      return true
+    } catch {
+      setEntering('error')
+      return false
+    } finally { enteringRef.current = false }
+  }, [reload])
   const replayOnboarding = () => { setNotice(null); setStack((s) => [...s, { name: 'welcome' }]); window.scrollTo(0, 0) }
   const advanceHint = (to: 2 | 3) => { if (hint !== 'done' && hint < to) setHint(to) }
   const nextHint = () => { if (hint === 'done') return; setHint(hint >= 3 ? 'done' : ((hint + 1) as HintStage)) }
   const skipHints = () => setHint('done')
   return (
-    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, finishAccess, enterAsGuest, entering, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
+    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, finishAccess, enterAsGuest, entering, completeOnboarding, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
       {children}
     </C.Provider>
   )

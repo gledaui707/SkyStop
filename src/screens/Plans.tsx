@@ -1,13 +1,16 @@
-import { ChevronLeft, Map as MapIcon, MapPin, Pencil, Plane, Plus } from 'lucide-react'
+import { ChevronLeft, Compass, Map as MapIcon, MapPin, Pencil, Plane, Plus } from 'lucide-react'
 import { sized } from '../data/images'
 import { useApp } from '../store'
-import { ACTIVITIES, getAirport } from '../data/mock'
+import { ACTIVITIES, getAirport, isSupported } from '../data/mock'
 import { budget, fmtDur, isOvernight, layoverMinutesAt } from '../data/time'
 import type { Plan } from '../data/types'
 import { computeItinerary } from '../data/itinerary'
 import { BudgetHero } from '../components/BudgetHero'
 import { ActivityRow, Button, Header, LargeTitle, Notice, Photo, SectionTitle, cx, IconButton } from '../components/ui'
 
+/** A saved flight as an editable draft (same plan id: saving it updates this flight, never adds another). */
+const toDraft = (p: Plan) => ({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure,
+  bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination, arrivalLocation: p.arrivalLocation, departureLocation: p.departureLocation })
 const itemsOf = (p: Plan) => p.activityIds.map((id) => ACTIVITIES.find((a) => a.id === id)!).filter(Boolean)
 const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
@@ -101,16 +104,25 @@ export function PlanDetail({ id }: { id: string }) {
           <div className="text-right"><p className="text-cap text-muted-text">Depart</p><p className="text-body font-semibold">{when(p.departure)}</p></div>
         </div>
         <BudgetHero n={computeItinerary(p).hero} overnight={isOvernight(new Date(p.arrival), new Date(p.departure))} />
-        <SectionTitle>Activities ({items.length})</SectionTitle>
-        {items.length ? <ul className="grid gap-3">{items.map((a) => <ActivityRow key={a.id} a={a} />)}</ul>
-          : <p className="text-body text-muted-text">No activities yet. Edit the plan to add some.</p>}
+        {items.length ? (<>
+          <SectionTitle>Activities ({items.length})</SectionTitle>
+          <ul className="grid gap-3">{items.map((a) => <ActivityRow key={a.id} a={a} />)}</ul>
+        </>) : (
+          // A saved flight is not yet a plan: the way forward is discovering what fits.
+          <section aria-label="Itinerary" className="panel mt-1 rounded-surface p-5 text-center">
+            <span aria-hidden="true" className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-accent-tint text-accent-dark"><Compass size={22} /></span>
+            <p className="text-card font-semibold">No activities planned yet</p>
+            <p className="mt-1 text-body text-muted-text">Discover what you can do during your layover.</p>
+            <Button className="mt-4 w-full" icon={Compass} onClick={() => { setDraft(toDraft(p)); go(isSupported(p.airport) ? { name: 'airport', code: p.airport, view: 'list' } : { name: 'builder' }) }}>Explore activities</Button>
+          </section>
+        )}
         <div className="mt-3 grid gap-2">
           {items.length > 0 && <Button variant="secondary" icon={MapIcon} onClick={() => { setDraft({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination, arrivalLocation: p.arrivalLocation, departureLocation: p.departureLocation }); go({ name: 'airport', code: p.airport, view: 'map', directions: true }) }}>
             See how to get there</Button>}
-          <Button icon={Pencil} onClick={() => {
+          {items.length > 0 && <Button icon={Pencil} onClick={() => {
           setDraft({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination, arrivalLocation: p.arrivalLocation, departureLocation: p.departureLocation })
           go({ name: 'builder' })
-        }}>Edit plan</Button>
+        }}>Edit plan</Button>}
         </div>
       </div>
     </div>
