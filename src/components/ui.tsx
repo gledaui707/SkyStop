@@ -21,7 +21,7 @@ export function Backdrop({ img, className }: { img: Img; className?: string }) {
   return (
     <div aria-hidden="true" className={cx('ph pointer-events-none absolute inset-x-0 top-0 h-[25rem] overflow-hidden [mask-image:linear-gradient(to_bottom,#000_35%,transparent)]', className)}>
       <img src={sized(img, 900, 800)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-canvas/60" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/20 to-canvas/60" />
     </div>
   )
 }
@@ -34,8 +34,8 @@ export function Header({ title, subtitle, right, onBack }: { title: string; subt
       <div className="relative grid grid-cols-[3rem_1fr_3rem] items-center gap-2">
         <IconButton label="Back" icon={ChevronLeft} onClick={onBack ?? back} iconSize={26} />
         <div className="min-w-0 text-center">
-          <h1 className="truncate text-body font-semibold leading-tight">{title}</h1>
-          {subtitle && <p className="truncate text-cap text-muted-text">{subtitle}</p>}
+          <h1 className="truncate text-body font-semibold leading-tight [text-shadow:0_1px_10px_rgb(0_0_0/0.55)]">{title}</h1>
+          {subtitle && <p className="truncate text-cap font-medium text-ink/80 [text-shadow:0_1px_8px_rgb(0_0_0/0.6)]">{subtitle}</p>}
         </div>
         <div className="flex justify-end">{right}</div>
       </div>

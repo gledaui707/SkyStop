@@ -400,3 +400,18 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   320×640, 375×667 and 390×844; overnight card (DXB 00:45 → 07:45) checked at 320 px.
 - Fixed during review: journey step left half the screen empty (now a trip timeline); 320 px wrapping in the journey
   card and the Home card; interest cards' accessible names began with photo descriptions (now their labels).
+
+### Time-budget instrument, photographic My plans, header legibility (scheduled visual pass, 19 Nov 2026)
+
+- Hierarchy: the time budget was a solid coral slab competing with the coral Save plan button. It is now the
+  `instrument` material (coral-lit smoked glass) with a `TimeRing` gauge (buffer hatched, activities coral, transfers
+  amber, % of usable time in the centre) and stat tiles; the remaining time stays the focal number and Save plan is the
+  only solid coral. The journey overview's usable-time card uses the same instrument. Same text and labels, so tests
+  that read "Time budget" are unchanged.
+- My plans felt empty: now a photographic header (next plan's airport) with a summary line, and each plan card has the
+  photo on top and a glass strip with arrive and depart times joined by a bar of how the layover is spent. Loading
+  shows skeletons. Header titles over photos got a text shadow and a stronger top scrim (Changi photo was bright).
+- Fixed during review: at 320 px the remaining time wrapped beside the ring (ring now scales down, metric stays on one
+  line). e2e locator for the saved-plan card used a styling class (`button.ph`); now a role locator.
+- Checks: e2e 171/171; unit 148 passed (one hosted skip); layout audit 0 issues at 320/375/390/430; build OK;
+  screenshots reviewed at 390×844 and 320×568 (activity photos are blocked in this sandbox, airport photos bundled).

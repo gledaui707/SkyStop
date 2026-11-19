@@ -23,7 +23,7 @@ Same token names, components and layouts as before; the values changed.
 ## Colour (`@theme` → Tailwind `bg-*`, `text-*`, `border-*`)
 | Token | Value | Use |
 |---|---|---|
-| `accent` | `#EA5139` | primary coral (`btn-coral`, time budget, rails) |
+| `accent` | `#EA5139` | primary coral (`btn-coral`, time-budget ring, rails) |
 | `accent-dark` | `#FF8D73` | coral text and icons on dark surfaces (AA); `#C23B24` inside `.theme-paper` |
 | `accent-tint` | coral 20 % | coral wash (icon wells, pills) |
 | `aqua` / `peach` / `amber` / `rose` / `plum` | `#FFB5A5` / `#FFD9C7` / `#F6A04D` / `#F0738A` / `#4A2335` | accents, gradients |
@@ -35,7 +35,7 @@ Same token names, components and layouts as before; the values changed.
 | `success`, `warning`, `error` (+ `-tint`) | `#74D9A0`, `#FFC074`, `#FF8673` | status on dark |
 | `deep` | `#0F0907` | darkest photographic surface, scrims |
 
-Gradients (`:root`): `--coral-grad` (buttons), `--sunset-grad` (time budget: amber → coral → rose), `--rail-grad`
+Gradients (`:root`): `--coral-grad` (buttons), `--sunset-grad` (warm accents: amber → coral → rose), `--rail-grad`
 (itinerary and journey timelines: soft coral → coral → amber), `--dusk-grad`.
 
 ## Typography (`text-*`; system font stack, SF Pro on Apple devices; rem so it follows text-size settings)
@@ -75,7 +75,8 @@ Headings use −0.022em tracking; numbers that change use `tabular-nums`. Weight
 | `glass-premium` | brighter frost (7–16 %), e2 | one hero slab per screen (booking form, compare form) |
 | `glass-dark` / `glass-light` | dark or light tint, 18 px blur | controls and labels over photography |
 | `sheet-solid` | solid warm dark gradient | modal sheets (content behind never shows through) |
-| `sunset` | warm coral gradient, matte | the time budget |
+| `instrument` (+ `instrument-over`) | smoked glass lit by a coral glow (red when over time), 24 px blur, e2 | the time budget and the journey's usable time |
+| `sunset` | warm coral gradient, matte | warm accents (no longer the time budget) |
 | `theme-paper` + `paper` | warm light paper, dark-ink tokens inside | flight passes and Wallet strips |
 | `btn-coral` / `btn-secondary` / `pill-on` | coral gradient / frosted glass / warm white with dark text | buttons, chips |
 | `field` | recessed dark well, clear outline (white inside paper) | inputs |
@@ -102,7 +103,7 @@ Headings use −0.022em tracking; numbers that change use `tabular-nums`. Weight
 | `ActionBar` | children | `glass-medium` tray above the tab bar |
 | `Sheet`, `ActivitySheet`, `ActivityRow`, `Photo` | | bottom sheet in `glass-medium` |
 
-Domain components reuse these: `BudgetHero` (time budget, `sunset`), `TripTicket`, `FlightStack`, `AirportPicker`,
+Domain components reuse these: `BudgetHero` (time budget, `instrument` + `TimeRing` gauge), `TripTicket`, `FlightStack`, `AirportPicker`,
 `AirportMap`, `SSMark` (white monogram for dark backgrounds).
 
 ## Motion

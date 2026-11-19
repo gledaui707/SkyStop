@@ -8,6 +8,7 @@ import { fmtDur } from '../data/time'
 import { IMAGES, sized } from '../data/images'
 import { journeyDraft } from '../features/onboarding/handoff'
 import { ActionBar, Backdrop, Button, Header, cx } from '../components/ui'
+import { TimeRing } from '../components/BudgetHero'
 
 const day = (local: string) => new Date(`${local.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 const time = (local: string) => local.slice(11, 16)
@@ -105,7 +106,6 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
     <div><Header title="Your journey" /><p className="p-6 text-center text-body text-muted-text">This journey is not available.</p></div>
   )
   const conn = getAirport(j.connection), supported = isSupported(j.connection)
-  const pct = (n: number) => `${(n / Math.max(j.layover.totalMin, 1)) * 100}%`
   const flight = journeyDraft(j)
   // The same sample journey is not saved twice: open the existing flight instead.
   const existing = plans.find((p) => p.bookingRef === j.ref && p.airport === j.connection && p.arrival.slice(0, 16) === j.layover.arrivalLocal.slice(0, 16))
@@ -169,14 +169,18 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
         </section>
 
         {/* time budget */}
-        <section aria-label="Layover time breakdown" className="sunset rounded-surface p-5">
-          <p className="text-sub font-medium text-white/85">Estimated usable time</p>
-          <p className="text-metric font-bold tabular-nums">{fmtDur(j.layover.usableMin)}</p>
-          <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-white/25" aria-hidden="true">
-            <span className="bg-[repeating-linear-gradient(135deg,rgb(255_255_255/0.75)_0_3px,rgb(255_255_255/0.35)_3px_6px)]" style={{ width: pct(j.layover.bufferMin) }} />
-            <span className="bg-white" style={{ width: pct(j.layover.usableMin) }} />
+        <section aria-label="Layover time breakdown" className="instrument rounded-surface p-5">
+          <div className="flex items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-sub font-medium text-muted-text">Estimated usable time</p>
+              <p className="mt-1 whitespace-nowrap text-metric font-bold tabular-nums max-[359px]:text-[2.25rem]">{fmtDur(j.layover.usableMin)}</p>
+            </div>
+            <TimeRing total={Math.max(j.layover.totalMin, 1)} className="size-[5.5rem] min-[360px]:size-24" label={`${fmtDur(j.layover.bufferMin)} buffer and ${fmtDur(j.layover.usableMin)} usable, of ${fmtDur(j.layover.totalMin)}`}
+              arcs={[{ min: j.layover.bufferMin, stroke: '', dash: true }, { min: j.layover.usableMin, stroke: 'url(#ring-coral)' }]}>
+              <span aria-hidden="true" className="text-micro font-semibold text-muted-text">{fmtDur(j.layover.totalMin)}</span>
+            </TimeRing>
           </div>
-          <p className="mt-3 text-sub text-white/90">{fmtDur(j.layover.totalMin)} layover − {fmtDur(j.layover.bufferMin)} planning buffer = <b className="text-white">{fmtDur(j.layover.usableMin)} usable</b></p>
+          <p className="mt-3 text-sub text-muted-text">{fmtDur(j.layover.totalMin)} layover − {fmtDur(j.layover.bufferMin)} planning buffer = <b className="text-ink">{fmtDur(j.layover.usableMin)} usable</b></p>
         </section>
         <p className="panel flex gap-2.5 rounded-control p-3.5 text-sub text-muted-text"><Info size={18} className="mt-0.5 shrink-0 text-accent-dark" />
           <span>The planning buffer keeps time free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding.</span></p>

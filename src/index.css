@@ -178,7 +178,8 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
    glass-dark     controls and labels over photography
    glass-light    a brighter frost for labels over photography
    sheet-solid    modal sheets: solid, so content behind never shows through
-   sunset         the time budget: warm coral gradient, matte
+   instrument     the time budget: coral-lit smoked glass with a ring gauge
+   sunset         warm coral gradient, matte (onboarding accents)
    theme-paper    a warm light "paper" scope (flight passes): resets the text tokens to dark ink
    ph             photo placeholder while (or if) a photo is unavailable */
 @layer components {
@@ -245,6 +246,27 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
     color: #fff;
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 18px 40px -14px rgb(234 81 57 / 0.55);
   }
+  /* Instrument: the time budget. Smoked glass lit from the top right by a coral glow, so the number reads first and the
+     screen's coral button stays its only solid coral. Turns to a red glow when a plan is over its time. */
+  .instrument {
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgb(234 81 57 / 0.32) 0%, transparent 55%),
+      radial-gradient(90% 80% at 0% 100%, rgb(120 42 74 / 0.28) 0%, transparent 60%),
+      linear-gradient(160deg, rgb(255 240 232 / 0.11) 0%, rgb(255 240 232 / 0.05) 100%);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5);
+    backdrop-filter: blur(24px) saturate(1.5);
+    border: 1px solid rgb(255 166 140 / 0.2);
+    box-shadow: var(--glass-edge), var(--shadow-e2);
+    color: var(--color-ink);
+  }
+  .instrument-over {
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgb(255 92 72 / 0.34) 0%, transparent 55%),
+      linear-gradient(160deg, rgb(255 240 232 / 0.11) 0%, rgb(255 240 232 / 0.05) 100%);
+    border-color: rgb(255 134 115 / 0.35);
+  }
+  .ring-arc { transition: stroke-dasharray var(--dur-slow) var(--ease-glide), stroke-dashoffset var(--dur-slow) var(--ease-glide); }
+  @media (prefers-reduced-motion: reduce) { .ring-arc { transition: none; } }
   /* Warm paper: flight passes. Text tokens switch back to dark ink inside, so the same utilities read on light. */
   .theme-paper {
     --color-ink: #1f1a17;
@@ -337,6 +359,7 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .panel, .glass, .glass-subtle, .glass-premium, .btn-secondary { background: rgb(44 31 28 / 0.96); }
     .panel-accent { background: rgb(70 32 26 / 0.96); }
+    .instrument { background: radial-gradient(120% 90% at 100% 0%, rgb(234 81 57 / 0.3) 0%, transparent 55%), rgb(40 27 24 / 0.97); }
     .glass-medium { background: rgb(30 20 18 / 0.97); }
     .glass-dark { background: rgb(20 14 13 / 0.88); }
     .glass-light { background: rgb(60 44 40 / 0.92); }

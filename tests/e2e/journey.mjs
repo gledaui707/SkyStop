@@ -647,7 +647,7 @@ try {
     // Entry point 3: a saved plan
     await P.getByRole('button', { name: 'My Plans' }).click();
     await P.getByRole('heading', { name: 'My plans' }).waitFor();
-    await P.locator('button.ph').first().click();
+    await P.getByRole('list').getByRole('button', { name: / layover, / }).first().click(); // a saved plan card
     await P.getByRole('button', { name: 'See how to get there' }).click();
     await P.locator('section[aria-label="Directions"]').getByText('Step 1 of 3').waitFor();
     check('wayfinding: a saved plan has "See how to get there" and it opens the directions', await P.locator('section[aria-label="Directions"]').isVisible());
