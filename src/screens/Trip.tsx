@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Clock, ListChecks, Sparkles, X } from 'lucide-react'
+import { Clock, ListChecks, Plane, Sparkles, X } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, AIRPORTS, TEMPLATES, getAirport, isSupported } from '../data/mock'
 import { airportInfo } from '../data/airportDirectory'
@@ -113,55 +113,54 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
           </section>
         )}
 
-        {/* The whole journey (optional): where it starts and ends. Shown on your flight card. */}
-        <section aria-label="Journey" className="panel grid grid-cols-[minmax(0,1fr)] gap-3 rounded-surface p-4">
-          <AirportPicker label="Flying from (optional)" value={origin} onChange={setOrigin} exclude={[conn, destination].filter(Boolean)} placeholder="City, airport or code" />
-          <AirportPicker label="Final destination (optional)" value={destination} onChange={setDestination} exclude={[conn, origin].filter(Boolean)} placeholder="City, airport or code" />
+        {/* The journey as one route: origin → connection (with its layover window) → destination, joined by a flight
+            path. The connection is the focal stop; origin and destination are optional and shown on your flight card. */}
+        <section aria-label="Journey route" className="panel rounded-surface px-4 pb-4 pt-3">
+          <RouteStop kind="origin">
+            <AirportPicker label="Flying from (optional)" value={origin} onChange={setOrigin} exclude={[conn, destination].filter(Boolean)} placeholder="City, airport or code" />
+          </RouteStop>
+          <RouteStop kind="connection">
+            <AirportPicker label="Connecting airport" value={conn} onChange={setConn} exclude={[origin, destination].filter(Boolean)} placeholder="Where do you change planes?" />
+            {!conn ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-sub text-muted-text">Layover guides:</span>
+                {AIRPORTS.map((a) => (
+                  <button key={a.code} type="button" onClick={() => setConn(a.code)} className="press min-h-11 rounded-full border border-line bg-ink-tint px-4 text-sub font-medium">{a.city} {a.code}</button>))}
+              </div>
+            ) : !supported && <p className="mt-2 text-sub text-muted-text">No activity guide for this airport yet. You can still see your time budget.</p>}
+
+            {/* The layover window: arrive → depart, then the buffer kept free. Coral-lit, the screen's focal surface. */}
+            <div aria-label="Layover window" role="group" className="instrument relative -ml-[2.25rem] mt-4 rounded-card bg-[rgb(38_25_22)] p-3.5">
+              <p className="mb-3 flex items-center gap-2 text-cap font-semibold uppercase tracking-[0.08em] text-accent-dark"><Clock size={14} aria-hidden="true" />Layover window</p>
+              <div className="grid gap-3">
+                <Field label="Arrival at the connecting airport (local time)">
+                  <input type="datetime-local" className={inputCls} value={arr} onChange={(e) => setArr(e.target.value)} /></Field>
+                <Field label="Onward departure (local time)">
+                  <input type="datetime-local" className={inputCls} value={dep} onChange={(e) => setDep(e.target.value)} /></Field>
+              </div>
+              {timeError && <p role="alert" className="mt-3 text-body font-medium text-error">{timeError}</p>}
+
+              <fieldset aria-labelledby="buffer-label" className="mt-4 border-t border-line pt-3.5">
+                <legend className="sr-only">Planning buffer</legend>
+                <span className="mb-2 flex items-center justify-between gap-3">
+                  <span id="buffer-label" className="whitespace-nowrap text-sub font-semibold">Planning buffer</span>
+                  <InfoTip id="buffer-help" title="Planning buffer">Time kept free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding. Activities only use what is left.</InfoTip>
+                </span>
+                <div className="grid grid-cols-3 gap-1 rounded-full bg-black/25 p-1 ring-1 ring-line">
+                  {BUFFERS.map((m) => (
+                    <button type="button" key={m} aria-pressed={buf === m} onClick={() => setBuf(m)}
+                      className={cx('press min-h-11 whitespace-nowrap rounded-full text-body font-semibold transition-colors', buf === m ? 'pill-on' : 'text-muted-text')}>{fmtDur(m)}</button>))}
+                </div>
+              </fieldset>
+            </div>
+          </RouteStop>
+          <RouteStop kind="destination">
+            <AirportPicker label="Final destination (optional)" value={destination} onChange={setDestination} exclude={[conn, origin].filter(Boolean)} placeholder="City, airport or code" />
+          </RouteStop>
         </section>
-
-        {/* The connection as one surface: airport, then an arrive → depart rail. */}
-        <section aria-label="Connection" className="panel rounded-surface p-4">
-          <AirportPicker label="Connecting airport" value={conn} onChange={setConn} exclude={[origin, destination].filter(Boolean)} placeholder="Where do you change planes?" />
-          {!conn ? (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-sub text-muted-text">Layover guides:</span>
-              {AIRPORTS.map((a) => (
-                <button key={a.code} type="button" onClick={() => setConn(a.code)} className="press min-h-11 rounded-full border border-line bg-ink-tint px-4 text-sub font-medium">{a.city} {a.code}</button>))}
-            </div>
-          ) : !supported && <p className="mt-2 text-sub text-muted-text">No activity guide for this airport yet. You can still see your time budget.</p>}
-
-          <div className="mt-5 grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-3">
-            <div aria-hidden="true" className="row-span-2 flex flex-col items-center pt-9 pb-7">
-              <span className="size-3.5 shrink-0 rounded-full border-[3px] border-accent-dark bg-canvas" />
-              <span className="my-1 w-0.5 flex-1 rounded-full bg-gradient-to-b from-accent-dark/80 via-accent/40 to-[#f6a04d]/80" />
-              <span className="size-3.5 shrink-0 rounded-full bg-[#f6a04d]" />
-            </div>
-            <Field label="Arrival at the connecting airport (local time)">
-              <input type="datetime-local" className={inputCls} value={arr} onChange={(e) => setArr(e.target.value)} /></Field>
-            <div className="mt-4">
-              <Field label="Onward departure (local time)">
-                <input type="datetime-local" className={inputCls} value={dep} onChange={(e) => setDep(e.target.value)} /></Field>
-            </div>
-          </div>
-          {timeError && <p role="alert" className="mt-3 text-body font-medium text-error">{timeError}</p>}
-        </section>
-
-        <fieldset aria-labelledby="buffer-label">
-          <legend className="w-full">
-            <span className="flex items-center justify-between gap-3">
-              <span id="buffer-label" className="text-body font-semibold">Planning buffer</span>
-              <InfoTip id="buffer-help" title="Planning buffer">Time kept free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding. Activities only use what is left.</InfoTip>
-            </span>
-          </legend>
-          <div className="grid grid-cols-3 gap-1 rounded-full bg-ink-tint p-1 ring-1 ring-line">
-            {BUFFERS.map((m) => (
-              <button type="button" key={m} aria-pressed={buf === m} onClick={() => setBuf(m)}
-                className={cx('press min-h-12 rounded-full text-body font-semibold transition-colors', buf === m ? 'pill-on' : 'text-muted-text')}>{fmtDur(m)}</button>))}
-          </div>
-        </fieldset>
 
         {timesOk && (
-          <section aria-label="Layover time breakdown" className="panel-accent anim-rise rounded-surface p-5">
+          <section aria-label="Layover time breakdown" className="instrument anim-rise rounded-surface p-5">
             <div className="flex items-end justify-between gap-3">
               <div>
                 <p className="text-sub text-muted-text">Usable time</p>
@@ -186,6 +185,28 @@ export function Trip({ airport, templateId }: { airport?: string; templateId?: s
       <ActionBar>
         <Button className="w-full" disabled={!ok} onClick={finish}>{cta}</Button>
       </ActionBar>
+    </div>
+  )
+}
+
+/** One stop on the journey route: a marker on a flight path running down the left edge. The path is drawn per stop
+ *  (a segment above and below the marker), so it stays continuous however tall a stop grows (suggestion lists, the
+ *  layover window). The marker lines up with the stop's airport input. */
+function RouteStop({ kind, children }: { kind: 'origin' | 'connection' | 'destination'; children: React.ReactNode }) {
+  const inbound = 'w-0.5 rounded-full bg-gradient-to-b from-white/25 to-accent-dark/60'   // origin → connection
+  const onward = 'w-0.5 rounded-full bg-gradient-to-b from-accent-dark/60 to-amber/75'    // connection → destination
+  return (
+    <div className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-x-3">
+      <div aria-hidden="true" className="flex flex-col items-center">
+        <span className={cx('shrink-0', kind === 'connection' ? 'h-[2.52rem]' : 'h-[2.83rem]', kind === 'connection' && inbound, kind === 'destination' && onward)} />
+        {kind === 'connection'
+          ? <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent shadow-[0_0_0_5px_rgb(234_81_57/0.22),0_0_18px_rgb(234_81_57/0.6)]"><Plane size={13} strokeWidth={2.4} className="rotate-[135deg] text-white" fill="currentColor" /></span>
+          : kind === 'origin'
+            ? <span className="mx-[0.3rem] size-3.5 shrink-0 rounded-full border-2 border-white/60 bg-canvas" />
+            : <span className="mx-[0.3rem] size-3.5 shrink-0 rounded-full bg-amber shadow-[0_0_10px_rgb(246_160_77/0.55)]" />}
+        <span className={cx('flex-1', kind === 'origin' && inbound, kind === 'connection' && onward)} />
+      </div>
+      <div className={cx('min-w-0', kind !== 'destination' && 'pb-5')}>{children}</div>
     </div>
   )
 }

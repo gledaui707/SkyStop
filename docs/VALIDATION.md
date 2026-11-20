@@ -415,3 +415,18 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   line). e2e locator for the saved-plan card used a styling class (`button.ph`); now a role locator.
 - Checks: e2e 171/171; unit 148 passed (one hosted skip); layout audit 0 issues at 320/375/390/430; build OK;
   screenshots reviewed at 390×844 and 320×568 (activity photos are blocked in this sandbox, airport photos bundled).
+
+### Manual Add flight as one journey route (scheduled visual pass, 20 Nov 2026)
+
+- The manual connection form was three generic stacked panels (origin/destination inputs, connection, buffer). It is
+  now one "Journey route" surface: a flight path runs down the left edge through Flying from (hollow dot) → Connecting
+  airport (glowing coral plane marker, the focal stop) → Final destination (amber dot). The connection's arrival,
+  departure and planning buffer sit in a coral-lit "Layover window" (`instrument` material) under that stop; the
+  usable-time breakdown below uses the same instrument material instead of a second coral panel. Same labels, inputs,
+  validation and save path; no data, Supabase or logic changes.
+- Fixed during review: at 320 px the nested window squeezed the date inputs and wrapped "1h 30m" (window now spans the
+  full surface width, buffer labels don't wrap); the flight path showed through the translucent window (solid base).
+- Checks: `npm run build` OK; `npx vitest run` 148 passed, 1 skipped (hosted); `npm run test:e2e` 171/171 (one locator
+  updated from the removed `Connection` region to `Journey route`); `node tests/e2e/layout-audit.mjs` 0 issues at
+  320/375/390/430. Captures reviewed at 390×844 and 320×568: empty, suggestion list open, filled. Not run: hosted tests
+  (owner approval required). Activity photos remain blocked in this sandbox.

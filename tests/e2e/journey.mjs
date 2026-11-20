@@ -431,7 +431,7 @@ try {
     await m.page.getByRole('button', { name: 'Enter flight details manually' }).waitFor({ timeout: 6000 }); await m.page.waitForTimeout(400);
     await m.page.getByRole('button', { name: 'Enter flight details manually' }).click();
     await m.page.getByRole('combobox', { name: 'Connecting airport' }).waitFor({ timeout: 15000 });
-    check('manual entry: the existing manual flight form opens after the guest session (no Account Access)', await m.page.getByRole('region', { name: 'Connection' }).isVisible() && !(await visible(m.page, 'No account yet?')));
+    check('manual entry: the existing manual flight form opens after the guest session (no Account Access)', await m.page.getByRole('region', { name: 'Journey route' }).isVisible() && !(await visible(m.page, 'No account yet?')));
     await m.ctx.close();
   }
   {
