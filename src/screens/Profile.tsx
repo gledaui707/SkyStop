@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, ChevronRight, Database, Globe, LogOut, PenLine, Mail, RotateCcw, ShieldCheck, Trash2, UserRound } from 'lucide-react'
+import { Camera, ChevronRight, CloudUpload, Database, Globe, LogOut, PenLine, Plane, RotateCcw, Route, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { useApp } from '../store'
 import { getSupabase } from '../api/client'
 import { avatarUrl, createAccount, removeAvatar, signIn, signOut, updateName, uploadAvatar } from '../api/account'
@@ -25,7 +25,7 @@ function countryNames(): string[] {
 function Avatar({ src, size }: { src: string | null; size: string }) {
   return src
     ? <img src={src} alt="" className={cx(size, 'shrink-0 rounded-full object-cover ring-2 ring-white shadow-md')} />
-    : <span className={cx(size, 'grid shrink-0 place-items-center rounded-full bg-ink-tint text-muted-text ring-1 ring-line')}><UserRound size={26} /></span>
+    : <span className={cx(size, 'grid shrink-0 place-items-center rounded-full bg-[#2a1d1a] text-muted-text ring-1 ring-line')}><UserRound size={26} /></span>
 }
 
 const Section = ({ title, action, children, bare }: { title: string; action?: React.ReactNode; children: React.ReactNode; bare?: boolean }) => (
@@ -35,6 +35,17 @@ const Section = ({ title, action, children, bare }: { title: string; action?: Re
       : <Surface className="grid grid-cols-[minmax(0,1fr)] gap-3 p-4">{children}</Surface>}
   </section>
 )
+
+/** One row of an iOS-style grouped list: tinted icon tile, label, optional detail line and chevron. */
+function SettingsRow({ icon: Icon, sub, tone, onClick, children }: { icon: typeof Database; sub?: string; tone?: 'danger'; onClick: () => void; children: string }) {
+  return (
+    <button type="button" onClick={onClick} className={cx('press flex min-h-14 items-center gap-3 px-4 py-2.5 text-left text-body font-medium transition-colors hover:bg-ink-tint', tone === 'danger' && 'text-error')}>
+      <span aria-hidden="true" className={cx('grid size-9 shrink-0 place-items-center rounded-[0.7rem]', tone === 'danger' ? 'bg-error-tint text-error' : 'bg-accent/20 text-accent-dark')}><Icon size={18} /></span>
+      <span className="min-w-0 flex-1">{children}{sub && <span className="block text-cap font-normal text-muted-text">{sub}</span>}</span>
+      {tone !== 'danger' && <ChevronRight size={18} aria-hidden="true" className="shrink-0 text-muted" />}
+    </button>
+  )
+}
 
 export function Profile() {
   const { account, refreshAccount, profile, setProfile, plans, replayOnboarding, route, go } = useApp()
@@ -96,24 +107,29 @@ export function Profile() {
       <Header title="Profile" />
       <div className="relative grid grid-cols-[minmax(0,1fr)] gap-7 px-5 pt-14">
         {/* identity card: the screen's focal point, floating on the photo */}
-        <section aria-label="Your profile" className="glass-premium grid gap-4 rounded-surface p-4">
+        <section aria-label="Your profile" className="id-card relative grid gap-4 overflow-hidden rounded-surface p-4">
           <div className="flex items-center gap-4">
-            <Avatar src={photo} size="size-16" />
+            <span className="avatar-ring shrink-0 rounded-full p-[3px]"><Avatar src={photo} size="size-16" /></span>
             <div className="min-w-0">
               <p className="truncate text-h1 font-bold leading-tight">{account.name || (account.status === 'registered' ? account.email : 'Guest')}</p>
-              <p className="text-sub text-muted-text">{account.status === 'registered' ? 'Signed in' : account.status === 'guest-pending' ? 'Confirmation pending' : 'Saved on this device only'}</p>
+              <p className="mt-1 inline-flex items-center gap-1.5 rounded-xl bg-black/25 px-2.5 py-1 text-cap font-medium text-ink/90">
+                <span aria-hidden="true" className={cx('size-1.5 rounded-full', account.status === 'registered' ? 'bg-success' : account.status === 'guest-pending' ? 'bg-warning' : 'bg-amber')} />
+                {account.status === 'registered' ? 'Signed in' : account.status === 'guest-pending' ? 'Confirmation pending' : 'Saved on this device only'}</p>
             </div>
           </div>
           <dl className="grid grid-cols-2 gap-2">
-            {[[plans.length, plans.length === 1 ? 'Flight' : 'Flights'], [plans.filter((p) => p.activityIds.length).length, 'Itineraries']].map(([n, l]) => (
-              <div key={l} className="rounded-control bg-ink-tint px-3 py-2.5">
-                <dt className="text-cap text-muted-text">{l}</dt>
-                <dd className="text-h2 font-bold tabular-nums">{n}</dd>
+            {([[plans.length, plans.length === 1 ? 'Flight' : 'Flights', Plane], [plans.filter((p) => p.activityIds.length).length, 'Itineraries', Route]] as const).map(([n, l, Icon]) => (
+              <div key={l} className="flex min-w-0 items-center gap-2.5 rounded-control bg-black/20 px-2.5 py-2.5 ring-1 ring-white/10">
+                <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-accent/25 text-accent-dark"><Icon size={16} /></span>
+                <div className="min-w-0">
+                  <dt className="truncate text-cap text-muted-text">{l}</dt>
+                  <dd className="text-h2 font-bold leading-tight tabular-nums">{n}</dd>
+                </div>
               </div>))}
           </dl>
         </section>
 
-        <Section title="Account">
+        <Section title="Account" bare={account.status !== 'registered'}>
           {account.status === 'registered' && (<>
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => fileRef.current?.click()} disabled={photoBusy} aria-label={photo ? 'Change profile picture' : 'Add profile picture'} className="press relative shrink-0">
@@ -140,23 +156,32 @@ export function Profile() {
           </>)}
           {account.status === 'registered' ? null : (
             <>
-              {account.status === 'guest-pending' && <Notice tone="info">Check {account.pendingEmail} for a confirmation link. Your guest flights move with you once it is confirmed.</Notice>}
-              <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
-                <Button onClick={() => go({ name: 'access', auth: 'create' })}>Create account</Button>
-                <Button variant="secondary" onClick={() => go({ name: 'access', auth: 'signin' })}>Sign in</Button>
-              </div>
-              {error && <Notice tone="warn">{error}</Notice>}
+              <Surface material="accent" radius="surface" className="grid grid-cols-[minmax(0,1fr)] gap-4 p-4">
+                <div className="flex gap-3">
+                  <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-accent/30 text-peach ring-1 ring-accent-dark/40"><CloudUpload size={21} /></span>
+                  <div className="min-w-0">
+                    <p className="text-card font-semibold">Keep your plans on any device</p>
+                    <p className="mt-0.5 text-sub text-muted-text">With an account, your guest flights and itineraries move with you.</p>
+                  </div>
+                </div>
+                {account.status === 'guest-pending' && <Notice tone="info">Check {account.pendingEmail} for a confirmation link. Your guest flights move with you once it is confirmed.</Notice>}
+                <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
+                  <Button onClick={() => go({ name: 'access', auth: 'create' })}>Create account</Button>
+                  <Button variant="secondary" onClick={() => go({ name: 'access', auth: 'signin' })}>Sign in</Button>
+                </div>
+                {error && <Notice tone="warn">{error}</Notice>}
+              </Surface>
             </>
           )}
           {account.status === 'registered' && error && <Notice tone="warn">{error}</Notice>}
         </Section>
 
-        <Section title="Travel documents" bare={!!profile && !editingDocs} action={
+        <Section title="Travel documents" bare action={
           <InfoTip id="docs-help" title="Travel documents">Optional. Used only to tailor entry guidance for activities outside the transit area. It never decides whether you may enter a country. SkyStop does not ask for passport numbers or document photos.</InfoTip>}>
           {profile && !editingDocs ? (
             <>
               {/* saved: a small passport cover (same composition as the Overnight connection card) */}
-              <aside aria-label="Passport details" className="relative flex items-center gap-4 overflow-hidden rounded-surface bg-gradient-to-br from-[#6e1f30] to-[#3b0f1b] p-4 text-white">
+              <aside aria-label="Passport details" className="passport relative flex items-center gap-4 overflow-hidden rounded-surface p-4 text-white">
                 <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full border border-[#f1d49a]/15" />
                 <div aria-hidden="true" className="relative grid size-16 shrink-0 place-items-center rounded-full bg-[#8a3346] text-[#f1d49a] ring-1 ring-[#f1d49a]/30">
                   <Globe size={30} strokeWidth={1.4} />
@@ -175,11 +200,21 @@ export function Profile() {
           ) : (
             <>
               <datalist id="countries">{countries.map((c) => <option key={c} value={c} />)}</datalist>
-              <label className="grid gap-1.5 text-sub font-medium text-muted-text">Passport nationality
-                <input list="countries" value={nationality} onChange={(e) => setNationality(e.target.value)} className={inputCls} placeholder="e.g. Indonesia" autoComplete="off" /></label>
-              <label className="grid gap-1.5 text-sub font-medium text-muted-text">Country of residence
-                <input list="countries" value={residence} onChange={(e) => setResidence(e.target.value)} className={inputCls} placeholder="Optional" autoComplete="off" /></label>
-              <p className="flex gap-2 text-cap text-muted-text"><ShieldCheck size={15} className="mt-px shrink-0" />Only you can see these details.</p>
+              {/* the form is an open passport page: leather, a gold emblem and two recessed fields */}
+              <div className="passport relative grid grid-cols-[minmax(0,1fr)] gap-3 overflow-hidden rounded-surface p-4">
+                <div className="flex items-center gap-3">
+                  <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-[#8a3346] text-[#f1d49a] ring-1 ring-[#f1d49a]/30"><Globe size={22} strokeWidth={1.5} /></span>
+                  <div className="min-w-0">
+                    <p className="text-cap font-semibold uppercase tracking-[0.14em] text-[#f1d49a]">Passport</p>
+                    <p className="text-sub text-white/80">Optional · tailors entry guidance</p>
+                  </div>
+                </div>
+                <label className="grid gap-1.5 text-sub font-medium text-white/85">Passport nationality
+                  <input list="countries" value={nationality} onChange={(e) => setNationality(e.target.value)} className={inputCls} placeholder="e.g. Indonesia" autoComplete="off" /></label>
+                <label className="grid gap-1.5 text-sub font-medium text-white/85">Country of residence
+                  <input list="countries" value={residence} onChange={(e) => setResidence(e.target.value)} className={inputCls} placeholder="Optional" autoComplete="off" /></label>
+                <p className="flex gap-2 text-cap text-white/75"><ShieldCheck size={15} className="mt-px shrink-0" />Only you can see these details. No passport numbers or photos.</p>
+              </div>
               {(editingDocs || nationality.trim() || residence.trim()) && (
                 <div className={editingDocs ? 'grid grid-cols-2 gap-2' : 'grid'}>
                   <Button disabled={busy || !(nationality.trim() || residence.trim()) || (nationality === (profile?.nationality ?? '') && residence === (profile?.residence ?? ''))} onClick={saveDocs}>Save</Button>
@@ -189,14 +224,14 @@ export function Profile() {
           )}
         </Section>
 
-        <Section title="Settings">
-          <button onClick={replayOnboarding} className="press flex min-h-12 items-center gap-3 text-left text-body font-medium"><RotateCcw size={19} className="text-accent-dark" />Replay introduction</button>
-          <button onClick={() => setAbout(true)} className="press flex min-h-12 items-center gap-3 text-left text-body font-medium"><Database size={19} className="text-accent-dark" />
-            <span className="min-w-0 flex-1">About & data<span className="block text-cap font-normal text-muted-text">Sample data, sources and limitations</span></span><ChevronRight size={18} className="text-muted-text" /></button>
-          {account.status !== 'none' && (
-            <button onClick={() => void logOut()}
-              className="press flex min-h-12 items-center gap-3  pt-3 text-left text-body font-medium text-error"><LogOut size={19} />Log out</button>)}
-        </Section>
+        <section aria-label="Settings" className="grid gap-3">
+          <SectionHeader kind="label">Settings</SectionHeader>
+          <Surface radius="surface" className="grid grid-cols-[minmax(0,1fr)] divide-y divide-line overflow-hidden">
+            <SettingsRow icon={RotateCcw} onClick={replayOnboarding}>Replay introduction</SettingsRow>
+            <SettingsRow icon={Database} onClick={() => setAbout(true)} sub="Sample data, sources and limitations">About & data</SettingsRow>
+            {account.status !== 'none' && <SettingsRow icon={LogOut} tone="danger" onClick={() => void logOut()}>Log out</SettingsRow>}
+          </Surface>
+        </section>
       </div>
       <Sheet open={about} onClose={() => setAbout(false)} title="About & data"><AboutData /></Sheet>
     </div>

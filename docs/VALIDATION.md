@@ -430,3 +430,18 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   updated from the removed `Connection` region to `Journey route`); `node tests/e2e/layout-audit.mjs` 0 issues at
   320/375/390/430. Captures reviewed at 390×844 and 320×568: empty, suggestion list open, filled. Not run: hosted tests
   (owner approval required). Activity photos remain blocked in this sandbox.
+
+### Profile as an identity card, passport form and grouped settings (scheduled visual pass, 21 Nov 2026)
+
+- Profile was the flattest screen: generic glass identity card, a plain panel of two buttons, two stacked inputs and a
+  text list of settings. Now: an `id-card` (coral-lit glass, conic coral ring around the avatar, status chip with a
+  coloured dot, stat tiles with icons); the guest account area is one coral-accent callout ("Keep your plans on any
+  device") with Create account as the dominant action; the travel-document form is an open `passport` page (burgundy
+  leather, faint guilloche, gold emblem, recessed fields) and the saved cover uses the same material; Settings is an
+  iOS grouped list with tinted icon tiles and dividers (Log out as a danger row). Same labels, handlers, save path
+  and Supabase calls; no data or logic changes.
+- Fixed during review: the guest avatar placeholder was translucent, so the coral ring flooded it (now solid); at
+  320 px the "Itineraries" tile label touched the tile edge (tighter tiles, truncating label).
+- Checks: `npm run build` OK; `npx vitest run` 148 passed, 1 skipped (hosted); `npm run test:e2e` 171/171;
+  `node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430. Full-page captures at 390×844 and 320×568, empty and
+  saved passport. Not run: hosted tests (owner approval required).
