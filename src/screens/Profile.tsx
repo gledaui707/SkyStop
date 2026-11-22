@@ -5,8 +5,7 @@ import { getSupabase } from '../api/client'
 import { avatarUrl, createAccount, removeAvatar, signIn, signOut, updateName, uploadAvatar } from '../api/account'
 import { ensureGuestSession } from '../api/session'
 import { deleteProfile, saveProfile } from '../api/repositories'
-import { Backdrop, Button, Header, InfoTip, Notice, cx, inputCls, SectionHeader, Sheet, Surface } from '../components/ui'
-import { IMAGES } from '../data/images'
+import { Button, Header, InfoTip, Notice, cx, inputCls, SectionHeader, Sheet, Surface } from '../components/ui'
 import { AboutData } from '../components/AboutData'
 import { DemoControls } from '../features/flightUpdates/DemoControls'
 
@@ -94,10 +93,9 @@ export function Profile() {
 
   return (
     <div className="relative pb-[calc(var(--nav-h)+2rem)]">
-      <Backdrop img={IMAGES.airports.LHR} className="h-[21rem]" />
       <Header title="Profile" />
-      <div className="relative grid grid-cols-[minmax(0,1fr)] gap-7 px-5 pt-14">
-        {/* identity card: the screen's focal point, floating on the photo */}
+      <div className="relative grid grid-cols-[minmax(0,1fr)] gap-7 px-5 pt-2">
+        {/* identity card: the screen's focal point */}
         <section aria-label="Your profile" className="glass-premium grid gap-4 rounded-surface p-4">
           <div className="flex items-center gap-4">
             <Avatar src={photo} size="size-16" />

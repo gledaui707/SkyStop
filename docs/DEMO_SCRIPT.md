@@ -10,7 +10,7 @@ On a laptop the app opens inside an iPhone frame; on a phone it is full screen. 
 ## Timed script (300 seconds)
 | Time | Do | Say / point out | Expect on screen |
 |---|---|---|---|
-| 0:00–0:30 | Swipe or tap **Next** through the three onboarding screens → **Plan a layover** | "First visit only; skippable; replay from the ⓘ button on Home." | "Your layover, reimagined." → "Discover what's possible." → "Make every minute count." → **Find your journey** |
+| 0:00–0:30 | Tap **Get started** through the three intro slides | "First visit only; skippable; replay from Profile → Settings." | "Your layover, reimagined." → … → Home with no saved flight ("Where's your next stop?"); tap **Add flight** |
 | 0:30–1:10 | Type **AXR7KD** → **Find my journey** | "Sample references only — SkyStop doesn't connect to airline systems, and says so." | Journey overview: Jakarta CGK → **Singapore SIN** → Paris CDG; timeline in local times; **12h 20m layover − 2h planning buffer = 10h 20m usable** |
 | 1:10–2:00 | **Explore Singapore** → List view; open **Butterfly Garden** | "Real venues from changiairport.com: terminal and airside only where the airport states it; time is an estimate; source link at the bottom." | Sheet: Terminal 3 transit, Levels 2–3 · Free · Airside · source **changiairport.com** |
 | 2:00–2:40 | Add **Butterfly Garden**, **Harry's** and **Free Snooze Lounge** → **Build itinerary (3)** | "The time budget is the hero: usable time minus planned time." | 30m + 40m + 45m = 1h 55m planned → **8h 25m left** |

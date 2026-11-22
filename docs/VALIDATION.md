@@ -468,3 +468,12 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   line); the combined gate + time result did not mention the unverified walk.
 - Not run: hosted tests (owner approval required); no live airline data exists to test against. Updates are per
   device (localStorage), not synced between devices.
+
+### Profile without a photo; intro slides end on Home (22 Nov 2026)
+
+- Profile: the background photo (Heathrow) is removed; the identity card now starts right under the header.
+- Intro slides: Get started on the last slide opens Home with no saved flight (SS transition, guest session), instead
+  of the booking conversation. Failure shows "SkyStop couldn’t start." with Try again. Skip / Sign in unchanged. The
+  conversation code is kept but no longer reachable; its 27 browser checks were replaced by 9 checks of the new flow.
+- Checks: `npx tsc -b` clean; `npx vitest run` 169 passed, 1 skipped (hosted); `npm run test:e2e` 184/184;
+  `node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430 (welcome and profile included).

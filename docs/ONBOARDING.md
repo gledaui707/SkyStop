@@ -1,6 +1,16 @@
-# Onboarding: slides, then a conversation that builds your trip
+# Onboarding: three intro slides, then Home
 
-First run: **Splash (unchanged) → three intro slides → conversation → Home** (with the imported flight saved).
+**Current flow (22 Nov 2026):** First run: **Splash → three intro slides → Home with no saved flight**. Get started
+moves through the slides; on the last one it runs `completeOnboarding({})` (SS transition, guest session reused or
+created, nothing saved) and opens the empty Home, where flights are added with **Add flight**. If the guest session
+cannot be created, the last slide shows "SkyStop couldn’t start." with **Try again**. Skip still leads to Account
+Access; Sign in opens the email form. Replay introduction (Profile → Settings) shows the slides and returns to Home.
+
+The booking conversation described below is **no longer shown** after the slides (owner's request). Its code
+(`src/features/onboarding/Onboarding.tsx`) is kept but is not reachable from the app; its browser checks were replaced
+by checks of the slides → Home flow.
+
+*Previous flow:* Splash → three intro slides → conversation → Home (with the imported flight saved).
 Skip (slides or conversation) still leads to Account Access, which stays available from Profile.
 Code: `src/features/onboarding/IntroSlides.tsx`, `Onboarding.tsx` (+ `onboarding.css`), `completeOnboarding` in
 `src/store.tsx`, `src/data/interests.ts`.

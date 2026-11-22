@@ -106,8 +106,9 @@ const EXTRA: Variants = {
 }
 const NONE: Variants = { enter: {}, show: {}, exit: {} }
 
-export function IntroSlides({ onDone }: { onDone: () => void }) {
-  const { finishWelcome, go: navigate, account } = useApp()
+export function IntroSlides() {
+  const { finishWelcome, go: navigate, account, completeOnboarding, entering } = useApp()
+  const [failed, setFailed] = useState(false)
   const reduce = !!useReducedMotion()
   const [i, setI] = useState(0)
   const [dir, setDir] = useState(1)
@@ -122,7 +123,9 @@ export function IntroSlides({ onDone }: { onDone: () => void }) {
     if (next === i) return
     setDir(next > i ? 1 : -1); setI(next)
   }
-  // Get started on the last slide continues into the conversation; Skip leaves the introduction for Account Access.
+  // Get started on the last slide ends the introduction: the SS transition starts a guest session (reused if any) and
+  // opens Home with nothing saved. Skip leaves the introduction for Account Access.
+  const begin = async () => { setFailed(false); if (!(await completeOnboarding({}))) setFailed(true) }
   const skip = () => finishWelcome({ name: 'discover' })
   // Sign in: the email sign-in form on the account screen (one sign-in flow). Not now returns here. Onboarding counts as seen,
   // and the account screen stays pending, so a visitor who leaves without signing in sees it again next launch.
@@ -230,10 +233,11 @@ export function IntroSlides({ onDone }: { onDone: () => void }) {
             </button>
           ))}
         </motion.div>
-        {/* Both choices on every step: Get started moves through onboarding (and finishes it on the last step); Sign in opens
+        {/* Both choices on every step: Get started moves through the slides (and opens Home on the last one); Sign in opens
             the email sign-in form. Same pills as the app's action bar. A signed-in visitor replaying onboarding sees no Sign in. */}
         <div className="pointer-events-auto mt-2 grid grid-cols-[minmax(0,1fr)] gap-2.5 [@media(max-height:640px)]:mt-0 [@media(max-height:640px)]:gap-2">
-          <Button className="w-full" onClick={last ? onDone : () => go(i + 1)}>Get started</Button>
+          {failed && <p role="alert" className="text-center text-sub text-white/90">SkyStop couldn’t start. Check your connection and try again.</p>}
+          <Button className="w-full" disabled={entering === 'loading'} aria-busy={entering === 'loading'} onClick={last ? () => void begin() : () => go(i + 1)}>{failed && last ? 'Try again' : 'Get started'}</Button>
           {account.status !== 'registered' && (
             <Button variant="secondary" className="w-full" onClick={signInNow}>Sign in</Button>
           )}
