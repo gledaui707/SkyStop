@@ -2,11 +2,13 @@ import { ChevronLeft, ChevronRight, Compass, Map as MapIcon, MapPin, Pencil, Pla
 import { IMAGES, sized } from '../data/images'
 import { useApp } from '../store'
 import { ACTIVITIES, getAirport, isSupported } from '../data/mock'
-import { budget, fmtDur, isOvernight, layoverMinutesAt } from '../data/time'
-import type { Plan } from '../data/types'
-import { computeItinerary } from '../data/itinerary'
+import { fmtDur, isOvernight } from '../data/time'
+import { useState } from 'react'
+import type { Activity, Plan } from '../data/types'
+import { computeItinerary, terminalChoices } from '../data/itinerary'
+import { ItineraryTimeline } from '../components/Timeline'
 import { BudgetHero } from '../components/BudgetHero'
-import { ActivityRow, Backdrop, Button, Header, Notice, Photo, SectionTitle, Skeleton, cx, IconButton } from '../components/ui'
+import { ActivitySheet, Backdrop, Button, Header, Notice, Photo, SectionTitle, Skeleton, cx, IconButton } from '../components/ui'
 
 /** A saved flight as an editable draft (same plan id: saving it updates this flight, never adds another). */
 const toDraft = (p: Plan) => ({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure,
@@ -116,12 +118,12 @@ export function Plans() {
 
 export function PlanDetail({ id }: { id: string }) {
   const { plans, plansState, setDraft, go, back } = useApp()
+  const [open, setOpen] = useState<Activity | null>(null)
   const p = plans.find((x) => x.id === id)
   if (!p) return <div><Header title="Plan" /><p className="p-6 text-center text-muted-text">{plansState.status === 'loading' ? 'Loading your plan…' : 'This plan is not available.'}</p></div>
   const items = itemsOf(p)
   const ap = getAirport(p.airport)
-  const mins = layoverMinutesAt(p.arrival, p.departure, ap.timezone)
-  const b = budget(mins, p.bufferMin, items)
+  const plan = computeItinerary(p)
   return (
     <div className="pb-8">
       <div className="ph relative h-[19rem] overflow-hidden">
@@ -141,10 +143,13 @@ export function PlanDetail({ id }: { id: string }) {
           <span aria-hidden="true" className="btn-coral grid size-9 place-items-center rounded-full"><Plane size={16} /></span>
           <div className="text-right"><p className="text-cap text-muted-text">Depart</p><p className="text-body font-semibold">{when(p.departure)}</p></div>
         </div>
-        <BudgetHero n={computeItinerary(p).hero} overnight={isOvernight(new Date(p.arrival), new Date(p.departure))} />
+        <BudgetHero n={plan.hero} overnight={isOvernight(new Date(p.arrival), new Date(p.departure))} />
         {items.length ? (<>
           <SectionTitle>Activities ({items.length})</SectionTitle>
-          <ul className="grid gap-3">{items.map((a) => <ActivityRow key={a.id} a={a} />)}</ul>
+          <ItineraryTimeline airportCode={ap.code} arrival={new Date(p.arrival)} departure={new Date(p.departure)}
+            arrivalNote={p.arrivalLocation ? terminalChoices(p.airport).find((t) => t.id === p.arrivalLocation)?.name : undefined}
+            departureNote={p.departureLocation ? terminalChoices(p.airport).find((t) => t.id === p.departureLocation)?.name : undefined}
+            items={plan.items} hops={plan.itin.hops} usable={plan.hero.usable} buffer={plan.hero.buffer} onOpen={setOpen} />
         </>) : (
           // A saved flight is not yet a plan: the way forward is discovering what fits.
           <section aria-label="Itinerary" className="panel mt-1 rounded-surface p-5 text-center">
@@ -163,6 +168,7 @@ export function PlanDetail({ id }: { id: string }) {
         }}>Edit plan</Button>}
         </div>
       </div>
+      <ActivitySheet a={open} onClose={() => setOpen(null)} />
     </div>
   )
 }

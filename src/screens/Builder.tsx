@@ -1,13 +1,13 @@
-import { Fragment, useState } from 'react'
-import { AlertTriangle, ArrowDown, ArrowUp, Check, ExternalLink, Info, Map as MapIcon, Pencil, Plane, Plus, ShieldAlert, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, ArrowDown, ArrowUp, Check, ExternalLink, Map as MapIcon, Pencil, Plus, ShieldAlert, Trash2 } from 'lucide-react'
 import { useApp } from '../store'
 import { getAirport, isSupported } from '../data/mock'
-import { fmtDay, fmtDur, fmtTime, isOvernight } from '../data/time'
-import { computeItinerary, MODE_LABEL, terminalChoices } from '../data/itinerary'
+import { fmtDur, isOvernight } from '../data/time'
+import { computeItinerary, terminalChoices } from '../data/itinerary'
+import { ItineraryTimeline } from '../components/Timeline'
 import { ACCESS_LABEL, BudgetHero } from '../components/BudgetHero'
-import { ActionBar, ActivitySheet, Backdrop, Button, Header, Notice, Photo, cx, IconButton, SectionHeader, Chip } from '../components/ui'
+import { ActionBar, ActivitySheet, Backdrop, Button, Header, Notice, cx, IconButton, SectionHeader, Chip } from '../components/ui'
 import type { Activity } from '../data/types'
-import type { Hop } from '../domain/itinerary'
 
 /** Build your itinerary: time budget first, then the stops in order with the estimated transfer between each, from
  *  the arrival terminal to the departure terminal. Time feasibility and access (airside/landside, immigration) are
@@ -35,12 +35,7 @@ export function Builder() {
     if (j < 0 || j >= ids.length) return
     ;[ids[i], ids[j]] = [ids[j], ids[i]]; set(ids)
   }
-  // cumulative usable time consumed by the end of each stop (activities + the transfers to reach them)
-  let used = 0
-  const rows = items.map((a, i) => { used += (itin.hops[i]?.kind !== 'unknown' ? itin.hops[i]?.max ?? 0 : 0) + a.durationMin; return { a, used, hop: itin.hops[i] } })
-  const returnHop = itin.hops[items.length]
   const landside = items.filter((a) => a.access === 'Landside')
-  const dayTag = (d: Date) => (d.toDateString() !== arrival.toDateString() ? ` ${fmtDay(d)}` : '')
   const canSave = isSupported(draft.airport)
   /** Saves to the database. "Saved" is shown only after the server confirms; on failure the draft stays as it is. */
   const save = async () => {
@@ -58,7 +53,6 @@ export function Builder() {
       setSaveError(e instanceof Error ? e.message : String(e))
     } finally { setSaving(false) }
   }
-  const Dot = ({ cls }: { cls: string }) => <span aria-hidden="true" className={cx('absolute -left-[1.72rem] top-3 size-4 rounded-full ring-4 ring-canvas', cls)} />
   const otherWarnings = itin.warnings.filter((w) => !/outside the transit area|not included: no waiting times/.test(w))
 
   return (
@@ -111,57 +105,23 @@ export function Builder() {
 
         <SectionHeader className="mb-4 mt-8" action={items.length > 1 && <Chip active={reorder} onClick={() => setReorder(!reorder)}>{reorder ? 'Done' : 'Reorder'}</Chip>}>Your plan</SectionHeader>
 
-        <ol aria-label="Itinerary" className="relative ml-[1.1rem] pl-6 before:absolute before:bottom-3 before:left-[-1px] before:top-4 before:w-[3px] before:rounded-full before:bg-[image:var(--rail-grad)] before:opacity-80 before:shadow-[0_0_14px_rgb(234_81_57/0.45)]">
-          <li className="relative pb-3"><span aria-hidden="true" className="absolute -left-[2.15rem] top-0.5 pill-on grid size-7 place-items-center rounded-full ring-4 ring-canvas"><Plane size={14} className="rotate-45" /></span>
-            <p className="text-card font-bold tabular-nums">{fmtTime(arrival)}<span className="text-sub font-normal text-muted-text">{dayTag(arrival)}</span></p>
-            <p className="text-sub text-muted-text">Arrive at {ap.code}{draft.arrivalLocation ? ` · ${terminals.find((t) => t.id === draft.arrivalLocation)?.name ?? ''}` : ''}. Allow time to leave the aircraft first.</p></li>
-
-          {rows.length === 0 && (
-            <li className="relative pb-4"><Dot cls="bg-line" />
-              <div className="grid gap-3 rounded-card border border-dashed border-white/20 bg-ink-tint p-4 text-body text-muted-text">No activities yet.
-                {isSupported(draft.airport) && <button type="button" onClick={() => go({ name: 'airport', code: draft.airport, view: 'list' })} className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-accent-dark bg-transparent text-body font-semibold text-accent-dark"><Plus size={18} />Add activities</button>}</div></li>)}
-
-          {rows.map(({ a, used, hop }, i) => {
-            const late = used > hero.usable
-            return (
-              <Fragment key={a.id}>
-              {hop && <li className="relative pb-1"><HopRow h={hop} /></li>}
-              <li className="anim-rise relative pb-3">
-                <Dot cls={late ? 'bg-error' : a.access === 'Landside' ? 'bg-amber' : 'bg-accent'} />
-                <p className={cx('text-sub font-semibold tabular-nums', late ? 'text-error' : 'text-muted-text')}>{i + 1}. {fmtDur(used)} of {fmtDur(hero.usable)} used{late && ' · beyond your usable time'}</p>
-                <div className={cx('panel mt-1.5 flex items-center gap-1 rounded-card p-2 pr-1', late && '!border-error/50')}>
-                  <button onClick={() => setOpen(a)} className="press flex min-h-14 min-w-0 flex-1 items-center gap-3 text-left">
-                    <span className="ph relative size-14 shrink-0 overflow-hidden rounded-control"><Photo img={a.image} w={56} h={56} className="absolute inset-0 size-full" /></span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-card font-semibold">{a.name}</span>
-                      <span className="block text-sub text-muted-text">{fmtDur(a.durationMin)} · {a.terminal ?? 'Terminal not confirmed'}</span>
-                      <ZoneTag a={a} /></span></button>
-                  {reorder ? (
-                    <>
-                      <IconButton label={`Move ${a.name} earlier`} icon={ArrowUp} tone="accent" size="sm" disabled={i === 0} onClick={() => move(i, -1)} />
-                      <IconButton label={`Move ${a.name} later`} icon={ArrowDown} tone="accent" size="sm" disabled={i === rows.length - 1} onClick={() => move(i, 1)} />
-                    </>
-                  ) : (
-                    <IconButton label={`Remove ${a.name}`} icon={Trash2} tone="danger" size="sm" iconSize={20} onClick={() => remove(a.id)} />
-                  )}
-                </div>
-              </li>
-              </Fragment>
-            )
-          })}
-
-          {returnHop && <li className="relative pb-1"><HopRow h={returnHop} /></li>}
-          <li className="relative pb-5 pt-1"><Dot cls="bg-muted/60" />
-            <div className="rounded-card border border-dashed border-white/18 bg-[repeating-linear-gradient(135deg,rgb(255_255_255/0.045)_0_8px,transparent_8px_16px)] p-3.5">
-              <p className="text-sub font-semibold">Departure preparation · {fmtDur(hero.buffer)} buffer</p>
-              <p className="text-sub text-muted-text">Kept free for airport procedures, the walk to your gate and boarding.</p></div></li>
-          <li className="relative"><span aria-hidden="true" className="btn-coral absolute -left-[2.15rem] top-0.5 grid size-7 place-items-center rounded-full ring-4 ring-canvas"><Plane size={14} className="-rotate-45" /></span>
-            <p className="text-card font-bold tabular-nums">{fmtTime(departure)}<span className="text-sub font-normal text-muted-text">{dayTag(departure)}</span></p>
-            <p className="text-sub text-muted-text">Onward departure{draft.departureLocation ? ` · ${terminals.find((t) => t.id === draft.departureLocation)?.name ?? ''}` : ''}</p></li>
-        </ol>
+        <ItineraryTimeline airportCode={ap.code} arrival={arrival} departure={departure}
+          arrivalNote={draft.arrivalLocation ? terminals.find((t) => t.id === draft.arrivalLocation)?.name : undefined}
+          departureNote={draft.departureLocation ? terminals.find((t) => t.id === draft.departureLocation)?.name : undefined}
+          items={items} hops={itin.hops} usable={hero.usable} buffer={hero.buffer} onOpen={setOpen}
+          empty={<div className="grid gap-3 rounded-card border border-dashed border-white/20 bg-ink-tint p-4 text-body text-muted-text">No activities yet.
+            {isSupported(draft.airport) && <button type="button" onClick={() => go({ name: 'airport', code: draft.airport, view: 'list' })} className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-accent-dark bg-transparent text-body font-semibold text-accent-dark"><Plus size={18} />Add activities</button>}</div>}
+          actions={(a, i, n) => reorder ? (
+            <>
+              <IconButton label={`Move ${a.name} earlier`} icon={ArrowUp} tone="accent" size="sm" disabled={i === 0} onClick={() => move(i, -1)} />
+              <IconButton label={`Move ${a.name} later`} icon={ArrowDown} tone="accent" size="sm" disabled={i === n - 1} onClick={() => move(i, 1)} />
+            </>
+          ) : (
+            <IconButton label={`Remove ${a.name}`} icon={Trash2} tone="danger" size="sm" iconSize={20} onClick={() => remove(a.id)} />
+          )} />
 
         {isSupported(draft.airport)
-          ? (rows.length > 0 && <button type="button" onClick={() => go({ name: 'airport', code: draft.airport, view: 'list' })} className="mt-6 press flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-accent-dark bg-transparent text-body font-semibold text-accent-dark"><Plus size={18} />Add activities</button>)
+          ? (items.length > 0 && <button type="button" onClick={() => go({ name: 'airport', code: draft.airport, view: 'list' })} className="mt-6 press flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-accent-dark bg-transparent text-body font-semibold text-accent-dark"><Plus size={18} />Add activities</button>)
           : <p className="mt-6 text-body text-muted-text">No activity guide for {ap.city} yet. You can still see your time budget.</p>}
         {saveError && <div className="mt-4"><Notice tone="warn"><p className="font-semibold">Plan not saved</p><p>{saveError}</p><p>Your changes are still here. Try again.</p></Notice></div>}
         {!canSave && <p className="mt-4 text-sub text-muted-text">Saving is available for airports with a layover guide.</p>}
@@ -186,33 +146,6 @@ export function Builder() {
       </ActionBar>
       <ActivitySheet a={open} onClose={() => setOpen(null)} action={open && (
         <Button variant="danger" icon={Trash2} onClick={() => { remove(open.id); setOpen(null) }}>Remove from plan</Button>)} />
-    </div>
-  )
-}
-
-function ZoneTag({ a }: { a: Activity }) {
-  const [label, cls] = a.access === 'Airside' ? ['Airside', 'bg-success-tint text-success']
-    : a.access === 'Landside' ? ['Landside · Immigration required', 'bg-accent-tint text-accent-dark'] : ['Access conditions unknown', 'bg-ink-tint text-muted-text']
-  return <span className={cx('mt-1 inline-flex rounded-full px-2 py-0.5 text-tab font-semibold', cls)}>{label}</span>
-}
-
-/** One transfer between stops: duration range, how it is made, checkpoints, and how sure SkyStop is. */
-function HopRow({ h }: { h: Hop }) {
-  const range = h.min === h.max ? fmtDur(h.max) : `${h.min}–${fmtDur(h.max)}`
-  return (
-    <div className="mb-2 ml-[-0.15rem] flex gap-2 text-sub" aria-label={`${h.isReturn ? 'Return transfer' : 'Transfer'} to ${h.toLabel}`}>
-      <ArrowDown size={16} className="mt-0.5 shrink-0 text-muted" />
-      <div className="min-w-0">
-        {h.kind === 'unknown' ? (
-          <p className="font-semibold text-error">{h.fromLabel.includes('not set') || h.toLabel.includes('not set') ? `Choose a terminal to estimate this ${h.isReturn ? 'return ' : ''}transfer` : 'Transfer time unknown · not counted'}</p>
-        ) : (
-          <p className="text-ink"><b>{h.isReturn ? 'Return' : 'Transfer'}: {range}</b>
-            <span className="text-muted-text"> · {h.kind === 'same-area' ? 'within the same area' : [...new Set(h.modes.map((m) => MODE_LABEL[m] ?? m))].join(', then ')}</span></p>
-        )}
-        {h.immigration && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-tab font-semibold text-accent-dark">Immigration required</p>}
-        {h.departureChecks && <p className="mt-1 inline-flex rounded-full bg-accent-tint px-2 py-0.5 text-tab font-semibold text-accent-dark">Re-enter via check-in, immigration and security</p>}
-        {h.throughCheck && <p className="mt-1 inline-flex rounded-full bg-ink-tint px-2 py-0.5 text-tab font-semibold text-ink">Through-checked passengers only</p>}
-      </div>
     </div>
   )
 }

@@ -430,3 +430,23 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   updated from the removed `Connection` region to `Journey route`); `node tests/e2e/layout-audit.mjs` 0 issues at
   320/375/390/430. Captures reviewed at 390×844 and 320×568: empty, suggestion list open, filled. Not run: hosted tests
   (owner approval required). Activity photos remain blocked in this sandbox.
+
+### Itinerary timeline and activity detail (scheduled visual pass, 22 Nov 2026)
+
+- The itinerary was a list of small rows with a "N. X of Y used" caption above each. It is now one shared
+  `ItineraryTimeline` (`src/components/Timeline.tsx`): arrival and departure are glass time stubs (`tl-anchor`) with a
+  glowing plane node; each stop has a numbered node on the coral rail and a card with photo, name (two lines, no
+  truncation), duration, terminal and zone tag, and a footer with "X of Y used" plus the stop's actions; a strip along
+  the card's bottom edge shows the time before the stop (dim) and the stop's own slice (bright). Transfers are capsules
+  on the rail. Saved plans (`PlanDetail`) now use the same read-only timeline instead of plain activity rows, and a stop
+  opens its details there too.
+- Activity details (`ActivitySheet`) were a titled sheet with a photo box and three separate stat boxes. Now photo-led:
+  the venue photo fills the top of the sheet with the category chip, name and terminal on it; Close and the handle float
+  over it; one glass fact strip (time, price, access); locations grouped per terminal in cards. Missing photos show the
+  category icon faintly instead of an empty box. Same labels, dialog name, buttons and data; no Supabase or logic changes.
+- Fixed during review: at 320 px the stop's meta line and zone tag wrapped word by word beside the remove button
+  (actions moved into the card footer, terminal on its own line); the photo fallback icon overlapped the sheet title.
+- Checks: `npm run build` OK; `npx vitest run` 148 passed, 1 skipped (hosted); `npm run test:e2e` 171/171;
+  `node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430. Captures reviewed at 390×844 and 320×568: builder,
+  saved plan, activity sheet. Not run: hosted tests (owner approval required). Activity photos are blocked in this
+  sandbox, so the cards were reviewed with the placeholder.

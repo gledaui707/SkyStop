@@ -1,10 +1,11 @@
-import { ChevronLeft, Info, MapPin, Navigation, Plane, ShieldAlert, X, type LucideIcon } from 'lucide-react'
+import { ChevronLeft, Clock, Info, MapPin, Navigation, Plane, ShieldAlert, ShieldCheck, Sparkles, Tag, X, type LucideIcon } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useApp } from '../store'
 import type { Activity, Category } from '../data/types'
 import { fmtDur } from '../data/time'
 import { sized, type Img } from '../data/images'
 import { groupByTerminal, venueLocations } from '../data/venueLocations'
+import { VenuePhoto, categoryIcon } from './Timeline'
 
 export const cx = (...c: (string | false | undefined | null)[]) => c.filter(Boolean).join(' ')
 
@@ -262,7 +263,7 @@ export function ActivityRow({ a, action, onOpen }: { a: Activity; action?: React
 }
 
 /** iOS-style bottom sheet. */
-export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+export function Sheet({ open, onClose, title, children, bare }: { open: boolean; onClose: () => void; title: string; children: ReactNode; bare?: boolean }) {
   useEffect(() => {
     if (!open) return
     const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -274,12 +275,21 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-[rgb(8_5_4/0.55)] backdrop-blur-[3px]" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
         className="anim-sheet sheet-solid max-h-[85dvh] w-full max-w-[480px] overflow-y-auto rounded-t-tray !border-b-0 pb-[calc(var(--safe-bottom)+1rem)] text-ink">
+        {bare ? (<>
+          {/* Photo-led sheet: the content brings its own heading; handle and Close float over the photo and stay put */}
+          <div className="sticky top-0 z-20 h-0">
+            <span aria-hidden="true" className="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-white/55" />
+            <IconButton label="Close" icon={X} tone="dark" size="sm" iconSize={18} onClick={onClose} className="absolute right-4 top-4" />
+          </div>
+          {children}
+        </>) : (<>
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[#2a1d1a]/95 px-5 pb-3 pt-3 backdrop-blur-md">
           <span className="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-ink/20" />
           <h2 className="mt-3 min-w-0 text-h2 font-bold">{title}</h2>
           <IconButton label="Close" icon={X} tone="plain" size="sm" iconSize={18} onClick={onClose} className="mt-3" />
         </div>
         <div className="px-5">{children}</div>
+        </>)}
       </div>
     </div>
   )
@@ -296,17 +306,19 @@ function VenueLocations({ a, onPick }: { a: Activity; onPick: (branch: string) =
         <h3 className="text-h2 font-bold">{locs.length > 1 ? 'Locations' : 'Location'}</h3>
         {locs.length > 1 && <p className="text-cap text-muted-text">{locs.length} in {groups.length} {groups.length > 1 ? 'terminals' : 'terminal'}</p>}
       </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-x-4 gap-y-3">
+      <div className="grid gap-3">
         {groups.map((g) => (
-          <div key={g.terminal} className="grid content-start gap-1">
-            <h4 className="text-body font-bold">{g.name}</h4>
-            <ul className="grid gap-0.5">
+          <div key={g.terminal} className="panel grid content-start overflow-hidden rounded-card">
+            <h4 className="flex items-center justify-between gap-2 border-b border-white/[0.07] px-3.5 py-2.5 text-body font-bold">{g.name}
+              <span className="text-cap font-medium text-muted-text">{g.items.length} {g.items.length === 1 ? 'place' : 'places'}</span></h4>
+            <ul className="grid divide-y divide-white/[0.06] px-1.5 py-1">
               {g.items.map((l) => (
                 <li key={l.id}>
                   <button type="button" onClick={() => onPick(l.id)} aria-label={`Directions to ${a.name}, ${g.name}, ${l.area}`}
-                    className="press flex min-h-12 w-full items-center gap-3 rounded-control py-1 pr-1 text-left active:bg-ink-tint">
-                    <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-control bg-ink-tint text-ink"><MapPin size={19} strokeWidth={1.8} /></span>
+                    className="press flex min-h-12 w-full items-center gap-3 rounded-control px-2 py-1.5 text-left active:bg-ink-tint">
+                    <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><MapPin size={17} strokeWidth={2} /></span>
                     <span className="min-w-0 flex-1 text-sub leading-snug text-ink">{l.area}</span>
+                    <Navigation size={15} aria-hidden="true" className="shrink-0 text-muted" />
                   </button>
                 </li>))}
             </ul>
@@ -321,19 +333,29 @@ function VenueLocations({ a, onPick }: { a: Activity; onPick: (branch: string) =
 export function ActivitySheet({ a, onClose, action, onDirections }: { a: Activity | null; onClose: () => void; action?: ReactNode; onDirections?: (branch?: string) => void }) {
   const { go } = useApp()
   const directions = (branch?: string) => { if (!a) return; onClose(); if (onDirections) onDirections(branch); else go({ name: 'airport', code: a.airport, view: 'map', venue: a.id, branch }) }
+  const Icon = a ? categoryIcon(a.category) : Sparkles
   return (
-    <Sheet open={!!a} onClose={onClose} title={a?.name ?? ''}>
-      {a && (
-        <div className="grid gap-3 pb-2">
-          <div className="ph relative h-52 overflow-hidden rounded-card">
-            <Photo img={a.image} w={440} h={208} className="absolute inset-0 size-full" />
-            <span className="glass-dark absolute left-3 top-3 rounded-full px-3 py-1 text-cap font-semibold">{a.category}</span>
+    <Sheet open={!!a} onClose={onClose} title={a?.name ?? ''} bare>
+      {a && (<>
+        {/* Photo-led header: the venue fills the top of the sheet and its name sits on it */}
+        <div className="relative h-[16.5rem] overflow-hidden rounded-t-tray max-[360px]:h-[14rem]">
+          <VenuePhoto a={a} w={480} h={264} iconSize={48} iconTop="30%" className="absolute inset-0" />
+          <div aria-hidden="true" className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/50 to-transparent" />
+          <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-[70%] bg-gradient-to-t from-[#2a1d1a] via-[#2a1d1a]/60 to-transparent" />
+          <div className="absolute inset-x-5 bottom-3">
+            <span className="glass-dark inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-cap font-semibold"><Icon size={14} aria-hidden="true" />{a.category}</span>
+            <h2 className="mt-2 text-h1 font-bold leading-tight text-white [text-shadow:0_2px_14px_rgb(0_0_0/0.5)]">{a.name}</h2>
+            <p className="mt-0.5 text-sub text-white/80">{a.terminal ?? 'Terminal not confirmed'}</p>
           </div>
-          <dl className="grid grid-cols-3 gap-2 text-center">
-            {[['Est. time', fmtDur(a.durationMin)], ['Price', a.costLabel.replace(' (illustrative)', '')], ['Access', a.access === 'Unverified' ? 'Not confirmed' : a.access]].map(([k, v]) => (
-              <div key={k} className="panel min-w-0 rounded-control px-1 py-2.5"><dt className="text-cap text-muted-text">{k}</dt><dd className="text-body font-semibold">{v}</dd></div>))}
+        </div>
+        <div className="grid gap-4 px-5 pb-2 pt-2">
+          <dl className="panel grid grid-cols-3 divide-x divide-white/10 rounded-card py-3 text-center">
+            {([[Clock, 'Est. time', fmtDur(a.durationMin)], [Tag, 'Price', a.costLabel.replace(' (illustrative)', '')], [ShieldCheck, 'Access', a.access === 'Unverified' ? 'Not confirmed' : a.access]] as const).map(([I, k, v]) => (
+              <div key={k} className="grid min-w-0 content-start justify-items-center gap-0.5 px-1.5">
+                <I size={17} aria-hidden="true" className="text-accent-dark" />
+                <dt className="text-cap text-muted-text">{k}</dt><dd className="text-sub font-semibold leading-tight">{v}</dd></div>))}
           </dl>
-          {a.access === 'Landside' && <p className="flex items-start gap-2 text-sub font-medium text-warning"><ShieldAlert size={17} className="mt-px shrink-0" aria-hidden="true" />Outside the transit area: immigration required.</p>}
+          {a.access === 'Landside' && <p className="flex items-start gap-2 rounded-control bg-accent-tint px-3.5 py-2.5 text-sub font-medium text-warning"><ShieldAlert size={17} className="mt-px shrink-0" aria-hidden="true" />Outside the transit area: immigration required.</p>}
           <p className="text-body text-ink/85">{a.note}</p>
           <VenueLocations a={a} onPick={directions} />
           <div className="grid gap-2">
@@ -341,7 +363,7 @@ export function ActivitySheet({ a, onClose, action, onDirections }: { a: Activit
             {action}
           </div>
         </div>
-      )}
+      </>)}
     </Sheet>
   )
 }
