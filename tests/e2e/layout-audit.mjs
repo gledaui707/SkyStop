@@ -38,7 +38,9 @@ function measure() {
   const fixedBottoms = [...document.querySelectorAll('body *')].filter((e) => { const s = getComputedStyle(e); return s.position === 'fixed' && e.getBoundingClientRect().bottom >= H - 2 && e.getBoundingClientRect().height < H * 0.6; })
     .flatMap((e) => [...e.querySelectorAll('*')].filter((c) => getComputedStyle(c).pointerEvents !== 'none' && c.getBoundingClientRect().height > 20).map((c) => c.getBoundingClientRect().top));
   const barTop = fixedBottoms.length ? Math.min(...fixedBottoms) : H;
-  const content = [...document.querySelectorAll('main *')].filter((e) => { const s = getComputedStyle(e); return !e.closest('[class*="fixed"]') && s.position !== 'fixed' && e.children.length === 0 && e.getBoundingClientRect().height > 0 && (e.textContent || '').trim(); });
+  // Content inside its own scroller (a bottom sheet's list) scrolls there; content clipped by a map is not on screen.
+  const inScroller = (e) => { for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) { const s = getComputedStyle(p); if (/(auto|scroll)/.test(s.overflowY) || (/(hidden|clip)/.test(s.overflowY) && p.classList.contains('wayfinding-map'))) return true; } return false; };
+  const content = [...document.querySelectorAll('main *')].filter((e) => { const s = getComputedStyle(e); return !e.closest('[class*="fixed"]') && s.position !== 'fixed' && e.children.length === 0 && e.getBoundingClientRect().height > 0 && (e.textContent || '').trim() && !inScroller(e); });
   const last = content.length ? Math.max(...content.map((e) => e.getBoundingClientRect().bottom)) : 0;
   if (last > barTop + 1) out.push(`content ends ${Math.round(last - barTop)}px under the fixed bottom bars`);
   window.scrollTo(0, 0);
@@ -106,6 +108,12 @@ for (const [w, h] of WIDTHS) {
     await click('button', 'Arriving at Terminal 3 transit area'); await click('button', 'Departing from Terminal 3 transit area');
     await click('button', "I'm not sure");
     await visit('builder-changi-entry');
+    // The route map (Plan) and one leg's directions
+    await click('button', 'View route on map'); await page.locator('.rs--num').first().waitFor(); await visit('plan-map');
+    if (await page.getByRole('button', { name: /^Stops and legs/ }).count()) await click('button', /^Stops and legs/);
+    await visit('plan-map-stops');
+    await click('button', /^Directions from A to 1/); await page.locator('.wf-pin').waitFor(); await visit('directions-map');
+    await click('button', 'Back to route'); await click('button', 'Back to itinerary');
     // Home with a stack of three flights
     for (const ref of ['CJ8NWT', 'DH5PRZ']) {
       await page.goto(BASE); await page.waitForTimeout(600);

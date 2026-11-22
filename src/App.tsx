@@ -8,6 +8,8 @@ import { FindJourney, JourneyOverview } from './screens/Journey'
 import { Welcome } from './screens/Welcome'
 import { Results, FlightDetails, Compare } from './screens/Flights'
 import { Airport } from './screens/Airport'
+import { PlanMap } from './features/wayfinding/PlanMap'
+import { DirectionsMap } from './features/wayfinding/DirectionsMap'
 import { Builder } from './screens/Builder'
 import { Plans, PlanDetail } from './screens/Plans'
 import { MyFlights } from './screens/MyFlights'
@@ -30,7 +32,10 @@ function Screen() {
     case 'results': return <Results key={r.origin + r.destination + r.date} {...r} />
     case 'flight': return <FlightDetails {...r} />
     case 'compare': return <Compare {...r} />
-    case 'airport': return <Airport key={r.code} {...r} />
+    // One airport, three map modes: Explore (the Airport screen's map), the itinerary's route, and directions.
+    case 'airport': return r.map === 'plan' ? <PlanMap key={r.code} code={r.code} />
+      : r.map === 'directions' ? <DirectionsMap key={r.code} code={r.code} leg={r.leg} venue={r.venue} branch={r.branch} />
+      : <Airport key={r.code} code={r.code} view={r.view} venue={r.venue} />
     case 'builder': return <Builder />
     case 'plans': return <Plans />
     case 'plan': return <PlanDetail id={r.id} />
@@ -130,7 +135,8 @@ function Shell() {
   // Re-keying on the route plays a short entrance transition on every navigation (disabled under reduced motion).
   // Task-focused screens (one dominant action in a floating tray, a back button in the header) hide the tab bar, as
   // iOS does for pushed detail screens: the action tray then sits alone at the bottom instead of stacking on the tabs.
-  const focused = FOCUSED.has(route.name)
+  // The route and directions maps are task screens too: the map gets the whole height.
+  const focused = FOCUSED.has(route.name) || (route.name === 'airport' && !!route.map)
   const key = Object.entries(route).map(([k, v]) => `${k}:${typeof v === 'object' || typeof v === 'function' ? '' : String(v)}`).join('|')
   if (route.name === 'welcome' || route.name === 'access') return <div className="mx-auto max-w-[480px]"><main key={key} className="anim-fade"><Screen /></main></div>
   return (

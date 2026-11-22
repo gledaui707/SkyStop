@@ -172,8 +172,8 @@ export function PlanDetail({ id }: { id: string }) {
           </section>
         )}
         <div className="mt-3 grid gap-2">
-          {items.length > 0 && <Button variant="secondary" icon={MapIcon} onClick={() => { setDraft({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination, arrivalLocation: p.arrivalLocation, departureLocation: p.departureLocation }); go({ name: 'airport', code: p.airport, view: 'map', directions: true }) }}>
-            See how to get there</Button>}
+          {items.length > 0 && <Button variant="secondary" icon={MapIcon} onClick={() => { setDraft({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination, arrivalLocation: p.arrivalLocation, departureLocation: p.departureLocation }); go({ name: 'airport', code: p.airport, view: 'map', map: 'plan' }) }}>
+            View route on map</Button>}
           {items.length > 0 && <Button icon={Pencil} onClick={() => {
           setDraft({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure, bufferMin: p.bufferMin, activityIds: p.activityIds, origin: p.origin, destination: p.destination, arrivalLocation: p.arrivalLocation, departureLocation: p.departureLocation })
           go({ name: 'builder' })

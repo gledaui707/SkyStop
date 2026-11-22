@@ -34,8 +34,9 @@ export type Route =
   | { name: 'flight'; flightId: string; origin: string; destination: string; date: string }
   | { name: 'compare'; ids: string[]; origin: string; destination: string; date: string }
   | { name: 'airports' }
-  /** `directions`: open the map with the current itinerary's directions showing. */
-  | { name: 'airport'; code: string; view?: 'map' | 'list'; directions?: boolean; venue?: string; branch?: string }
+  /** An airport: the activity list, or the map. `map` picks the map mode: Explore (none), the itinerary's route
+   *  ('plan'), or directions ('directions': leg `leg` of the itinerary, or to `venue` at location `branch`). */
+  | { name: 'airport'; code: string; view?: 'map' | 'list'; map?: 'plan' | 'directions'; leg?: number; venue?: string; branch?: string }
   | { name: 'builder' }
   | { name: 'plans' }
   | { name: 'plan'; id: string }
@@ -61,6 +62,8 @@ const HINT_KEY = 'skystop.hints.v1'
 
 interface Ctx {
   route: Route
+  /** The screen under the current one (where Back goes), if any. */
+  prevRoute: Route | null
   go: (r: Route) => void
   replace: (r: Route) => void
   back: () => void
@@ -144,6 +147,9 @@ function init() {
  *  tab switches crossfade. The tab bar and toasts keep their own names so they stay put. Falls back to an instant
  *  update (plus the CSS fade) where unsupported or when reduced motion is preferred. */
 type NavKind = 'push' | 'pop' | 'tab'
+interface HistState { stack: Route[]; prev: Route[] | null }
+const sameStack = (a: Route[], b: Route[]) => JSON.stringify(a) === JSON.stringify(b)
+
 function transition(kind: NavKind, update: () => void) {
   const doc = document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } }
   const reduce = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -171,7 +177,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setHint = (h: HintStage) => { setHintState(h); try { sessionStorage.setItem(HINT_KEY, String(h)) } catch { /* ignore */ } }
   const go = useCallback((r: Route) => { setNotice(null); transition('push', () => { setStack((s) => [...s, r]); window.scrollTo(0, 0) }) }, [])
   const replace = useCallback((r: Route) => transition('push', () => { setStack((s) => [...s.slice(0, -1), r]); window.scrollTo(0, 0) }), [])
-  const back = useCallback(() => transition('pop', () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s))), [])
+  // Browser history mirrors the screen stack: each history entry stores its stack, and `prev` (the stack of the entry
+  // directly behind it). A pushed screen adds an entry; any other change replaces the current one. The browser's Back and
+  // Forward restore the stored stack; the app's own Back uses the browser's Back when the entry behind is exactly the
+  // stack it wants, so both stay in step. Earlier stack objects are reused, so screens keep their per-entry state.
+  const stackRef = useRef(stack)
+  stackRef.current = stack
+  const welcomedRef = useRef(welcomed)
+  welcomedRef.current = welcomed
+  const back = useCallback(() => {
+    const s = stackRef.current
+    if (s.length <= 1) return
+    const popped = s.slice(0, -1)
+    const st = (typeof history !== 'undefined' ? history.state : null) as HistState | null
+    if (st?.prev && sameStack(st.prev, popped)) { history.back(); return }
+    transition('pop', () => setStack(popped))
+  }, [])
+  useEffect(() => {
+    const st = history.state as HistState | null
+    if (st?.stack && sameStack(st.stack, stack)) return
+    if (st?.stack && stack.length === st.stack.length + 1 && sameStack(stack.slice(0, -1), st.stack)) history.pushState({ stack, prev: st.stack } satisfies HistState, '')
+    else history.replaceState({ stack, prev: st?.prev ?? null } satisfies HistState, '')
+  }, [stack])
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      const target = (e.state as HistState | null)?.stack
+      if (!target?.length) return
+      // Screens of the onboarding are not returned to once it is finished.
+      const clean = welcomedRef.current ? target.filter((r) => r.name !== 'welcome' && r.name !== 'access') : target
+      const next = clean.length ? clean : [{ name: 'discover' } as Route]
+      setNotice(null)
+      transition('pop', () => setStack((cur) => next.map((r, i) => (cur[i] && JSON.stringify(cur[i]) === JSON.stringify(r) ? cur[i] : r))))
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   // The notice is cleared now, not inside the deferred transition, so a confirmation set right after still shows.
   const switchTab = useCallback((t: Tab) => { setNotice(null); transition('tab', () => {
     setStack([{ name: t === 'home' ? 'discover' : t }])
@@ -323,7 +363,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const nextHint = () => { if (hint === 'done') return; setHint(hint >= 3 ? 'done' : ((hint + 1) as HintStage)) }
   const skipHints = () => setHint('done')
   return (
-    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, flightUpdates, simulateFlightUpdate, resetFlightUpdate, markFlightUpdate, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, finishAccess, enterAsGuest, entering, completeOnboarding, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
+    <C.Provider value={{ route: stack[stack.length - 1], prevRoute: stack[stack.length - 2] ?? null, go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, flightUpdates, simulateFlightUpdate, resetFlightUpdate, markFlightUpdate, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, finishAccess, enterAsGuest, entering, completeOnboarding, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
       {children}
     </C.Provider>
   )

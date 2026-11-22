@@ -477,3 +477,21 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   conversation code is kept but no longer reachable; its 27 browser checks were replaced by 9 checks of the new flow.
 - Checks: `npx tsc -b` clean; `npx vitest run` 169 passed, 1 skipped (hosted); `npm run test:e2e` 184/184;
   `node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430 (welcome and profile included).
+
+### Map modes: Explore, Plan, Directions (22 Nov 2026)
+
+- One map, three modes (docs/WAYFINDING.md): Explore (venue markers, compact venue preview with Add/Remove, Build
+  itinerary; no route), Plan (only the plan's numbered stops, every leg with its time, the builder's time budget,
+  reorder/remove in place), Directions (one leg: origin, destination, one line, steps). Each mode is a stack entry, and
+  the stack is mirrored in browser history, so app and browser Back return to the previous mode; Explore restores its
+  filters, search, focused venue and camera. The Explore budget line now uses `computeItinerary` (includes counted
+  transfers), matching the builder.
+- Checks: `npx tsc -b` clean; `npm run build` OK; `npx vitest run` 175 passed, 1 skipped (6 new in
+  `views.test.ts`); `npm run test:e2e` 191/191 (map section rewritten: Explore markers/preview/no route, list↔map search,
+  Plan numbering/budget/reorder, Directions single leg, Back and browser Back between modes, Explore state restored,
+  Lisbon fallback, venue locations, saved plan); `node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430
+  (plan-map, plan-map-stops, directions-map added; the audit now ignores content inside its own scroller or clipped by
+  the map).
+- Reviewed side by side at 320/375/390 (`docs/screenshots/map-modes/`) and a 22 s recording at 390.
+- Known limits: venue spots and lines are illustrative; at 320×568 the Directions band is small (the origin can sit
+  under the destination label until the map is panned).

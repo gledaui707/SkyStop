@@ -76,8 +76,8 @@ export function Builder() {
         <div className="mt-4"><BudgetHero n={hero} overnight={night} bufferInfo={`Time kept back for leaving the aircraft, transfer screening, the walk to your gate and boarding.${itin.routing ? ' Transfers between stops are counted separately.' : ''}`}/></div>
         {draft.planId && impact?.kind === 'conflict' && <div className="mt-3"><PlanReview plan={{ ...draft, id: draft.planId }} onApply={(r) => set(r.activityIds)} applyNote="Applies to this plan here. Save to keep it." /></div>}
         {items.length > 0 && (
-          <Button variant="secondary" icon={MapIcon} className="mt-3 w-full" onClick={() => go({ name: 'airport', code: draft.airport, view: 'map', directions: true })}>
-            See how to get there</Button>)}
+          <Button variant="secondary" icon={MapIcon} className="mt-3 w-full" onClick={() => go({ name: 'airport', code: draft.airport, view: 'map', map: 'plan' })}>
+            View route on map</Button>)}
 
         {/* access status, separate from time */}
         {items.length > 0 && (

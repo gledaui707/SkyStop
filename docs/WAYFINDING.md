@@ -4,44 +4,39 @@ SkyStop's airport map helps a traveller see where their layover activities are a
 planning aid, not turn-by-turn indoor navigation. Code: `src/features/wayfinding/` (route model, pin clustering, map
 view, styles) and `src/components/AirportMap.tsx` (Leaflet map).
 
-## What the map shows
-- **Basemap**: CARTO light style (OpenStreetMap data) with a CARTO key, OpenStreetMap tiles otherwise. Attribution is
-  always visible, bottom left, above the sheet.
-- **Terminal pins**: one per terminal at its published coordinate (`src/data/airportGeo.ts`, each with a source). A
-  capsule sits above the true point with a pointer and a dot on the point. The count is the venues matching the filters.
-- **Clusters**: pins whose capsules would touch at the current zoom merge into one ("Jewel · T1", "3 terminals"); tapping
-  zooms in. Pins never overlap (unit- and browser-tested). Pins under the top controls are not drawn (pan to see them).
-- **Itinerary stops**: numbered badges on the stop's terminal pin (arrival and departure as plane icons).
-- **Route layer** (when a venue is selected or directions are open): a dashed, faint coral circle around each involved
-  terminal (a *schematic zone*, not a floor plan), numbered stop markers, the active leg in coral over a white casing,
-  other legs as faint dotted coral lines, the leg's start as a filled coral dot and its destination as a coral pin.
-  The map frames the active leg. Terminal clusters become small labels so they never cover the route.
-- **No floors**: no floor data exists for these airports, so there is no floor control.
+## Three map modes, one map (22 Nov 2026)
+The map serves three different goals, so it has three modes. They share the map engine (Leaflet + CARTO light,
+`src/components/AirportMap.tsx`), the frame (`MapShell`: top bar, map buttons, one bottom sheet above the tab bar), the
+route model (`route.ts`, `views.ts`) and the itinerary state in the store; each brings its own markers, sheet and actions.
 
-## Controls and the sheet
-Top: back, List/Map, category chips. Right, above the sheet: zone filter (all / airside / landside) and "whole airport".
-One bottom sheet floats above the tab bar: **browse** (terminal filter, venues, main action, *Directions*), **venue**
-(preview line "5–10 min · 1.1 km from Arrival", Add, *How to get there*, Details) or **directions**. Short phones
-(< 720 px tall) start with the sheet collapsed; the handle expands it. Nothing overlaps: sheet above the tab bar,
-controls and attribution above the sheet (browser-tested at 320, 375 and 390 px).
+| | Explore | Plan | Directions |
+|---|---|---|---|
+| Goal | What can I do here, and where? | How do my stops fit together? | How do I get from here to there? |
+| Entry | Airports → an airport → **Map** | Itinerary → **View route on map** (also a saved plan) | A venue's **How to get there** (map preview or details); a leg of the route |
+| Map | Terminal pins with venue counts at airport scale; **venue markers** (category icon) close up; selected = coral with a check; focused = larger, with its name. No route. | Only the plan's stops: **numbered** coral discs, start and end as dark plane discs, every leg drawn, the return leg dotted, each leg's time as a tappable chip. Other venues hidden. | **One leg**: origin (coral ring), destination (pin with the place's name), one bold line. Nothing else. |
+| Sheet | Browse: time left, terminal chips, venues, **Build itinerary (N)**. Venue preview: name, category, duration, location, **Add to itinerary / In your itinerary**, Details, *How to get there* | Time budget (usable, activities, transfers, left — the builder's numbers), stops and legs in order (each leg → its directions), **Reorder** / remove in place, **Back to itinerary** / Edit itinerary | Leg n of N, time, distance, mode, one status pill, steps (folded on short phones), previous / next leg, **Back to route** or **Back to map** |
+| Tab bar | shown | hidden (task screen) | hidden |
 
-## Directions ("How to get there")
-Entry points: **See how to get there** under the time card on the itinerary (Builder) and on a saved plan; *Directions*
-in the map sheet; *How to get there* on a venue in the map and in every activity details sheet (opens the map focused
-on that venue). Works at every airport (LIS, SIN, LHR, DXB).
+Files: `ExploreMap.tsx`, `PlanMap.tsx`, `DirectionsMap.tsx`, `MapShell.tsx`, `views.ts` (what each mode draws), `format.ts`,
+`entryState.ts`.
 
-One leg at a time, like a maps app: Step n of N, To / From (with terminal), a summary (time, distance, mode, one status
-pill), 2–5 short numbered steps (collapsed: the first two plus every border/security step), *Next stop* or *Done*, and,
-expanded, *All stops* (each with time and distance). Back returns to discovery with the plan intact. The route follows
-the plan's order, so reordering or removing an activity updates it.
+### Navigation and state
+Each mode is its own entry on the screen stack (`{ name: 'airport', code, view: 'map', map?: 'plan' | 'directions',
+leg?, venue?, branch? }`), so the app's Back and the browser's Back both return to the previous mode. The stack is
+mirrored in the browser history (`src/store.tsx`): a pushed screen adds a history entry, Back/Forward restore the stored
+stack. Explore keeps its view (list/map), category, search, zone and terminal filters, focused venue and camera per visit
+(`useEntryState`), so returning from Directions shows it exactly as it was; the list and the map share the same
+category and search. The itinerary itself lives only in the store's draft: no mode copies or resets it.
 
-| Status pill | Meaning |
-|---|---|
-| Airport transfer time | the minutes are Changi's published transfer times (`verification = official`); the line is still simulated |
-| Estimated route | simulated walking estimate, or a Changi planning estimate |
-| No directions | no recorded route between two Changi locations |
+### Time budget
+All three modes use `computeItinerary` (current flight times, buffer, activity durations, counted transfers): the
+Explore "left" line, the Plan budget strip and the builder show the same numbers. A leg's time is the planner's transfer
+time where the airport's data routes it (Changi), so the Plan's travel total equals the builder's Transfers. Where there
+is no routing data, legs show the illustrative walking estimate and the Plan says once that it isn't counted.
 
-The pill appears once per leg; steps carry no per-step disclaimer.
+### Prototype routing
+Venue spots, gate areas, route lines, distances and steps are illustrative (deterministic, `mock.ts`), as below; only
+Changi's transfer minutes, modes and checkpoints come from data. One status pill per leg says which.
 
 ## Venue locations
 Every venue's details sheet has a **Locations** section (one or more rows grouped by terminal, like an airport

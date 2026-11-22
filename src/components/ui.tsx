@@ -332,7 +332,7 @@ function VenueLocations({ a, onPick }: { a: Activity; onPick: (branch: string) =
  *  in Profile → About & data, not here. `onDirections` overrides the default (open the airport map with its route). */
 export function ActivitySheet({ a, onClose, action, onDirections }: { a: Activity | null; onClose: () => void; action?: ReactNode; onDirections?: (branch?: string) => void }) {
   const { go } = useApp()
-  const directions = (branch?: string) => { if (!a) return; onClose(); if (onDirections) onDirections(branch); else go({ name: 'airport', code: a.airport, view: 'map', venue: a.id, branch }) }
+  const directions = (branch?: string) => { if (!a) return; onClose(); if (onDirections) onDirections(branch); else go({ name: 'airport', code: a.airport, view: 'map', map: 'directions', venue: a.id, branch }) }
   const Icon = a ? categoryIcon(a.category) : Sparkles
   return (
     <Sheet open={!!a} onClose={onClose} title={a?.name ?? ''} bare>

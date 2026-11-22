@@ -89,11 +89,17 @@ try {
   await shot(page, '02-airport-list');
   // List <-> Map keeps the plan
   await page.getByRole('tab', { name: 'map' }).click();
-  await page.getByRole('button', { name: /^Terminal 1: / }).waitFor();
-  check('map: real-map view shows the Terminal 1 pin with the 2 planned activities and the time left', /6 of 6 venues, 2 in your itinerary/.test(await page.getByRole('button', { name: /^Terminal 1: / }).getAttribute('aria-label')) && await visible(page, '2 planned') && await visible(page, '1h 50m left') && await visible(page, 'OpenStreetMap'));
-  await page.getByRole('button', { name: /^Terminal 1: / }).click();
-  check('map: tapping a terminal lists its venues', await visible(page, 'Terminal 1 · Lisbon') && await page.getByRole('button', { name: /ANA Lounge/ }).first().isVisible());
-  check('map: venues are not given invented indoor positions (terminal pins only)', (await page.getByRole('button', { name: /approximate location/ }).count()) === 0);
+  await page.locator('.vm').first().waitFor();
+  // Lisbon has one terminal: the map opens close up, with a marker per venue; the two in the plan are filled coral.
+  check('map (Explore): a marker per venue, the 2 planned ones marked as selected, the time left, map credit', (await page.locator('[data-map-mode="explore"]').count()) === 1
+    && (await page.locator('.vm[data-state="selected"], .vm--cluster:has(.vm-check)').count()) >= 1 && await visible(page, '2 selected') && await visible(page, '1h 50m left') && await visible(page, 'OpenStreetMap'));
+  check('map (Explore): no route is drawn while exploring', (await page.locator('.leaflet-overlay-pane path.route-line').count()) === 0 && (await page.locator('.wf-pin, .rs').count()) === 0);
+  await page.locator('[aria-label="Venues"] button').filter({ hasText: 'ANA Lounge' }).first().click().catch(async () => { await page.getByRole('button', { name: 'Expand sheet' }).click(); await page.locator('[aria-label="Venues"] button').filter({ hasText: 'ANA Lounge' }).first().click() });
+  const lounge = (await page.locator('section[aria-label="ANA Lounge"]').innerText()).replace(/\s+/g, ' ');
+  check('map (Explore): tapping a venue opens a compact preview (name, category, duration, location) with Remove, Details and How to get there',
+    /ANA Lounge/.test(lounge) && /Rest · /.test(lounge) && /Terminal 1/.test(lounge) && await page.getByRole('button', { name: 'Remove ANA Lounge from your itinerary' }).isVisible()
+    && await page.getByRole('button', { name: 'Details', exact: true }).isVisible() && await page.getByRole('button', { name: 'How to get there' }).isVisible() && (await page.locator('.vm--focus').count()) === 1, lounge.slice(0, 160));
+  check('map (Explore): selecting a venue does not start directions', (await page.locator('.leaflet-overlay-pane path.route-line').count()) === 0 && (await page.locator('section[aria-label="Directions"]').count()) === 0);
   await shot(page, '03-airport-map');
   await page.getByRole('tab', { name: 'list' }).click();
   check('back in list: selection unchanged', (await page.getByRole('button', { name: 'Remove ANA Lounge' }).getAttribute('aria-pressed')) === 'true' && await page.getByRole('button', { name: 'Build itinerary (2)' }).isVisible());
@@ -222,7 +228,8 @@ try {
   await e.page.getByRole('button', { name: 'Select ANA Lounge' }).click();
   await e.page.getByRole('button', { name: 'Select Lisboa Duty Free' }).click();
   await e.page.getByRole('tab', { name: 'map' }).click();
-  check('explore-first: map shows the selection', /2 in your itinerary/.test(await e.page.getByRole('button', { name: /^Terminal 1: / }).getAttribute('aria-label')) && await visible(e.page, '2 selected'));
+  await e.page.locator('.vm').first().waitFor();
+  check('explore-first: map shows the selection', (await e.page.locator('.vm[data-state="selected"], .vm-check').count()) >= 1 && await visible(e.page, '2 selected'));
   await e.page.getByRole('tab', { name: 'list' }).click();
   await e.page.getByRole('button', { name: 'Set layover times (2 selected)' }).click();
   check('explore-first: setup shows the airport and the 2 selected activities', (await e.page.getByLabel('Connecting airport', { exact: true }).inputValue()).includes('LIS') && await visible(e.page, '2 activities selected'));
@@ -434,10 +441,12 @@ try {
     await rm.ctx.close();
   }
 
-  // ---- 4d. Map wayfinding (Changi pilot): clustering, directions, honesty, layout; Lisbon fallback
+  // ---- 4d. Three map modes on one map: Explore (what and where), Plan (how my stops connect), Directions (one leg)
   {
     const wf = await newGuest();
     const P = wf.page;
+    const mode = () => P.locator('.wayfinding-map').getAttribute('data-map-mode');
+    const paths = () => P.locator('.leaflet-overlay-pane path.route-line').count();
     const toChangiMap = async () => {
       await P.getByRole('button', { name: 'Airports', exact: true }).first().click();
       await P.getByRole('button', { name: /Changi/ }).first().click(); await P.getByRole('tab', { name: 'map' }).click();
@@ -446,8 +455,17 @@ try {
     await P.goto(BASE);
     await toChangiMap();
     const pinsApart = await P.evaluate(() => { const r = [...document.querySelectorAll('.map-pin')].map((e) => e.getBoundingClientRect()); for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i], b = r[j]; if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) return false; } return r.length > 0; });
-    check('wayfinding: terminal pins never overlap (close terminals merge into a cluster)', pinsApart);
-    check('wayfinding: no floor control (no floor data)', (await P.getByRole('button', { name: /floor|level/i }).count()) === 0);
+    check('Explore: at airport scale, terminal pins with venue counts never overlap; no floor control; no route drawn', pinsApart && (await P.getByRole('button', { name: /floor|level/i }).count()) === 0 && (await paths()) === 0 && (await mode()) === 'explore');
+    // Close up on a terminal: venue markers (category icons)
+    if (await P.getByRole('button', { name: 'Expand sheet' }).count()) await P.getByRole('button', { name: 'Expand sheet' }).click();
+    await P.getByRole('group', { name: 'Filter by terminal' }).getByRole('button', { name: 'T3', exact: true }).click(); await P.waitForTimeout(900);
+    check('Explore: choosing a terminal zooms in to individual venue markers', (await P.locator('.vm').count()) >= 1 && (await P.locator('.map-pin').count()) === 0);
+    // Filters and search: shared with the list
+    await P.getByRole('button', { name: 'Search activities' }).click(); await P.getByPlaceholder('Search activities').fill('garden');
+    await P.getByRole('tab', { name: 'list' }).click();
+    check('Explore: the search typed on the map is kept in the list (same filters)', (await P.getByPlaceholder('Search activities').inputValue()) === 'garden' && await P.getByRole('button', { name: /^(Select|Add) Butterfly Garden/ }).isVisible() && (await P.getByRole('button', { name: /^(Select|Add) Harry's/ }).count()) === 0);
+    await P.getByPlaceholder('Search activities').fill('');
+    await P.getByRole('tab', { name: 'map' }).click(); await P.waitForTimeout(500);
     // Plan: two venues in different areas, arrival T1, departure T3
     await P.getByRole('tab', { name: 'list' }).click();
     await P.getByRole('button', { name: /^(Select|Add) Butterfly Garden/ }).click();
@@ -457,81 +475,115 @@ try {
     await P.getByRole('button', { name: 'Build my itinerary' }).click();
     await P.getByRole('button', { name: /^Arriving at Terminal 1/ }).click();
     await P.getByRole('button', { name: /^Departing from Terminal 3/ }).click();
-    // Entry point 1: the itinerary itself
-    await P.getByRole('button', { name: 'See how to get there' }).click();
+    const builderLeft = (await P.getByLabel('Time budget').innerText()).replace(/\s+/g, ' ').match(/Estimated time remaining (\S+(?: \S+m)?)/)?.[1];
+    // Plan mode from the itinerary
+    await P.getByRole('button', { name: 'View route on map' }).click();
+    await P.locator('.rs--num').first().waitFor(); await P.waitForTimeout(700);
+    const planSheet = () => P.locator('section[aria-label="Your route"]');
+    const budgetCells = (await planSheet().getByLabel('Time budget').innerText()).replace(/\s+/g, ' ');
+    check('Plan: only the itinerary\'s stops, numbered in order (start and end distinct), every leg drawn; no venue markers',
+      (await mode()) === 'plan' && (await P.locator('.rs--num').count()) === 2 && (await P.locator('.rs--end').count()) === 2 && (await P.locator('.vm, .map-pin').count()) === 0
+      && (await P.locator('.rs--num').first().getAttribute('aria-label')) === 'Stop 1: Butterfly Garden' && (await paths()) === 3);
+    check('Plan: the time budget is the itinerary\'s own (same time left as the builder)', !!builderLeft && budgetCells.includes(`Left ${builderLeft}`) && budgetCells.includes('Usable 10h'), `${builderLeft} | ${budgetCells}`);
+    check('Plan: focused screen (no tab bar); back says "Back to itinerary"', (await P.getByRole('navigation', { name: 'Primary' }).count()) === 0 && await P.getByRole('button', { name: 'Back to itinerary' }).first().isVisible());
+    if (await planSheet().getByRole('button', { name: /^Stops and legs/ }).count()) await planSheet().getByRole('button', { name: /^Stops and legs/ }).click();
+    const legs = (await planSheet().getByRole('list', { name: 'Stops and legs' }).innerText()).replace(/\s+/g, ' ');
+    check('Plan: stops and legs in order with each leg\'s time (Changi\'s transfer times)', /Arrival.*5–10 min.*Butterfly Garden.*Jewel Rain Vortex.*Departure/.test(legs) && /Airport transfer time/.test(legs), legs.slice(0, 220));
+    // Reorder on the route map: numbering, lines and the itinerary follow
+    await planSheet().getByRole('button', { name: 'Reorder' }).click();
+    await planSheet().getByRole('button', { name: 'Move Jewel Rain Vortex earlier' }).click(); await P.waitForTimeout(400);
+    check('Plan: reordering renumbers the stops and reconnects the route', (await P.locator('.rs--num').first().getAttribute('aria-label')) === 'Stop 1: Jewel Rain Vortex');
+    await planSheet().getByRole('button', { name: 'Move Butterfly Garden later' }).isDisabled();
+    await planSheet().getByRole('button', { name: 'Move Jewel Rain Vortex later' }).click(); await P.waitForTimeout(300);
+    await planSheet().getByRole('button', { name: 'Done' }).click();
+    // Inspect a leg: Directions for that leg only
+    await planSheet().getByRole('button', { name: /^Directions from A to 1/ }).click();
     const dir = P.locator('section[aria-label="Directions"]');
-    await dir.getByText('Step 1 of 3').waitFor();
-    check('wayfinding: "See how to get there" on the itinerary opens the map on step 1 of the directions', await dir.isVisible());
-    await P.getByRole('button', { name: 'Back', exact: true }).first().click();
-    await P.getByRole('button', { name: /^Save (layover )?plan/ }).click();
-    await P.getByLabel('Upcoming trip').waitFor({ timeout: 8000 });
-    // Entry point 2: from the map's own button
-    await toChangiMap();
-    await P.getByRole('button', { name: 'How to get there' }).click();
-    await dir.getByText('Step 1 of 3').waitFor();
+    await dir.waitFor(); await P.locator('.wf-pin').waitFor(); await P.waitForTimeout(600);
+    check('Directions: on a short phone the sheet starts folded (time and actions; steps one tap away)', await dir.getByRole('button', { name: /^Show \d+ steps/ }).isVisible());
+    await dir.getByRole('button', { name: /^Show \d+ steps/ }).click();
     const d1 = (await dir.innerText()).replace(/\s+/g, ' ');
-    check('wayfinding: Directions opens step 1 of 3 (arrival T1 → Butterfly Garden T3) with time, distance and Changi\'s transfer time', d1.includes('To Butterfly Garden') && d1.includes('From Arrival') && await dir.getByText('Airport transfer time').first().isVisible() && /5–10 min/.test(d1) && /\d(\.\d)? km|\d+ m\b/.test(d1), d1.slice(0, 200));
-    check('wayfinding: generic steps adapted to the route (start, Skytrain to T3, continue to the stop)', /Start at your arrival gate area in Terminal 1/.test(d1) && /Skytrain/.test(d1));
-    check('wayfinding: the destination pin and origin marker are drawn', (await P.locator('.wf-pin').count()) === 1 && (await P.locator('.wf-stop--origin').count()) === 1);
-    await dir.getByRole('button', { name: 'Next step' }).click();
+    check('Directions: one leg (arrival T1 → Butterfly Garden T3) with Changi\'s transfer time, distance and steps', (await mode()) === 'directions' && d1.includes('To Butterfly Garden') && d1.includes('From Arrival')
+      && await dir.getByText('Airport transfer time').first().isVisible() && /5–10 min/.test(d1) && /\d(\.\d)? km|\d+ m\b/.test(d1) && /Start at your arrival gate area in Terminal 1/.test(d1) && /Skytrain/.test(d1), d1.slice(0, 220));
+    check('Directions: origin and destination markers and one route line; no stops, venues or Add', (await P.locator('.wf-pin').count()) === 1 && (await P.locator('.wf-stop--origin').count()) === 1
+      && (await P.locator('.rs, .vm, .map-pin').count()) === 0 && (await paths()) === 1 && (await dir.getByRole('button', { name: /^Add/ }).count()) === 0);
+    check('Directions: the leg is named in the header (Leg 1 of 3 · A Arrival → 1 Butterfly Garden)', await visible(P, 'Leg 1 of 3 · A Arrival → 1 Butterfly Garden'));
+    await dir.getByRole('button', { name: 'Next leg' }).click();
     const d2 = await dir.innerText();
-    check('wayfinding: Next step moves to step 2, with the arrival immigration step visible (no waiting time given)', d2.includes('Step 2 of 3') && /Clear arrival immigration/.test(d2) && !/immigration[^\n]*\d+ ?min/i.test(d2));
-    check('wayfinding: the simulated route is labelled once, not after every step', (await dir.getByText(/Estimated route|Airport transfer time/).count()) === 1);
-    check('wayfinding: the route is drawn on the map as a line between the stops', (await P.locator('.leaflet-overlay-pane path').count()) >= 2);
-    await dir.getByRole('button', { name: 'Next step' }).click();
+    check('Directions: next leg shows the arrival immigration step (no waiting time given); labelled once', /To Jewel Rain Vortex/.test(d2) && /Clear arrival immigration/.test(d2) && !/immigration[^\n]*\d+ ?min/i.test(d2) && (await dir.getByText(/Estimated route|Airport transfer time/).count()) === 1);
+    await dir.getByRole('button', { name: 'Next leg' }).click();
     const d3 = (await dir.innerText()).replace(/\s+/g, ' ');
-    check('wayfinding: the return leg (Jewel → departure) shows check-in, departure immigration and security', d3.includes('Step 3 of 3') && /departure immigration and security/i.test(d3) && d3.includes('Done'), d3.slice(0, 200));
-    await P.getByRole('button', { name: 'Expand sheet' }).click();
-    const all = (await dir.innerText()).replace(/\s+/g, ' ');
-    check('wayfinding: all stops list both stops and the departure, with no disclaimer', /All stops.*Butterfly Garden.*Jewel Rain Vortex.*Departure/.test(all) && !/No route lines|planning estimate|Source:/i.test(all), all.slice(0, 200));
-    await P.getByRole('button', { name: 'Collapse sheet' }).click();
-    await P.waitForTimeout(600);
+    check('Directions: the return leg (Jewel → departure) shows check-in, departure immigration and security', /To Departure/.test(d3) && /departure immigration and security/i.test(d3), d3.slice(0, 200));
+    await P.waitForTimeout(700);
     const lay = await P.evaluate(() => {
-      const sheet = document.querySelector('section[aria-label="Directions"]').getBoundingClientRect(), nav = document.querySelector('nav[aria-label="Primary"] > div').getBoundingClientRect();
+      const sheet = document.querySelector('section[aria-label="Directions"]').getBoundingClientRect();
       const ctrl = Math.max(0, ...[...document.querySelectorAll('.map-glass.press')].filter((e) => getComputedStyle(e).visibility !== 'hidden').map((e) => e.getBoundingClientRect().bottom));
       const attr = document.querySelector('.leaflet-control-attribution').getBoundingClientRect();
-      return { sheetAboveNav: sheet.bottom <= nav.top, ctrlAboveSheet: ctrl <= sheet.top, attributionVisible: attr.bottom <= sheet.top + 1 && attr.height > 0, sideways: document.documentElement.scrollWidth > innerWidth };
+      return { sheetOnScreen: sheet.bottom <= innerHeight, ctrlAboveSheet: ctrl <= sheet.top, attributionVisible: attr.bottom <= sheet.top + 1 && attr.height > 0, sideways: document.documentElement.scrollWidth > innerWidth };
     });
-    check('wayfinding: sheet above the tab bar, controls and map credit above the sheet, no sideways scroll', lay.sheetAboveNav && lay.ctrlAboveSheet && lay.attributionVisible && !lay.sideways, JSON.stringify(lay));
-    await dir.getByRole('button', { name: 'Back to the map' }).click();
-    check('wayfinding: back to the map keeps the itinerary', await visible(P, '2 planned'));
-    // Lisbon: no transfer data, so no directions button and an honest note
+    check('Directions: sheet on screen, map buttons and map credit above it, no sideways scroll', lay.sheetOnScreen && lay.ctrlAboveSheet && lay.attributionVisible && !lay.sideways, JSON.stringify(lay));
+    // Back returns to the route (Plan), then to the itinerary, with the plan intact
+    await dir.getByRole('button', { name: 'Back to route' }).click();
+    await P.locator('.rs--num').first().waitFor();
+    check('Back from Directions returns to the route map, order unchanged', (await mode()) === 'plan' && (await P.locator('.rs--num').first().getAttribute('aria-label')) === 'Stop 1: Butterfly Garden');
+    await planSheet().getByRole('button', { name: /^Directions from 1 to 2/ }).click(); await P.locator('.wf-pin').waitFor();
+    await P.goBack(); await P.locator('.rs--num').first().waitFor();
+    check('Browser Back from Directions also returns to the route map', (await mode()) === 'plan');
+    await P.goBack(); await P.getByLabel('Itinerary').waitFor();
+    check('Browser Back from the route map returns to the itinerary, nothing lost', (await P.getByLabel('Itinerary').innerText()).indexOf('Butterfly Garden') < (await P.getByLabel('Itinerary').innerText()).indexOf('Jewel Rain Vortex'));
+    await P.getByRole('button', { name: /^Save (layover )?plan/ }).click();
+    await P.getByLabel('Upcoming trip').waitFor({ timeout: 8000 });
+    // Explore → venue → How to get there → Directions → Back: Explore exactly as it was (filter, focused venue)
+    await toChangiMap();
+    await P.getByRole('button', { name: 'Food', exact: true }).click();
+    if (await P.getByRole('button', { name: 'Expand sheet' }).count()) await P.getByRole('button', { name: 'Expand sheet' }).click();
+    await P.locator('[aria-label="Venues"] button').filter({ hasText: "Harry's" }).first().click();
+    await P.getByRole('button', { name: 'How to get there' }).click();
+    await P.locator('.wf-pin').waitFor();
+    const dv = (await dir.innerText()).replace(/\s+/g, ' ');
+    check('Explore → How to get there: Directions to that venue from the arrival gate (not a plan stop)', (await mode()) === 'directions' && dv.includes("To Harry's") && dv.includes('From Arrival') && (await P.getByRole('button', { name: 'Back to map' }).first().isVisible()), dv.slice(0, 160));
+    await P.getByRole('button', { name: 'Back to map' }).first().click();
+    await P.locator('section[aria-label="Harry\'s"]').waitFor();
+    check('Back to Explore keeps the category filter and the venue preview', (await mode()) === 'explore' && (await P.getByRole('button', { name: 'Food', exact: true }).getAttribute('aria-pressed')) === 'true'
+      && await P.getByRole('button', { name: /Add Harry's to your itinerary/ }).isVisible());
+    await P.getByRole('button', { name: 'Close preview' }).click();
+    await P.getByRole('button', { name: 'All', exact: true }).click();
+    // Lisbon: no transfer data: Directions use the simulated walk, labelled once
     await P.getByRole('button', { name: 'Airports', exact: true }).first().click();
     await P.getByRole('button', { name: /Lisbon/ }).first().click(); await P.getByRole('tab', { name: 'map' }).click();
-    await P.locator('.map-pin').first().click();
-    await P.getByRole('button', { name: /ANA Lounge/ }).first().click();
-    const pre = (await P.locator('section[aria-label^="ANA Lounge"]').innerText()).replace(/\s+/g, ' ');
-    check('wayfinding: tapping a venue previews its route from the arrival gate (time and distance, line on the map)', /from Arrival/.test(pre) && /\d+ ?min/.test(pre) && (await P.locator('.wf-pin').count()) === 1, pre.slice(0, 160));
-    const lisbonOk = (await P.getByRole('button', { name: 'How to get there' }).count()) === 1
-    // Activity details: How to get there opens the map route to that venue (Lisbon, no transfer graph: simulated walk)
+    await P.locator('.vm').first().waitFor();
+    if (await P.getByRole('button', { name: 'Expand sheet' }).count()) await P.getByRole('button', { name: 'Expand sheet' }).click();
+    await P.locator('[aria-label="Venues"] button').filter({ hasText: 'ANA Lounge' }).first().click();
+    check('Lisbon: the venue preview has How to get there, and no route is drawn yet', await P.getByRole('button', { name: 'How to get there' }).isVisible() && (await paths()) === 0);
     await P.getByRole('button', { name: 'How to get there' }).click();
-    await P.locator('section[aria-label="Directions"]').getByText('To ANA Lounge', { exact: false }).waitFor();
-    const lis = (await P.locator('section[aria-label="Directions"]').innerText()).replace(/\s+/g, ' ');
-    check('wayfinding: Lisbon directions use the simulated route, labelled "Estimated route", with a line drawn', lis.includes('Estimated route') && (await P.locator('.leaflet-overlay-pane path').count()) >= 1, lis.slice(0, 160));
-    // Venue locations: a bakery chain has several, a lounge one; picking a location routes to it
-    await P.getByRole('button', { name: 'Back to the map' }).click();
+    await dir.getByText('To ANA Lounge', { exact: false }).waitFor();
+    const lis = (await dir.innerText()).replace(/\s+/g, ' ');
+    check('Lisbon: Directions use the simulated route, labelled "Estimated route", with one line drawn', lis.includes('Estimated route') && (await paths()) === 1, lis.slice(0, 160));
+    await P.getByRole('button', { name: 'Back to map' }).first().click();
     await P.getByRole('button', { name: 'Close preview' }).click();
+    // Venue locations: a bakery chain has several; picking one moves its marker; details → location → directions
     if (await P.getByRole('button', { name: 'Expand sheet' }).count()) await P.getByRole('button', { name: 'Expand sheet' }).click();
     await P.locator('[aria-label="Venues"] button').filter({ hasText: 'Padaria Lisboa' }).first().click();
+    if (!(await P.getByRole('group', { name: 'Padaria Lisboa locations' }).count())) await P.getByRole('button', { name: 'Expand sheet' }).click();
     const chips = P.getByRole('group', { name: 'Padaria Lisboa locations' }).getByRole('button');
     check('locations: a bakery chain offers several locations on the map (5 or more)', (await chips.count()) >= 5);
     await chips.nth(2).click();
-    check('locations: choosing another location updates the selected chip and the route preview', (await chips.nth(2).getAttribute('aria-pressed')) === 'true' && /from Arrival/.test(await P.locator('section[aria-label="Padaria Lisboa"]').innerText()));
+    check('locations: choosing another location selects that chip; still exploring (no route)', (await chips.nth(2).getAttribute('aria-pressed')) === 'true' && (await paths()) === 0);
     await P.getByRole('button', { name: 'Details', exact: true }).click();
     const dlg = P.getByRole('dialog', { name: 'Padaria Lisboa' });
     const locs = dlg.getByRole('region', { name: 'Locations' });
     check('locations: details list every location grouped by terminal', (await locs.getByRole('heading', { name: 'Terminal 1' }).count()) === 1 && (await locs.getByRole('button', { name: /^Directions to Padaria Lisboa/ }).count()) >= 5);
     await locs.getByRole('button', { name: /^Directions to Padaria Lisboa, Terminal 1, Arrivals/ }).first().click();
-    await P.locator('section[aria-label="Directions"]').getByText('To Padaria Lisboa', { exact: false }).waitFor();
-    check('locations: tapping a location opens directions to it', await P.locator('section[aria-label="Directions"]').isVisible());
-    // Entry point 3: a saved plan
+    await dir.getByText('To Padaria Lisboa', { exact: false }).waitFor();
+    check('locations: tapping a location opens Directions to it', (await mode()) === 'directions');
+    // A saved plan: View route on map opens the Plan mode
+    await P.getByRole('button', { name: 'Back to map' }).first().click();
     await P.getByRole('button', { name: 'My Plans' }).click();
     await P.getByRole('heading', { name: 'My plans' }).waitFor();
     await P.getByRole('list').getByRole('button', { name: / layover, / }).first().click(); // a saved plan card
-    await P.getByRole('button', { name: 'See how to get there' }).click();
-    await P.locator('section[aria-label="Directions"]').getByText('Step 1 of 3').waitFor();
-    check('wayfinding: a saved plan has "See how to get there" and it opens the directions', await P.locator('section[aria-label="Directions"]').isVisible());
-    check('wayfinding: Lisbon venues also get "How to get there"', lisbonOk);
+    await P.getByRole('button', { name: 'View route on map' }).click();
+    await P.locator('.rs--num').first().waitFor();
+    check('Plan: a saved plan has "View route on map" and it opens its route', (await mode()) === 'plan' && (await P.locator('.rs--num').count()) === 2);
     await wf.ctx.close();
   }
 
@@ -565,10 +617,10 @@ try {
     await P.getByRole('button', { name: "Move Harry's earlier" }).click();
     await P.getByRole('button', { name: 'Done' }).click();
     check('E: reorder keeps the new order (Harry\'s first)', (await itin()).indexOf("Harry's") < (await itin()).indexOf('Butterfly Garden'));
-    await P.getByRole('button', { name: 'See how to get there' }).click();
-    await P.locator('section[aria-label="Directions"]').getByText('Step 1 of 3').waitFor();
-    check('E: after reordering, the map route follows the new order (step 1 goes to Harry\'s)', (await P.locator('section[aria-label="Directions"]').innerText()).includes("To Harry's"));
-    await P.getByRole('button', { name: 'Back', exact: true }).first().click();
+    await P.getByRole('button', { name: 'View route on map' }).click();
+    await P.locator('.rs--num').first().waitFor();
+    check('E: after reordering, the route map follows the new order (stop 1 is Harry\'s)', (await P.locator('.rs--num').first().getAttribute('aria-label')) === "Stop 1: Harry's");
+    await P.getByRole('button', { name: 'Back to itinerary' }).first().click();
     await P.getByLabel('Itinerary').waitFor();
     // B: add Jewel (landside)
     await P.getByRole('button', { name: 'Add activities' }).click();

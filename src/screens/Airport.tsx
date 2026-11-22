@@ -1,26 +1,32 @@
 import { useState } from 'react'
-import { ChevronLeft, ListChecks, Plus, Check, Search, Sparkles } from 'lucide-react'
+import { ChevronLeft, ListChecks, Plus, Check, Search, Sparkles, X } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, getActivities, getAirport, getTemplates } from '../data/mock'
 import { sized } from '../data/images'
-import { budget, fmtDur, layoverMinutesAt, timeSpan } from '../data/time'
+import { fmtDur, timeSpan } from '../data/time'
+import { computeItinerary } from '../data/itinerary'
 import { ActionBar, ActivityRow, ActivitySheet, Button, CATEGORIES, Chip, ChipRow, Photo, cx, IconButton } from '../components/ui'
-import { MapView } from '../features/wayfinding/MapView'
+import { ExploreMap, exploreDefaults, type ExploreUi } from '../features/wayfinding/ExploreMap'
+import { useEntryState } from '../features/wayfinding/entryState'
 import type { Category } from '../data/types'
 import { byInterest, interestsStore } from '../data/interests'
-import { withUpdate } from '../features/flightUpdates/updates'
 
 type View = 'map' | 'list'
+/** The time budget shown while exploring: the itinerary's own numbers (activities and counted transfers). */
+type Budget = { usable: number; remaining: number; over: boolean }
+/** One visit's view, filters and search, shared by the list and the map and restored when coming back. */
+type AirportUi = ExploreUi & { view: View; cat: 'All' | Category; q: string; searching: boolean }
 const INTEREST_LABEL: Record<Category, string> = { Food: 'Dining', Shopping: 'Shopping', Rest: 'Relaxation', Sights: 'Attractions', Work: 'Work' }
 const LABEL_LIST = (c: Category[]) => { const l = c.map((x) => INTEREST_LABEL[x]); return l.length > 1 ? `${l.slice(0, -1).join(', ')} and ${l[l.length - 1]}` : l[0] }
 
 /** Discover a layover airport. List first (curated itineraries, then activities); the map shows the real airport
  *  with a pin per terminal behind a toggle. Planning state lives in the store, so switching views keeps everything. */
-export function Airport({ code, view: initialView, directions, venue, branch }: { code: string; view?: View; directions?: boolean; venue?: string; branch?: string }) {
-  const { go, back, draft, setDraft, picked, setPicked } = useApp()
-  const ap = getAirport(code)
-  const [view, setView] = useState<View>(initialView ?? 'list')
-  const [cat, setCat] = useState<'All' | Category>('All')
+export function Airport({ code, view: initialView, venue }: { code: string; view?: View; venue?: string }) {
+  const { go, back, draft, setDraft, picked, setPicked, route } = useApp()
+  const [ui, setUi] = useEntryState<AirportUi>(route, () => ({ ...exploreDefaults(), view: initialView ?? 'list', cat: 'All', q: '', searching: false, focusId: venue ?? null }))
+  const { view, cat, q } = ui
+  const setView = (v: View) => setUi({ view: v })
+  const setCat = (c: 'All' | Category) => setUi({ cat: c })
   const startTrip = (templateId?: string) => go({ name: 'trip', airport: code, templateId })
 
   // Interests from the onboarding put matching activities first (they never select anything).
@@ -28,9 +34,10 @@ export function Airport({ code, view: initialView, directions, venue, branch }: 
   const ready = !!draft && draft.airport === code
   // Before layover times exist, activities can still be selected; they are carried into the setup form.
   const planned = ready ? draft!.activityIds : picked?.airport === code ? picked.ids : []
-  const items = planned.map((id) => ACTIVITIES.find((a) => a.id === id)!).filter(Boolean)
-  const f = ready ? withUpdate(draft!) : null // a saved flight's current times (booking + any flight update)
-  const b = f ? budget(layoverMinutesAt(f.arrival, f.departure, ap.timezone), f.bufferMin, items) : null
+  // Same calculation as the itinerary builder and the route map (current flight times, activities, counted transfers).
+  const hero = ready ? computeItinerary(draft!).hero : null
+  const b: Budget | null = hero ? { usable: hero.usable, remaining: hero.remaining, over: hero.remaining < 0 } : null
+  const matches = (a: { category: Category; name: string }) => (cat === 'All' || a.category === cat) && a.name.toLowerCase().includes(q.trim().toLowerCase())
 
   const toggle = (id: string) => {
     if (!ready || !draft) { setPicked({ airport: code, ids: planned.includes(id) ? planned.filter((x) => x !== id) : [...planned, id] }); return }
@@ -51,9 +58,17 @@ export function Airport({ code, view: initialView, directions, venue, branch }: 
             <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
               className={cx('min-h-10 rounded-full text-sub font-semibold capitalize transition-colors', view === v ? 'bg-white text-[#2a1b18]' : 'text-white')}>{v}</button>))}
         </div>
+        {view === 'map' && <IconButton label={ui.searching || q ? 'Close search' : 'Search activities'} icon={ui.searching || q ? X : Search} tone="dark"
+          onClick={() => setUi(ui.searching || q ? { searching: false, q: '' } : { searching: true })} />}
       </div>
       {view === 'map' && (
         <>
+          {(ui.searching || q) && (
+            <label className="mt-2 block">
+              <span className="sr-only">Search activities</span>
+              <input autoFocus value={q} onChange={(e) => setUi({ q: e.target.value })} placeholder="Search activities" type="search"
+                className="map-glass min-h-11 w-full rounded-full px-4 text-body text-[#231a17] placeholder:text-[#8a7d77] focus:outline-none" />
+            </label>)}
           <div role="group" aria-label="Filter by category" className="no-scrollbar scroll-fade -mx-3 mt-2 flex gap-2 overflow-x-auto px-3 pb-1">
             {CATEGORIES.map((c) => (
               <button key={c} aria-pressed={cat === c} onClick={() => setCat(c)}
@@ -64,19 +79,18 @@ export function Airport({ code, view: initialView, directions, venue, branch }: 
     </div>
   )
 
-  if (view === 'map') return <MapView {...{ code, bar, acts, planned, ready, b, cat, toggle, startTrip }} openDirections={directions} openVenue={venue} openBranch={branch} />
+  if (view === 'map') return <ExploreMap {...{ code, bar, planned, ready, b, toggle, startTrip }} acts={acts.filter(matches)} all={acts} ui={ui} setUi={setUi} />
 
-  return <List {...{ code, bar, ready, planned, b, toggle, applyItinerary, startTrip, cat, setCat }} />
+  return <List {...{ code, bar, ready, planned, b, toggle, applyItinerary, startTrip, cat, setCat }} q={q} setQ={(v) => setUi({ q: v })} />
 }
 
-function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip, cat, setCat }: {
-  code: string; bar: React.ReactNode; ready: boolean; planned: string[]; b: ReturnType<typeof budget> | null
+function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip, cat, setCat, q, setQ }: {
+  code: string; bar: React.ReactNode; ready: boolean; planned: string[]; b: Budget | null
   toggle: (id: string) => void; applyItinerary: (id: string) => void
-  startTrip: () => void; cat: 'All' | Category; setCat: (c: 'All' | Category) => void
+  startTrip: () => void; cat: 'All' | Category; setCat: (c: 'All' | Category) => void; q: string; setQ: (q: string) => void
 }) {
   const { go } = useApp()
   const ap = getAirport(code)
-  const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
   const acts = byInterest(getActivities(code))
   const interests = interestsStore.get()

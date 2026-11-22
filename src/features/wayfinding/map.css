@@ -90,16 +90,59 @@
 .wayfinding-map .leaflet-bottom { bottom: var(--map-bottom, 0px); }
 .wayfinding-map .leaflet-control-attribution { border-radius: 0 0.5rem 0.5rem 0; }
 
-/* Wayfinding markers (Leaflet divIcons): numbered stops, the leg's start (ring) and its destination (coral pin). */
-.wf-icon { background: none; border: 0; }
+/* Route markers (overlays positioned on their map point). */
+.wf-stop, .rs, .leg-chip, .vm, .wf-dest { position: absolute; z-index: 12; }
+/* Directions: the leg's start (filled ring) and its destination (coral pin with the place's name). */
 .wf-stop {
-  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 999px;
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; transform: translate(-50%, -50%);
   background: #fff; color: #1f1a17; font: 700 12px/1 system-ui, -apple-system, sans-serif;
   border: 2px solid #ea5139; box-shadow: 0 1px 4px rgb(31 26 23 / 0.25);
 }
-.wf-stop--origin { background: #ea5139; color: #fff; border-color: #fff; box-shadow: 0 0 0 4px rgb(234 81 57 / 0.25), 0 1px 4px rgb(31 26 23 / 0.3); }
+.wf-stop--origin { background: #ea5139; color: #fff; border-color: #fff; box-shadow: 0 0 0 5px rgb(234 81 57 / 0.25), 0 1px 4px rgb(31 26 23 / 0.3); }
+.wf-dest { z-index: 14; display: flex; flex-direction: column; align-items: center; gap: 4px; transform: translate(-50%, calc(-100% + 3px)); pointer-events: none; }
 .wf-pin {
-  position: relative; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50% 50% 50% 0;
-  background: #ea5139; transform: rotate(-45deg); border: 2px solid #fff; box-shadow: 0 3px 8px rgb(31 26 23 / 0.3);
+  display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50% 50% 50% 0;
+  background: #ea5139; transform: rotate(-45deg); border: 2.5px solid #fff; box-shadow: 0 3px 10px rgb(31 26 23 / 0.35);
 }
-.wf-pin > span { transform: rotate(45deg); color: #fff; font: 800 13px/1 system-ui, -apple-system, sans-serif; }
+.wf-pin > span { transform: rotate(45deg); color: #fff; font: 800 14px/1 system-ui, -apple-system, sans-serif; }
+.wf-name {
+  max-width: 11rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 999px; padding: 3px 9px;
+  background: #1f1a17; color: #fff; font: 700 12px/1.2 system-ui, -apple-system, sans-serif; box-shadow: 0 2px 8px rgb(31 26 23 / 0.3);
+}
+
+/* Plan: numbered stops on the rail, the start and the end as plane discs, each leg's time as a tappable chip. */
+.rs {
+  display: grid; place-items: center; transform: translate(-50%, -50%); border-radius: 999px;
+  font: 800 13px/1 system-ui, -apple-system, sans-serif; box-shadow: 0 2px 6px rgb(31 26 23 / 0.3);
+}
+.rs--num { width: 30px; height: 30px; background: #ea5139; color: #fff; border: 2.5px solid #fff; z-index: 13; }
+.rs--end { width: 32px; height: 32px; background: #231a17; color: #fff; border: 2.5px solid #fff; }
+.leg-chip {
+  transform: translate(-50%, -50%); min-height: 28px; padding: 0 9px; border-radius: 999px; z-index: 11;
+  font: 700 12px/1 system-ui, -apple-system, sans-serif; color: #c23b24; white-space: nowrap; cursor: pointer;
+}
+.leg-chip::before { content: ''; position: absolute; inset: -8px; } /* a 44 px touch target */
+
+/* Explore: venue markers (category icon), selected = coral with a check, focused = larger with the venue's name. */
+.vm {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 999px; color: #c23b24;
+  transform: translate(-50%, -50%); transition: transform var(--dur-fast, 160ms);
+}
+.vm::before { content: ''; position: absolute; inset: -4px; } /* a 44 px touch target */
+.vm[data-state='selected'] { background: linear-gradient(180deg, #f2694b 0%, #e04a33 100%); color: #fff; border: 2px solid #fff; box-shadow: 0 2px 8px rgb(31 26 23 / 0.3); }
+.vm--cluster { font: 800 13px/1 system-ui, -apple-system, sans-serif; color: #231a17; width: 38px; height: 38px; }
+.vm-check {
+  position: absolute; top: -5px; right: -5px; display: grid; place-items: center; width: 17px; height: 17px; border-radius: 999px;
+  background: #1d7f45; color: #fff; border: 2px solid #fff;
+}
+.vm--focus {
+  z-index: 15; width: 46px; height: 46px; background: #fff; color: #c23b24; border: 3px solid #ea5139;
+  box-shadow: 0 0 0 6px rgb(234 81 57 / 0.22), 0 4px 12px rgb(31 26 23 / 0.3);
+}
+.vm--focus.vm--in { background: #ea5139; color: #fff; border-color: #fff; }
+.vm-name {
+  position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); max-width: 11rem; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; border-radius: 999px; padding: 3px 9px; background: #1f1a17; color: #fff;
+  font: 700 12px/1.2 system-ui, -apple-system, sans-serif; box-shadow: 0 2px 8px rgb(31 26 23 / 0.3); pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { .vm { transition: none; } }
