@@ -24,6 +24,12 @@ export function AboutData() {
         <p>Flight comparison results are generated examples, not live fares.</p>
       </Block>
 
+      <Block title="Flight updates">
+        <p>Schedule and gate changes are simulated from Settings → Demo controls. They are not live airline information, and a booking reference gives SkyStop no access to flight status.</p>
+        <p>An update is kept on this device apart from your saved booking, which is never changed by it; Reset returns to the booked times and gate. SkyStop recalculates your time to explore with the same buffer and transfers, and suggests changes only when your plan no longer fits. Nothing is changed until you apply a suggestion.</p>
+        <p>Sample bookings carry a departure gate. After a gate change, the walk back is recalculated only where the airport's transfer data covers the new terminal; otherwise it is marked as not verified.</p>
+      </Block>
+
       <Block title="Airports and venues">
         <p>Venues, categories, terminals and airside/landside access come from the SkyStop database, compiled from each airport's public website. Opening hours and prices change; check with the venue before you go.</p>
         <ul className="grid gap-1">

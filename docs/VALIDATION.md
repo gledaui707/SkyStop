@@ -450,3 +450,21 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
   `node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430. Captures reviewed at 390×844 and 320×568: builder,
   saved plan, activity sheet. Not run: hosted tests (owner approval required). Activity photos are blocked in this
   sandbox, so the cards were reviewed with the placeholder.
+
+### Reactive itinerary planning: simulated flight updates (22 Nov 2026)
+
+- Added flight updates kept apart from the booking (`src/features/flightUpdates/`, see docs/FLIGHT_UPDATES.md): an
+  effective-flight view feeds the existing `computeItinerary`, so Home, layover details, builder, My Plans, My Flights
+  and the alerts show the same numbers. Planning impact, a one-off Home notice, a plan review with rule-based suggestions
+  (Apply changes / Keep my plan) and Settings → Demo controls (five scenarios + Reset). No schema or Supabase changes;
+  updates are simulated, stored on the device and labelled "Simulated update".
+- Checks: `npx tsc -b` clean; `npm run build` OK; `npx vitest run` 169 passed, 1 skipped (hosted) — 21 new flight-update
+  tests; `npm run test:e2e` 202/202 (31 new: DH5PRZ demo flow with a genuine 25m conflict, keep, builder, apply saved
+  once with booked times unchanged, notice not repeated, scenarios B–E, reset; AXR7KD with the brief's times 23:35 →
+  22:50, → 01:35 +1, 11:15 → 12:45, gate B12 → D24 with Changi's transfer data); `node tests/e2e/layout-audit.mjs`
+  0 issues at 320/375/390/430 including the four new states.
+- Reviewed at 320×568, 375×667, 390×844 (`docs/screenshots/flight-updates/`) and a 30 s recording of the flow at 390.
+- Fixed during review: the review's Was/Now metrics wrapped at 320 px; the gate note appeared twice (gate row and update
+  line); the combined gate + time result did not mention the unverified walk.
+- Not run: hosted tests (owner approval required); no live airline data exists to test against. Updates are per
+  device (localStorage), not synced between devices.

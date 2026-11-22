@@ -57,7 +57,7 @@ let total = 0;
 for (const [w, h] of WIDTHS) {
   const ctx = await browser.newContext({ ...devices['iPhone 13'], viewport: { width: w, height: h } });
   await ctx.route('**://*.supabase.co/**', fake.handler); await ctx.route('**://images.unsplash.com/**', (r) => r.abort()); await ctx.route(/(basemaps\.cartocdn\.com|tile\.openstreetmap\.org)/, (r) => r.abort());
-  const page = await ctx.newPage();
+  let page = await ctx.newPage();
   const visit = async (name) => {
     await page.waitForTimeout(450);
     const issues = await page.evaluate(measure);
@@ -116,6 +116,28 @@ for (const [w, h] of WIDTHS) {
     await visit('home-flight-stack');
   } catch (e) { total++; console.log(`CRASH ${w}px: ${e.message.split('\n')[0]}`); }
   await ctx.close();
+  // Flight updates (a new guest with one Dubai plan): Demo controls, the Home notice, the plan review, the builder
+  const ctx2 = await browser.newContext({ ...devices['iPhone 13'], viewport: { width: w, height: h } });
+  await ctx2.addInitScript(() => { try { localStorage.setItem('skystop.welcomed.v1', '1'); localStorage.setItem('skystop.onboarded.v2', '1'); } catch {} });
+  await ctx2.route('**://*.supabase.co/**', fake.handler); await ctx2.route('**://images.unsplash.com/**', (r) => r.abort()); await ctx2.route(/(basemaps\.cartocdn\.com|tile\.openstreetmap\.org)/, (r) => r.abort());
+  page = await ctx2.newPage();
+  try {
+    await page.goto(BASE); await page.waitForTimeout(800);
+    await click('button', /^Add flight/); await page.getByLabel('Booking reference').fill('DH5PRZ');
+    await click('button', 'Find my journey'); await click('button', 'Explore Dubai');
+    await page.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
+    for (const n of ['Sleepover lounge', 'Al Majlis', 'Timeless Spa', 'Dubai Duty Free']) await click('button', `Add ${n}`);
+    await click('button', 'Build itinerary (4)'); await page.getByLabel('Time budget').waitFor();
+    await click('button', 'Save plan'); await page.getByLabel('Upcoming trip').waitFor({ timeout: 8000 });
+    await click('button', 'Profile'); await click('button', /^Demo controls/); await page.getByRole('dialog', { name: 'Demo controls' }).waitFor();
+    await click('button', /^Earlier departure/); await visit('demo-controls');
+    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click(); await click('button', 'Back');
+    await page.getByRole('status', { name: 'Flight update' }).waitFor(); await visit('home-flight-update');
+    await click('button', 'Review plan'); await page.getByLabel('Plan review').waitFor(); await visit('plan-review');
+    await click('button', 'Keep my plan'); await page.getByText('You kept your plan.', { exact: false }).waitFor();
+    await click('button', 'Edit plan'); await page.getByLabel('Time budget').waitFor(); await visit('builder-flight-update');
+  } catch (e) { total++; console.log(`CRASH ${w}px (flight updates): ${e.message.split('\n')[0]}`); }
+  await ctx2.close();
 }
 await browser.close(); server.kill();
 console.log(`\n${total} layout issue(s)`);

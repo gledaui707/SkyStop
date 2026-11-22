@@ -10,6 +10,8 @@ import { fmtDur, timeSpan, toLocalInput } from '../data/time'
 import type { Category, Plan } from '../data/types'
 import { Backdrop, Button, CATEGORIES, cx, Chip, ChipRow, Field, Header, LargeTitle, Photo, EmptyState } from '../components/ui'
 import { FlightStack } from '../components/FlightStack'
+import { FlightUpdateNotice } from '../features/flightUpdates/FlightUpdateUI'
+import { flightView, updateFor } from '../features/flightUpdates/updates'
 
 const Heading = ({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) => (
   <div className="mb-3 mt-8 flex items-center justify-between"><h2 className="text-h2 font-bold">{children}</h2>{action}</div>
@@ -20,9 +22,10 @@ const nextTrip = (plans: Plan[]) => {
   return plans.flatMap((plan) => {
     if (!/^[A-Z]{3}$/.test(plan.airport) || !Number.isFinite(plan.bufferMin) || plan.bufferMin < 0) return []
     const zone = getAirport(plan.airport).timezone
+    const f = flightView(plan) // current times (a delayed departure keeps a flight upcoming)
     try {
-      const arrival = localToInstant(plan.arrival.slice(0, 10), plan.arrival.slice(11, 16), zone).epochMilliseconds
-      const departure = localToInstant(plan.departure.slice(0, 10), plan.departure.slice(11, 16), zone).epochMilliseconds
+      const arrival = localToInstant(f.arrival.slice(0, 10), f.arrival.slice(11, 16), zone).epochMilliseconds
+      const departure = localToInstant(f.departure.slice(0, 10), f.departure.slice(11, 16), zone).epochMilliseconds
       return departure > arrival && departure >= now ? [{ plan, arrival }] : []
     } catch {
       return []
@@ -90,7 +93,7 @@ export function Home() {
               : <span className="grid size-12 shrink-0 place-items-center rounded-full bg-white/90 text-muted-text ring-1 ring-black/5"><UserRound size={22} /></span>}
             <span className="min-w-0 truncate text-body text-white/85 [text-shadow:0_1px_10px_rgb(0_0_0/0.4)]">{greeting()}{account.status === 'registered' && account.name ? <>, <b className="font-semibold text-white">{account.name.split(' ')[0]}</b></> : ''}</span>
           </button>
-          <button onClick={() => setNotice('No new notifications')} aria-label="Notifications" className="glass-dark press relative grid size-12 shrink-0 place-items-center rounded-full">
+          <button onClick={() => setNotice(upcoming.some((p) => updateFor(p) && !updateFor(p)!.seen) ? 'A flight update is shown under My flights.' : 'No new notifications')} aria-label="Notifications" className="glass-dark press relative grid size-12 shrink-0 place-items-center rounded-full">
             <Bell size={20} />
           </button>
         </div>
@@ -110,6 +113,7 @@ export function Home() {
           <h2 className="text-h2 font-bold text-white [text-shadow:0_1px_12px_rgb(0_0_0/0.35)]">My flights</h2>
           <button onClick={() => go({ name: 'flights' })} className="min-h-11 text-body font-semibold text-white [text-shadow:0_1px_10px_rgb(0_0_0/0.35)]">See all{plans.length > 1 ? ` (${plans.length})` : ''}</button>
         </div>
+        <FlightUpdateNotice plans={upcoming} />
         {upcoming.length > 0 ? (
           <FlightStack flights={upcoming} onOpen={(p) => go({ name: 'plan', id: p.id })} />
         ) : (

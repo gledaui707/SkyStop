@@ -20,19 +20,21 @@ export interface SampleJourneySpec {
   bufferMin: number
   /** Days from today to the first departure. */
   startsInDays: number
+  /** Onward departure gate at the connecting airport (part of the sample booking; not live airline data). */
+  gate?: string
 }
 
 export const SAMPLE_JOURNEYS: SampleJourneySpec[] = [
-  { ref: 'AXR7KD', origin: 'CGK', connection: 'SIN', destination: 'CDG', bufferMin: 120, startsInDays: 9,
+  { ref: 'AXR7KD', origin: 'CGK', connection: 'SIN', destination: 'CDG', bufferMin: 120, startsInDays: 9, gate: 'B12',
     segments: [{ from: 'CGK', to: 'SIN', depart: { day: 0, time: '08:20' }, arrive: { day: 0, time: '11:15' } },
                { from: 'SIN', to: 'CDG', depart: { day: 0, time: '23:35' }, arrive: { day: 1, time: '06:20' } }] },
-  { ref: 'BQ3LMV', origin: 'OPO', connection: 'LIS', destination: 'JFK', bufferMin: 90, startsInDays: 10,
+  { ref: 'BQ3LMV', origin: 'OPO', connection: 'LIS', destination: 'JFK', bufferMin: 90, startsInDays: 10, gate: '14',
     segments: [{ from: 'OPO', to: 'LIS', depart: { day: 0, time: '07:10' }, arrive: { day: 0, time: '08:05' } },
                { from: 'LIS', to: 'JFK', depart: { day: 0, time: '13:25' }, arrive: { day: 0, time: '16:30' } }] },
-  { ref: 'CJ8NWT', origin: 'JFK', connection: 'LHR', destination: 'SIN', bufferMin: 120, startsInDays: 11,
+  { ref: 'CJ8NWT', origin: 'JFK', connection: 'LHR', destination: 'SIN', bufferMin: 120, startsInDays: 11, gate: 'B36',
     segments: [{ from: 'JFK', to: 'LHR', depart: { day: 0, time: '18:30' }, arrive: { day: 1, time: '06:35' } },
                { from: 'LHR', to: 'SIN', depart: { day: 1, time: '12:05' }, arrive: { day: 2, time: '09:05' } }] },
-  { ref: 'DH5PRZ', origin: 'CDG', connection: 'DXB', destination: 'HND', bufferMin: 120, startsInDays: 12,
+  { ref: 'DH5PRZ', origin: 'CDG', connection: 'DXB', destination: 'HND', bufferMin: 120, startsInDays: 12, gate: 'B12',
     segments: [{ from: 'CDG', to: 'DXB', depart: { day: 0, time: '15:05' }, arrive: { day: 1, time: '00:45' } },
                { from: 'DXB', to: 'HND', depart: { day: 1, time: '07:45' }, arrive: { day: 1, time: '22:35' } }] },
 ]

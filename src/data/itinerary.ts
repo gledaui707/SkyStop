@@ -4,14 +4,20 @@ import { budget, layoverMinutesAt } from './time'
 import { planItinerary, type Itinerary, type Zone } from '../domain/itinerary'
 import type { HeroNumbers } from '../components/BudgetHero'
 import type { Activity } from './types'
+import { withUpdate } from '../features/flightUpdates/updates'
 
 export interface PlanLike {
   airport: string; arrival: string; departure: string; bufferMin: number; activityIds: string[]
   arrivalLocation?: string | null; departureLocation?: string | null
+  /** Identify the saved flight, so a flight update for it (src/features/flightUpdates) is taken into account. */
+  id?: string; planId?: string; bookingRef?: string
 }
 const zoneOf = (a: Activity): Zone => (a.access === 'Airside' ? 'airside' : a.access === 'Landside' ? 'landside' : 'unknown')
 
-export function computeItinerary(p: PlanLike): { items: Activity[]; itin: Itinerary; hero: HeroNumbers; total: number } {
+/** The one time calculation. By default it uses the flight as it is now (booking + any flight update), so every screen
+ *  agrees; `original` uses the booked times only (to show what changed). */
+export function computeItinerary(plan: PlanLike, opts?: { original?: boolean }): { items: Activity[]; itin: Itinerary; hero: HeroNumbers; total: number } {
+  const p = opts?.original ? plan : withUpdate(plan)
   const ap = getAirport(p.airport)
   const items = p.activityIds.map((id) => ACTIVITIES.find((a) => a.id === id)!).filter(Boolean)
   const total = layoverMinutesAt(p.arrival, p.departure, ap.timezone)

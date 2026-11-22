@@ -2,7 +2,9 @@ import { Plane } from 'lucide-react'
 import type { Plan } from '../data/types'
 import { getAirport } from '../data/mock'
 import { airportInfo } from '../data/airportDirectory'
-import { fmtDur, layoverMinutesAt } from '../data/time'
+import { fmtDur } from '../data/time'
+import { computeItinerary } from '../data/itinerary'
+import { flightView } from '../features/flightUpdates/updates'
 import { cx } from './ui'
 
 interface Props { plan: Plan; onView: () => void }
@@ -17,12 +19,16 @@ const time = (local: string) => local.slice(11, 16)
  *  Data comes from the saved plan (route labels restored from the sample booking where applicable). */
 export function TripTicket({ plan, onView }: Props) {
   const ap = getAirport(plan.airport)
-  const total = layoverMinutesAt(plan.arrival, plan.departure, ap.timezone)
-  const usable = Math.max(0, total - plan.bufferMin)
+  // The flight as it is now (booking + any flight update), through the same calculation as every other screen.
+  const v = flightView(plan)
+  const { total, usable } = computeItinerary(plan).hero
   const count = plan.activityIds.length
   const hasRoute = !!(plan.origin && plan.destination)
   const from = hasRoute ? airportInfo(plan.origin) : undefined, to = hasRoute ? airportInfo(plan.destination) : undefined
-  const plusDays = Math.round((Date.parse(plan.departure.slice(0, 10)) - Date.parse(plan.arrival.slice(0, 10))) / 86400000)
+  const plusDays = Math.round((Date.parse(v.departure.slice(0, 10)) - Date.parse(v.arrival.slice(0, 10))) / 86400000)
+  /** Day caption; a changed time also shows the booked one, struck through. */
+  const sub = (now: string, was: string, changed: boolean) => changed
+    ? <><s className="text-muted-text/80"><span className="sr-only">booked </span>{time(was)}</s> · {day(now)}</> : day(now)
 
   const code = 'block text-[clamp(2.25rem,11.5vw,3rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-ink'
   const big = 'block text-[clamp(1.3rem,6.9vw,2rem)] font-semibold leading-none tracking-[-0.03em] tabular-nums text-ink'
@@ -58,12 +64,12 @@ export function TripTicket({ plan, onView }: Props) {
           </div>
         )}
         {/* the connection at the transit airport: arrive, length, depart */}
-        <div aria-label={`At ${ap.code}: arrive ${time(plan.arrival)} ${day(plan.arrival)}, ${fmtDur(total)} connection, depart ${time(plan.departure)} ${day(plan.departure)}`}
+        <div aria-label={`At ${ap.code}: arrive ${time(v.arrival)} ${day(v.arrival)}, ${fmtDur(total)} connection, depart ${time(v.departure)} ${day(v.departure)}${v.changed.arrival || v.changed.departure ? ' (time changed)' : ''}`}
           className="mt-4 grid grid-cols-[auto_1fr_auto] items-end gap-1.5 rounded-2xl bg-ink/[0.045] px-3 py-3">
           <span className="min-w-0">
             <span className={label}>Arrive {ap.code}</span>
-            <span className={cx(big, 'mt-1')}>{time(plan.arrival)}</span>
-            <span className={caption}>{day(plan.arrival)}</span>
+            <span className={cx(big, 'mt-1', v.changed.arrival && '!text-accent-dark')}>{time(v.arrival)}</span>
+            <span className={caption}>{sub(v.arrival, v.original.arrival, v.changed.arrival)}</span>
           </span>
           <span className="flex min-w-0 flex-col items-center pb-[1.15rem]" aria-hidden="true">
             <span className="text-tab font-semibold uppercase tracking-[0.06em] text-muted-text [@media(max-width:360px)]:text-[0.5625rem] [@media(max-width:360px)]:tracking-[0.02em]">Connection</span>
@@ -75,8 +81,8 @@ export function TripTicket({ plan, onView }: Props) {
           </span>
           <span className="min-w-0 text-right">
             <span className={label}>Depart {ap.code}</span>
-            <span className={cx(big, 'mt-1')}>{time(plan.departure)}{plusDays > 0 && <sup className="ml-0.5 text-cap font-semibold text-accent-dark">+{plusDays}</sup>}</span>
-            <span className={caption}>{day(plan.departure)}</span>
+            <span className={cx(big, 'mt-1', v.changed.departure && '!text-accent-dark')}>{time(v.departure)}{plusDays > 0 && <sup className="ml-0.5 text-cap font-semibold text-accent-dark">+{plusDays}</sup>}</span>
+            <span className={caption}>{sub(v.departure, v.original.departure, v.changed.departure)}</span>
           </span>
         </div>
       </section>
@@ -94,6 +100,8 @@ export function TripTicket({ plan, onView }: Props) {
           <div className="min-w-0">
             <p className="text-sub font-semibold text-accent-dark">Transit {ap.code}</p>
             <p className="mt-0.5 truncate text-body font-semibold">{ap.city}</p>
+            {v.gate && <p className="mt-0.5 text-micro text-muted-text">Gate <b className={cx('font-semibold', v.changed.gate ? 'text-accent-dark' : 'text-ink')}>{v.gate}</b>
+              {v.changed.gate && <> <s><span className="sr-only">booked </span>{v.original.gate}</s></>}</p>}
           </div>
           <div className="shrink-0 text-right">
             <p className="text-micro text-muted-text">Time to explore</p>

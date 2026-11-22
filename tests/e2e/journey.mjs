@@ -883,6 +883,125 @@ try {
   check('illustrative flight comparison preserved', (await b.page.getByText(/^\$[0-9]/).count()) >= 3);
   await b.ctx.close();
 
+  // ---- Flight updates: a simulated schedule or gate change re-plans a saved itinerary (Settings → Demo controls)
+  {
+    const u = await newGuest();
+    const P = u.page;
+    const known = new Set(fake.plans.keys());
+    const mine = () => [...fake.plans.entries()].filter(([id]) => !known.has(id)).map(([, x]) => x);
+    const norm = async (loc) => (await loc.innerText()).replace(/\s+/g, ' ');
+    const openControls = async () => { await P.getByRole('button', { name: 'Profile' }).click(); await P.getByRole('button', { name: /^Demo controls/ }).click(); await P.getByRole('dialog', { name: 'Demo controls' }).waitFor(); };
+    const status = () => norm(P.getByRole('dialog').getByRole('status'));
+    const closeToHome = async () => { await P.getByRole('dialog').getByRole('button', { name: 'Close' }).click(); await P.getByRole('button', { name: 'Back' }).first().click(); await P.getByLabel('Upcoming trip').waitFor(); };
+    // 1–5: import DH5PRZ (Paris → Dubai → Tokyo), build a four-stop Dubai itinerary that fits (4h 40m of 5h), save
+    await P.goto(BASE);
+    await P.getByRole('button', { name: /^Add flight/ }).first().click();
+    await P.getByLabel('Booking reference').fill('DH5PRZ');
+    await P.getByRole('button', { name: 'Find my journey' }).click();
+    await P.getByRole('button', { name: 'Explore Dubai' }).click();
+    await P.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
+    for (const n of ['Sleepover lounge', 'Al Majlis', 'Timeless Spa', 'Dubai Duty Free']) await P.getByRole('button', { name: `Add ${n}` }).click();
+    await P.getByRole('button', { name: 'Build itinerary (4)' }).click();
+    check('flight update: the itinerary fits with the booked times (20m of 5h left)', (await norm(P.getByLabel('Time budget'))).includes('Estimated time remaining 20m'));
+    await P.getByRole('button', { name: 'Save plan' }).click();
+    await P.getByLabel('Upcoming trip').waitFor();
+    const saved0 = { ...mine()[0].row };
+    check('flight update: Home shows the booked times and the sample booking’s gate', /Depart DXB 07:45/i.test(await norm(P.getByLabel('Upcoming trip'))) && /Gate B12/.test(await norm(P.getByLabel('Upcoming trip'))) && (await P.getByRole('status', { name: 'Flight update' }).count()) === 0);
+    // 6–7: earlier departure 07:45 → 07:00
+    await openControls();
+    check('controls: in Settings, separate from flight management; scenarios name the booked times', await visible(P, 'Departure 07:45 → 07:00') && await visible(P, 'Gate B12 → D24') && await P.getByRole('button', { name: /^Reset/ }).isDisabled());
+    await P.getByRole('button', { name: /^Earlier departure/ }).click();
+    check('controls: the result is recalculated with the same time calculation (25m over)', (await status()).includes('Departure 07:00 (was 07:45). Your plan no longer fits: 25m over.'), await status());
+    check('flight update: the saved booking is not changed (same times, same revision)', JSON.stringify(mine()[0].row) === JSON.stringify(saved0) && mine().length === 1);
+    await closeToHome();
+    // 8: reduced window and conflict on Home, everywhere the same
+    const notice = await norm(P.getByRole('status', { name: 'Flight update' }));
+    const tk = await norm(P.getByLabel('Upcoming trip'));
+    check('Home: one concise notice; the conflict leads to Review plan; labelled as simulated', notice.includes('Your flight time changed.') && notice.includes('Your current layover plan no longer fits the available time.') && notice.includes('Simulated update') && await P.getByRole('button', { name: 'Review plan' }).isVisible(), notice);
+    check('Home: the trip card shows the new departure, the booked one struck through, and 4h 15m to explore', /Depart DXB 07:00 booked 07:45/i.test(tk) && /Connection 6h 15m/i.test(tk) && tk.includes('Time to explore 4h 15m'), tk);
+    await P.getByRole('button', { name: 'Review plan' }).click();
+    await P.getByLabel('Plan review').waitFor();
+    // 9–10: the plan, its review and the suggestions
+    const review = await norm(P.getByLabel('Plan review'));
+    check('review: was / now / over by, and the stop that no longer fits', /Time to explore Was 5h Now 4h 15m Over by 25m/i.test(review) && review.includes('Doesn’t fit: Dubai Duty Free'), review);
+    check('review: rule-based suggestions, least disruptive first (end after Timeless Spa → 15m left; swap → 50m left)',
+      /^End after Timeless Spa.*15m\s*left \| Swap Sleepover lounge for Be Relax spa.*50m\s*left$/.test((await P.getByRole('radio').evaluateAll((els) => els.map((e) => e.textContent))).join(' | ')));
+    check('plan: time budget, timeline and times agree (25m over; the last stop is beyond the usable time; depart 07:00)', (await norm(P.getByLabel('Time budget'))).includes('Over your usable time by 25m')
+      && (await P.getByText('beyond your usable time').count()) === 1 && await visible(P, '5 Dec, 07:00'));
+    check('plan: the word "demo" does not appear on the planning screen', !/demo/i.test(await P.locator('main').innerText()));
+    // Keep my plan: the warning stays, nothing saved
+    await P.getByRole('button', { name: 'Keep my plan' }).click();
+    await P.getByText('You kept your plan.', { exact: false }).waitFor();
+    check('keep: the plan stays over budget with a short warning; nothing is saved', (await norm(P.getByLabel('Plan review'))).includes('You kept your plan. It’s 25m over') && mine()[0].row.revision === saved0.revision && mine()[0].items.length === 4);
+    await P.getByRole('button', { name: 'Edit plan' }).click(); await P.getByLabel('Time budget').waitFor();
+    check('builder: the same update and numbers in the itinerary builder', (await norm(P.getByLabel('Time budget'))).includes('Over your usable time by 25m') && (await norm(P.getByLabel('Plan review'))).includes('You kept your plan'));
+    await P.getByRole('button', { name: 'Back' }).first().click(); await P.getByLabel('Plan review').waitFor();
+    // 11–12: apply
+    await P.getByLabel('Plan review').getByRole('button', { name: 'Review' }).click();
+    await P.getByRole('button', { name: 'Apply changes' }).click();
+    await P.getByText(/^Plan updated: 15m left to explore\./).waitFor();
+    check('apply: saved once with the revision (3 stops, 15m left); booked times unchanged', mine().length === 1 && mine()[0].items.length === 3 && mine()[0].row.departure_at === saved0.departure_at && mine()[0].row.revision === saved0.revision + 1
+      && (await norm(P.getByLabel('Time budget'))).includes('Estimated time remaining 15m') && (await P.getByLabel('Plan review').count()) === 0);
+    check('apply: the flight update itself stays visible (45m less to explore; plan fits)', (await norm(P.getByRole('note', { name: 'Flight update' }))).includes('45m less to explore. Your plan still fits.'));
+    await P.getByRole('button', { name: 'Back' }).first().click(); await P.getByLabel('Upcoming trip').waitFor();
+    check('Home: the notice is not repeated once handled', (await P.getByRole('status', { name: 'Flight update' }).count()) === 0);
+    // Other scenarios on the same flight
+    await openControls();
+    await P.getByRole('button', { name: /^Arrival delayed/ }).click();
+    check('C. arrival 00:45 → 02:15: 90m less, conflict again (3 stops: 4h in 3h 30m, 30m over)', (await status()).includes('Arrival 02:15 (was 00:45). Your plan no longer fits: 30m over.'), await status());
+    await P.getByRole('button', { name: /^Departure delayed/ }).click();
+    check('B. departure 07:45 → 09:45: 2h more; plan unchanged', (await status()).includes('Departure 09:45 (was 07:45). 2h more to explore; your plan is unchanged.'), await status());
+    await P.getByRole('button', { name: /^Both flights changed/ }).click();
+    check('D. both legs: recalculated from both new times', (await status()).includes('Arrival 01:50 (was 00:45) · Departure 08:35 (was 07:45). 15m less to explore; your plan still fits.'), await status());
+    await P.getByRole('button', { name: /^Gate changed/ }).click();
+    check('E. a gate change keeps the time change already made', (await status()).includes('Departure 08:35 (was 07:45) · Gate D24, Terminal 1 (was B12)'), await status());
+    await P.getByRole('button', { name: /^Reset/ }).click(); await P.getByRole('button', { name: /^Gate changed/ }).click();
+    check('E. gate B12 → D24 at Dubai (other terminal, no route data): shown, time unchanged, the walk marked not verified', (await status()) === 'Gate D24, Terminal 1 (was B12). Time to explore unchanged; the walk to the new gate isn’t verified.', await status());
+    await P.getByRole('button', { name: /^Reset/ }).click();
+    check('reset: back to the booked times and gate', (await status()).includes('Reset to the booked times and gate.') && await P.getByRole('button', { name: /^Reset/ }).isDisabled());
+    await closeToHome();
+    const tk2 = await norm(P.getByLabel('Upcoming trip'));
+    check('reset: Home shows the booking again (07:45, gate B12, 5h); no notice', /Depart DXB 07:45/i.test(tk2) && /Gate B12/.test(tk2) && tk2.includes('Time to explore 5h') && (await P.getByRole('status', { name: 'Flight update' }).count()) === 0, tk2);
+    check('flight updates: kept on this device, apart from the booking (one store, no duplicate flights)', mine().length === 1 && await P.evaluate(() => localStorage.getItem('skystop.flightupdates.v1') === '{}'));
+    await u.ctx.close();
+  }
+  {
+    // The brief's Singapore times (AXR7KD: lands 11:15, departs 23:35, gate B12), with Changi's transfer data
+    const s = await newGuest();
+    const P = s.page;
+    const norm = async (loc) => (await loc.innerText()).replace(/\s+/g, ' ');
+    const run = async (name) => {
+      await P.getByRole('button', { name: 'Profile' }).click(); await P.getByRole('button', { name: /^Demo controls/ }).click();
+      await P.getByRole('button', { name }).click();
+      const st = await norm(P.getByRole('dialog').getByRole('status'));
+      await P.getByRole('dialog').getByRole('button', { name: 'Close' }).click(); await P.getByRole('button', { name: 'Back' }).first().click(); await P.getByLabel('Upcoming trip').waitFor();
+      return st;
+    };
+    await P.goto(BASE);
+    await P.getByRole('button', { name: /^Add flight/ }).first().click();
+    await P.getByLabel('Booking reference').fill('AXR7KD');
+    await P.getByRole('button', { name: 'Find my journey' }).click();
+    await P.getByRole('button', { name: 'Explore Singapore' }).click();
+    await P.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
+    for (const n of ['Butterfly Garden', "Harry's"]) await P.getByRole('button', { name: `Add ${n}` }).click();
+    await P.getByRole('button', { name: 'Build itinerary (2)' }).click();
+    await P.getByRole('button', { name: 'Arriving at Terminal 3 transit area' }).click();
+    await P.getByRole('button', { name: 'Departing from Terminal 3 transit area' }).click();
+    await P.getByRole('button', { name: 'Save plan' }).click(); await P.getByLabel('Upcoming trip').waitFor();
+    check('A. Singapore: departure 23:35 → 22:50 is 45m less; the plan still fits', (await run(/^Earlier departure/)) === 'Departure 22:50 (was 23:35). 45m less to explore; your plan still fits.');
+    check('A. Home: no conflict, so the notice only reports the change (View layover)', await P.getByRole('status', { name: 'Flight update' }).getByRole('button', { name: 'View layover' }).isVisible());
+    check('B. Singapore: departure 23:35 → 01:35 the next day is 2h more', (await run(/^Departure delayed/)) === 'Departure 01:35 +1 (was 23:35). 2h more to explore; your plan is unchanged.');
+    const tk = await norm(P.getByLabel('Upcoming trip'));
+    check('B. the trip card crosses midnight: depart 01:35 +1, 14h 20m connection, 12h 20m to explore', /Depart SIN 01:35\+1 booked 23:35/i.test(tk) && /Connection 14h 20m/i.test(tk) && tk.includes('Time to explore 12h 20m'), tk);
+    check('C. Singapore: arrival 11:15 → 12:45 is 90m less', (await run(/^Arrival delayed/)) === 'Arrival 12:45 (was 11:15). 1h 30m less to explore; your plan still fits.');
+    check('E. Singapore: gate B12 → D24 (Terminal 1) recalculates the walk back from Changi’s transfer data', (await run(/^Gate changed/)).startsWith('Arrival 12:45 (was 11:15) · Gate D24, Terminal 1 (was B12).')
+      && (await P.evaluate(() => localStorage.getItem('skystop.flightupdates.v1'))).includes('"gate":"D24"'));
+    await P.getByRole('status', { name: 'Flight update' }).getByRole('button', { name: 'View layover' }).click(); await P.getByLabel('Itinerary').waitFor();
+    const it = await norm(P.getByLabel('Itinerary'));
+    check('E. the timeline returns to Terminal 1 with Changi’s Skytrain estimate; the gate row shows D24 with B12 struck', /Return: 5–10m · Skytrain or walk/.test(it) && it.includes('Onward departure · Terminal 1 transit area') && /Departure gate (Booked )?B12[ ,]*(now )?D24 · Terminal 1/.test(await norm(P.locator("main"))), (await norm(P.locator('main'))).slice(0, 400));
+    await s.ctx.close();
+  }
+
   // ---- 6. Catalogue failure -> error state with retry
   {
     const one = await newGuest();

@@ -4,6 +4,7 @@ import type { Draft, Plan } from './data/types'
 import { guestStore } from './data/mock'
 import { loadCatalogue } from './data/catalogue'
 import { fetchPlans, removePlan as removeSaved, saveDraft } from './data/plans'
+import { simulate, updatesStore, type FlightUpdate, type ScenarioId } from './features/flightUpdates/updates'
 import { getSupabase } from './api/client'
 import { getAccount, type Account } from './api/account'
 import { getProfile, type DataError } from './api/repositories'
@@ -74,6 +75,15 @@ interface Ctx {
   savePlan: (d: Draft) => Promise<Plan>
   /** Removes a saved flight together with its itinerary. */
   removePlan: (id: string) => Promise<void>
+  /** Flight updates per saved flight (src/features/flightUpdates), kept apart from the bookings. Changing one re-renders
+   *  every screen, and they all read the same effective times through computeItinerary / flightView. */
+  flightUpdates: Record<string, FlightUpdate>
+  /** Applies a simulated schedule or gate change to a saved flight. null when the scenario does not apply. */
+  simulateFlightUpdate: (planId: string, scenario: ScenarioId) => FlightUpdate | null
+  /** Back to the booked times and gate (the update is deleted; the booking was never changed). */
+  resetFlightUpdate: (planId: string) => void
+  /** Records that the notice was seen, or what the traveller decided. */
+  markFlightUpdate: (planId: string, p: Pick<FlightUpdate, 'seen' | 'decision'>) => void
   /** Guest / account state (Supabase Auth). */
   account: Account
   refreshAccount: () => Promise<void>
@@ -208,9 +218,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })
     return () => data.subscription.unsubscribe()
   }, [refreshAccount, reloadPlans])
+  const [flightUpdates, setFlightUpdates] = useState<Record<string, FlightUpdate>>(() => updatesStore.all())
+  const plansRef = useRef(plans)
+  plansRef.current = plans
+  const simulateFlightUpdate = useCallback((planId: string, scenario: ScenarioId) => {
+    const plan = plansRef.current.find((p) => p.id === planId)
+    const u = plan ? simulate(plan, scenario) : null
+    if (u) { updatesStore.set(u); setFlightUpdates(updatesStore.all()) }
+    return u
+  }, [])
+  const resetFlightUpdate = useCallback((planId: string) => { updatesStore.remove(planId); setFlightUpdates(updatesStore.all()) }, [])
+  const markFlightUpdate = useCallback((planId: string, p: Pick<FlightUpdate, 'seen' | 'decision'>) => { updatesStore.patch(planId, p); setFlightUpdates(updatesStore.all()) }, [])
   const removePlan = async (id: string) => {
     await removeSaved(id)
     setPlans((cur) => cur.filter((p) => p.id !== id))
+    resetFlightUpdate(id)
   }
   const savePlanRef = useRef<((d: Draft) => Promise<Plan>) | null>(null)
   const savePlan = async (d: Draft) => {
@@ -301,7 +323,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const nextHint = () => { if (hint === 'done') return; setHint(hint >= 3 ? 'done' : ((hint + 1) as HintStage)) }
   const skipHints = () => setHint('done')
   return (
-    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, finishAccess, enterAsGuest, entering, completeOnboarding, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
+    <C.Provider value={{ route: stack[stack.length - 1], go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, flightUpdates, simulateFlightUpdate, resetFlightUpdate, markFlightUpdate, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, finishAccess, enterAsGuest, entering, completeOnboarding, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
       {children}
     </C.Provider>
   )

@@ -8,6 +8,7 @@ import { ActionBar, ActivityRow, ActivitySheet, Button, CATEGORIES, Chip, ChipRo
 import { MapView } from '../features/wayfinding/MapView'
 import type { Category } from '../data/types'
 import { byInterest, interestsStore } from '../data/interests'
+import { withUpdate } from '../features/flightUpdates/updates'
 
 type View = 'map' | 'list'
 const INTEREST_LABEL: Record<Category, string> = { Food: 'Dining', Shopping: 'Shopping', Rest: 'Relaxation', Sights: 'Attractions', Work: 'Work' }
@@ -28,7 +29,8 @@ export function Airport({ code, view: initialView, directions, venue, branch }: 
   // Before layover times exist, activities can still be selected; they are carried into the setup form.
   const planned = ready ? draft!.activityIds : picked?.airport === code ? picked.ids : []
   const items = planned.map((id) => ACTIVITIES.find((a) => a.id === id)!).filter(Boolean)
-  const b = ready ? budget(layoverMinutesAt(draft!.arrival, draft!.departure, ap.timezone), draft!.bufferMin, items) : null
+  const f = ready ? withUpdate(draft!) : null // a saved flight's current times (booking + any flight update)
+  const b = f ? budget(layoverMinutesAt(f.arrival, f.departure, ap.timezone), f.bufferMin, items) : null
 
   const toggle = (id: string) => {
     if (!ready || !draft) { setPicked({ airport: code, ids: planned.includes(id) ? planned.filter((x) => x !== id) : [...planned, id] }); return }

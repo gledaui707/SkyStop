@@ -23,6 +23,13 @@ Alternatives: **Enter flight details manually** on Find your journey leads to th
 
 Verification (2026-11-12): the booking-reference flow, all four references, Explore for LHR/DXB and a full save are covered by `npm run test:e2e` against a simulated API (64 checks). On the live site, onboarding → CJ8NWT → Explore London → venue sheet was checked read-only (no records created). The 8h 25m figure is arithmetic from the tested builder, not yet seen on the live site — rehearse once before the demo.
 
+## Optional: flight change (about 60 seconds)
+Shows that a plan reacts to its flight. Full steps and numbers in docs/FLIGHT_UPDATES.md.
+1. Save DH5PRZ with Sleepover lounge, Al Majlis, Timeless Spa and Dubai Duty Free (4h 40m of 5h → 20m left).
+2. Profile → Settings → **Demo controls** → **Earlier departure** (07:45 → 07:00). Say: "This is a simulated update; SkyStop has no airline feed."
+3. Home: "Your flight time changed." → **Review plan**: 25m over; Dubai Duty Free no longer fits.
+4. **Apply changes** (End after Timeless Spa → 15m left). Then Demo controls → **Reset**.
+
 ## If something goes wrong
 - **Catalogue error:** Try again; second network.
 - **Save error ("Plan not saved"):** the draft is kept; tap **Try again**.

@@ -9,6 +9,9 @@ import { computeItinerary, terminalChoices } from '../data/itinerary'
 import { ItineraryTimeline } from '../components/Timeline'
 import { BudgetHero } from '../components/BudgetHero'
 import { ActivitySheet, Backdrop, Button, Header, Notice, Photo, SectionTitle, Skeleton, cx, IconButton } from '../components/ui'
+import { flightView } from '../features/flightUpdates/updates'
+import { planningImpact } from '../features/flightUpdates/impact'
+import { GateRow, PlanReview, TimeCell, UpdateLine } from '../features/flightUpdates/FlightUpdateUI'
 
 /** A saved flight as an editable draft (same plan id: saving it updates this flight, never adds another). */
 const toDraft = (p: Plan) => ({ planId: p.id, revision: p.revision, bookingRef: p.bookingRef, name: p.name, airport: p.airport, arrival: p.arrival, departure: p.departure,
@@ -26,11 +29,12 @@ function PlanCard({ p, i }: { p: Plan; i: number }) {
   const h = computeItinerary(p).hero, over = h.remaining < 0
   const total = Math.max(h.total, 1), pct = (v: number) => `${Math.max(0, Math.min(100, (v / total) * 100))}%`
   const n = p.activityIds.length
-  const nextDay = p.departure.slice(0, 10) !== p.arrival.slice(0, 10)
+  const v = flightView(p), changed = v.changed.arrival || v.changed.departure
+  const nextDay = v.departure.slice(0, 10) !== v.arrival.slice(0, 10)
   return (
     <li className="anim-rise" style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}>
       <button onClick={() => go({ name: 'plan', id: p.id })} className="panel press block w-full overflow-hidden rounded-surface text-left"
-        aria-label={`${p.name}, ${dayLabel(p.arrival)}, ${n} ${n === 1 ? 'activity' : 'activities'}, ${over ? `${fmtDur(-h.remaining)} over` : `${fmtDur(h.remaining)} left`}`}>
+        aria-label={`${p.name}, ${dayLabel(v.arrival)}, ${n} ${n === 1 ? 'activity' : 'activities'}, ${over ? `${fmtDur(-h.remaining)} over` : `${fmtDur(h.remaining)} left`}${changed ? ', flight time changed' : ''}`}>
         <span className="ph relative block h-36 overflow-hidden">
           <Photo img={ap.image} w={420} h={144} className="absolute inset-0 size-full" />
           <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/10" />
@@ -45,17 +49,17 @@ function PlanCard({ p, i }: { p: Plan; i: number }) {
           </span>
         </span>
         <span aria-hidden="true" className="block px-4 pb-4 pt-3.5">
-          <span className="flex items-center justify-between text-cap text-muted-text"><span>{dayLabel(p.arrival)}</span>
+          <span className="flex items-center justify-between text-cap text-muted-text"><span>{dayLabel(v.arrival)}{changed && <span className="font-semibold text-accent-dark"> · Time changed</span>}</span>
             <span className={cx('rounded-full px-2.5 py-0.5 font-semibold', over ? 'bg-error-tint text-error' : 'bg-accent-tint text-accent-dark')}>
               {n} {n === 1 ? 'activity' : 'activities'} · {over ? `${fmtDur(-h.remaining)} over` : `${fmtDur(h.remaining)} left`}</span></span>
           <span className="mt-2.5 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
-            <span className="text-h2 font-bold tabular-nums leading-none">{p.arrival.slice(11, 16)}</span>
+            <span className={cx('text-h2 font-bold tabular-nums leading-none', v.changed.arrival && 'text-accent-dark')}>{v.arrival.slice(11, 16)}</span>
             <span className="flex h-1.5 overflow-hidden rounded-full bg-white/10">
               <span className="bg-[repeating-linear-gradient(135deg,rgb(255_240_232/0.5)_0_3px,rgb(255_240_232/0.2)_3px_6px)]" style={{ width: pct(h.buffer) }} />
               <span className={over ? 'bg-error' : 'bg-[image:var(--coral-grad)]'} style={{ width: pct(h.activityMin) }} />
               {h.routing && <span className="bg-amber" style={{ width: pct(h.transferMin) }} />}
             </span>
-            <span className="text-h2 font-bold tabular-nums leading-none">{p.departure.slice(11, 16)}{nextDay && <sup className="ml-0.5 text-micro text-muted-text">+1</sup>}</span>
+            <span className={cx('text-h2 font-bold tabular-nums leading-none', v.changed.departure && 'text-accent-dark')}>{v.departure.slice(11, 16)}{nextDay && <sup className="ml-0.5 text-micro text-muted-text">+1</sup>}</span>
           </span>
           <span className="mt-1.5 flex justify-between text-micro text-muted-text"><span>Arrive {p.airport}</span><span>{fmtDur(h.total)} layover</span><span>Depart</span></span>
         </span>
@@ -117,13 +121,15 @@ export function Plans() {
 }
 
 export function PlanDetail({ id }: { id: string }) {
-  const { plans, plansState, setDraft, go, back } = useApp()
+  const { plans, plansState, setDraft, go, back, savePlan, setNotice } = useApp()
   const [open, setOpen] = useState<Activity | null>(null)
   const p = plans.find((x) => x.id === id)
   if (!p) return <div><Header title="Plan" /><p className="p-6 text-center text-muted-text">{plansState.status === 'loading' ? 'Loading your plan…' : 'This plan is not available.'}</p></div>
   const items = itemsOf(p)
   const ap = getAirport(p.airport)
+  // Every number below reads the flight as it is now (booking + any flight update); the booking itself is unchanged.
   const plan = computeItinerary(p)
+  const v = flightView(p), impact = planningImpact(p)
   return (
     <div className="pb-8">
       <div className="ph relative h-[19rem] overflow-hidden">
@@ -139,16 +145,22 @@ export function PlanDetail({ id }: { id: string }) {
       </div>
       <div className="grid gap-3 px-5 pt-2">
         <div className="panel grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-card p-4">
-          <div><p className="text-cap text-muted-text">Arrive</p><p className="text-body font-semibold">{when(p.arrival)}</p></div>
+          <TimeCell label="Arrive" now={v.arrival} was={v.original.arrival} changed={v.changed.arrival} fmt={when} />
           <span aria-hidden="true" className="btn-coral grid size-9 place-items-center rounded-full"><Plane size={16} /></span>
-          <div className="text-right"><p className="text-cap text-muted-text">Depart</p><p className="text-body font-semibold">{when(p.departure)}</p></div>
+          <TimeCell label="Depart" now={v.departure} was={v.original.departure} changed={v.changed.departure} fmt={when} right />
+          <GateRow v={v} />
         </div>
-        <BudgetHero n={plan.hero} overnight={isOvernight(new Date(p.arrival), new Date(p.departure))} />
+        {impact && <UpdateLine i={impact} planned={items.length > 0} />}
+        <BudgetHero n={plan.hero} overnight={isOvernight(new Date(v.arrival), new Date(v.departure))} />
+        <PlanReview plan={p} onApply={async (r) => {
+          const saved = await savePlan({ ...toDraft(p), activityIds: r.activityIds })
+          setNotice(`Plan updated: ${fmtDur(computeItinerary(saved).hero.remaining)} left to explore.`)
+        }} />
         {items.length ? (<>
           <SectionTitle>Activities ({items.length})</SectionTitle>
-          <ItineraryTimeline airportCode={ap.code} arrival={new Date(p.arrival)} departure={new Date(p.departure)}
+          <ItineraryTimeline airportCode={ap.code} arrival={new Date(v.arrival)} departure={new Date(v.departure)}
             arrivalNote={p.arrivalLocation ? terminalChoices(p.airport).find((t) => t.id === p.arrivalLocation)?.name : undefined}
-            departureNote={p.departureLocation ? terminalChoices(p.airport).find((t) => t.id === p.departureLocation)?.name : undefined}
+            departureNote={v.departureLocation ? terminalChoices(p.airport).find((t) => t.id === v.departureLocation)?.name : undefined}
             items={plan.items} hops={plan.itin.hops} usable={plan.hero.usable} buffer={plan.hero.buffer} onOpen={setOpen} />
         </>) : (
           // A saved flight is not yet a plan: the way forward is discovering what fits.

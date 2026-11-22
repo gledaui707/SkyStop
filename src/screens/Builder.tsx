@@ -5,6 +5,9 @@ import { getAirport, isSupported } from '../data/mock'
 import { fmtDur, isOvernight } from '../data/time'
 import { computeItinerary, terminalChoices } from '../data/itinerary'
 import { ItineraryTimeline } from '../components/Timeline'
+import { flightView } from '../features/flightUpdates/updates'
+import { planningImpact } from '../features/flightUpdates/impact'
+import { PlanReview, UpdateLine } from '../features/flightUpdates/FlightUpdateUI'
 import { ACCESS_LABEL, BudgetHero } from '../components/BudgetHero'
 import { ActionBar, ActivitySheet, Backdrop, Button, Header, Notice, cx, IconButton, SectionHeader, Chip } from '../components/ui'
 import type { Activity } from '../data/types'
@@ -24,7 +27,9 @@ export function Builder() {
   const ap = getAirport(draft.airport)
   const { items, itin, hero, total: mins } = computeItinerary(draft)
   const terminals = terminalChoices(draft.airport)
-  const arrival = new Date(draft.arrival), departure = new Date(draft.departure)
+  // A saved flight's current times (booking + any flight update); the draft keeps the booked times for saving.
+  const v = flightView(draft), impact = planningImpact(draft)
+  const arrival = new Date(v.arrival), departure = new Date(v.departure)
   const night = isOvernight(arrival, departure)
   const over = itin.remaining < 0
   const update = (d: Partial<typeof draft>) => { setDraft({ ...draft, ...d }); setSaved(false) }
@@ -67,7 +72,9 @@ export function Builder() {
             className="min-h-12 min-w-0 flex-1 bg-transparent text-h1 font-bold [text-shadow:0_2px_16px_rgb(0_0_0/0.45)] focus:outline-none" />
           <Pencil size={18} aria-hidden="true" className="shrink-0 text-white/70" />
         </label>
+        {impact && impact.kind !== 'none' && impact.kind !== 'conflict' && <div className="mt-4"><UpdateLine i={impact} planned={items.length > 0} /></div>}
         <div className="mt-4"><BudgetHero n={hero} overnight={night} bufferInfo={`Time kept back for leaving the aircraft, transfer screening, the walk to your gate and boarding.${itin.routing ? ' Transfers between stops are counted separately.' : ''}`}/></div>
+        {draft.planId && impact?.kind === 'conflict' && <div className="mt-3"><PlanReview plan={{ ...draft, id: draft.planId }} onApply={(r) => set(r.activityIds)} applyNote="Applies to this plan here. Save to keep it." /></div>}
         {items.length > 0 && (
           <Button variant="secondary" icon={MapIcon} className="mt-3 w-full" onClick={() => go({ name: 'airport', code: draft.airport, view: 'map', directions: true })}>
             See how to get there</Button>)}
@@ -107,7 +114,7 @@ export function Builder() {
 
         <ItineraryTimeline airportCode={ap.code} arrival={arrival} departure={departure}
           arrivalNote={draft.arrivalLocation ? terminals.find((t) => t.id === draft.arrivalLocation)?.name : undefined}
-          departureNote={draft.departureLocation ? terminals.find((t) => t.id === draft.departureLocation)?.name : undefined}
+          departureNote={v.departureLocation ? terminals.find((t) => t.id === v.departureLocation)?.name : undefined}
           items={items} hops={itin.hops} usable={hero.usable} buffer={hero.buffer} onOpen={setOpen}
           empty={<div className="grid gap-3 rounded-card border border-dashed border-white/20 bg-ink-tint p-4 text-body text-muted-text">No activities yet.
             {isSupported(draft.airport) && <button type="button" onClick={() => go({ name: 'airport', code: draft.airport, view: 'list' })} className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-accent-dark bg-transparent text-body font-semibold text-accent-dark"><Plus size={18} />Add activities</button>}</div>}
