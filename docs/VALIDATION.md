@@ -495,3 +495,12 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
 - Reviewed side by side at 320/375/390 (`docs/screenshots/map-modes/`) and a 22 s recording at 390.
 - Known limits: venue spots and lines are illustrative; at 320×568 the Directions band is small (the origin can sit
   under the destination label until the map is panned).
+
+### Assignment 2 QA audit on production (22 Nov 2026)
+
+Full report: docs/QA_REPORT.md. Live site (06a6fe6) driven in a fresh browser at 390/375/320: 38/39 checks each (the
+miss is the onboarding conversation, removed on request); database rows verified through each guest's own session;
+RLS verified (no session 401; second guest 0 rows, save_plan 403). Suites: typecheck clean; vitest 175 passed, 1 skipped;
+build OK; DB harness 17/17; e2e 191/191 with reduced motion and, after fixes, 191/191 with animations; layout 0 issues.
+Fixed: Leaflet teardown error during camera animations (AirportMap), unhandled view-transition promise (store), test
+waits for animated transitions; SPEC/README/ARCHITECTURE/REQUIREMENTS/DEMO_SCRIPT brought up to date. Lint not configured.

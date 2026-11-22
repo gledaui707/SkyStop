@@ -114,7 +114,14 @@ export function AirportMap({ airport, insets, explore = null, route = null, came
     m.on('moveend', () => { const c = m.getCenter(); onCameraRef.current?.({ center: [c.lat, c.lng], zoom: m.getZoom() }) })
     const ro = new ResizeObserver(() => m.invalidateSize()); ro.observe(el.current)
     tick()
-    return () => { ro.disconnect(); m.remove(); map.current = null; lines.current = null }
+    // Leaving mid-zoom (Back during a fly-to): Leaflet ends a zoom animation from a 250 ms timer it does not clear on
+    // remove(), which then reads the removed map pane and throws. Stop the camera and mark the zoom as finished first.
+    return () => {
+      ro.disconnect(); map.current = null; lines.current = null
+      m.off(); m.stop()
+      ;(m as unknown as { _animatingZoom: boolean })._animatingZoom = false
+      try { m.remove() } catch { /* already torn down */ }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terminals])
   const onCameraRef = useRef(onCamera)

@@ -1,14 +1,14 @@
 # SkyStop — Smart Layover Planner
 More than a connection.
 
-React + Vite app (Figma Make frontend) backed by Supabase (PostgreSQL, anonymous guest sessions). Deadline: November 15, 2026, 23:59 Europe/Lisbon. Not deployed yet — see [deployment steps](docs/DEPLOY_VERCEL.md) and [current status](IMPLEMENTATION_CHECKLIST.md).
+React + Vite app (Figma Make frontend) backed by Supabase (PostgreSQL, anonymous guest sessions). **Live: https://skystop.vercel.app** (Vercel deploys `main`). Five-minute demo: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
-Run locally: `npm install`, `npm run dev`. Tests: `npm test -- --run`, `npm run build && npm run test:e2e`. How the frontend is wired: [docs/FRONTEND_INTEGRATION.md](docs/FRONTEND_INTEGRATION.md).
+Run locally: `npm install`, `npm run dev`. Checks: `npm run typecheck`, `npx vitest run`, `npm run build`, `npm run test:e2e` (browser journey against a simulated API), `npm run test:layout` (320–430 px layout audit), `npm ci --prefix tests/database && npm test --prefix tests/database` (SQL/RLS regression). Results: [docs/VALIDATION.md](docs/VALIDATION.md). How the frontend is wired: [docs/FRONTEND_INTEGRATION.md](docs/FRONTEND_INTEGRATION.md).
 
 Start with [CLAUDE_HANDOFF.md](CLAUDE_HANDOFF.md), [SPEC.md](SPEC.md) and [AGENTS.md](AGENTS.md).
 
 - [Assignment checklist](docs/REQUIREMENTS.md)
-- [Architecture and proposed folders](docs/ARCHITECTURE.md)
+- [Architecture and folders](docs/ARCHITECTURE.md)
 - [Database dictionary and access rules](docs/DATABASE.md)
 - [Supabase setup](docs/SUPABASE_SETUP.md)
 - [Test plan](docs/TEST_PLAN.md) and [actual validation](docs/VALIDATION.md)

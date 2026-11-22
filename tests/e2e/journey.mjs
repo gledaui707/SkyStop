@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { createFakeSupabase } from './fake-supabase.mjs';
 /** Focused screens (builder, booking, journey…) hide the tab bar: go Back until the tabs return. */
-const backToTabs = async (p) => { for (let i = 0; i < 5 && !(await p.getByRole('navigation', { name: 'Primary' }).count()); i++) await p.getByRole('button', { name: 'Back' }).first().click(); };
+const backToTabs = async (p) => { for (let i = 0; i < 5 && !(await p.getByRole('navigation', { name: 'Primary' }).count()); i++) { await p.getByRole('button', { name: 'Back' }).first().click(); await p.waitForTimeout(MOTION === 'reduce' ? 0 : 700); } };
 
 const PORT = 4179, BASE = `http://localhost:${PORT}`, SHOTS = process.env.SHOTS;
 let failed = 0; const results = [];
@@ -38,6 +38,8 @@ const newGuest = async (viewport, { firstVisit = false, reducedMotion = MOTION }
   return { ctx, page };
 };
 const shot = async (page, name) => { if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${name}.png` }); } };
+// Waits (up to 5 s) for something to appear: with animations on, a new screen lands a frame after the click.
+const seen = (locator, timeout = 5000) => locator.first().waitFor({ timeout }).then(() => true, () => false);
 const visible = (page, text) => page.getByText(text, { exact: false }).first().isVisible();
 const pick = async (page, label, text) => { await page.getByLabel(label, { exact: true }).fill(text); await page.getByRole('option').first().getByRole('button').click(); };
 
@@ -147,7 +149,7 @@ try {
   await page.reload();
   await page.getByRole('button', { name: 'My Plans' }).click();
   await page.getByText('1 activity').waitFor();
-  check('after second refresh My Plans shows the edited plan', await visible(page, '2h 30m left'));
+  check('after second refresh My Plans shows the edited plan', await seen(page.getByText('2h 30m left')));
   await ctx.close();
 
   // ---- 1b. Booking-reference flow: invalid reference, the four samples, then a full save through the shared builder
@@ -241,7 +243,7 @@ try {
   // leave the builder with Back (focused screens hide the tab bar) until the tabs return
   await backToTabs(e.page);
   await e.page.getByRole('button', { name: 'My Plans' }).click();
-  check('explore-first: nothing saved without pressing Save', await e.page.getByText('No saved itineraries yet').isVisible());
+  check('explore-first: nothing saved without pressing Save', await seen(e.page.getByText('No saved itineraries yet')));
   await e.ctx.close();
 
   // ---- 3. Itinerary-first: "Use this itinerary" before times; its name is kept through setup
@@ -505,6 +507,7 @@ try {
     const d1 = (await dir.innerText()).replace(/\s+/g, ' ');
     check('Directions: one leg (arrival T1 → Butterfly Garden T3) with Changi\'s transfer time, distance and steps', (await mode()) === 'directions' && d1.includes('To Butterfly Garden') && d1.includes('From Arrival')
       && await dir.getByText('Airport transfer time').first().isVisible() && /5–10 min/.test(d1) && /\d(\.\d)? km|\d+ m\b/.test(d1) && /Start at your arrival gate area in Terminal 1/.test(d1) && /Skytrain/.test(d1), d1.slice(0, 220));
+    await P.waitForTimeout(900); // the camera settles on the leg
     check('Directions: origin and destination markers and one route line; no stops, venues or Add', (await P.locator('.wf-pin').count()) === 1 && (await P.locator('.wf-stop--origin').count()) === 1
       && (await P.locator('.rs, .vm, .map-pin').count()) === 0 && (await paths()) === 1 && (await dir.getByRole('button', { name: /^Add/ }).count()) === 0);
     check('Directions: the leg is named in the header (Leg 1 of 3 · A Arrival → 1 Butterfly Garden)', await visible(P, 'Leg 1 of 3 · A Arrival → 1 Butterfly Garden'));
@@ -525,11 +528,11 @@ try {
     // Back returns to the route (Plan), then to the itinerary, with the plan intact
     await dir.getByRole('button', { name: 'Back to route' }).click();
     await P.locator('.rs--num').first().waitFor();
-    check('Back from Directions returns to the route map, order unchanged', (await mode()) === 'plan' && (await P.locator('.rs--num').first().getAttribute('aria-label')) === 'Stop 1: Butterfly Garden');
+    check('Back from Directions returns to the route map, order unchanged', await seen(P.locator('[data-map-mode="plan"] .rs--num[aria-label="Stop 1: Butterfly Garden"]')));
     await planSheet().getByRole('button', { name: /^Directions from 1 to 2/ }).click(); await P.locator('.wf-pin').waitFor();
     await P.goBack(); await P.locator('.rs--num').first().waitFor();
     check('Browser Back from Directions also returns to the route map', (await mode()) === 'plan');
-    await P.goBack(); await P.getByLabel('Itinerary').waitFor();
+    await P.goBack(); await P.getByLabel('Itinerary').waitFor(); await P.waitForTimeout(MOTION === 'reduce' ? 0 : 800);
     check('Browser Back from the route map returns to the itinerary, nothing lost', (await P.getByLabel('Itinerary').innerText()).indexOf('Butterfly Garden') < (await P.getByLabel('Itinerary').innerText()).indexOf('Jewel Rain Vortex'));
     await P.getByRole('button', { name: /^Save (layover )?plan/ }).click();
     await P.getByLabel('Upcoming trip').waitFor({ timeout: 8000 });
@@ -705,7 +708,7 @@ try {
     // a sample journey is not saved twice
     await G.getByRole('button', { name: /^Add flight/ }).click();
     await G.getByLabel('Booking reference').fill('AXR7KD'); await G.getByRole('button', { name: 'Find my journey' }).click();
-    check('flights: a saved sample journey offers "Open in My flights" instead of a duplicate', await G.getByRole('button', { name: 'Open in My flights' }).isVisible());
+    check('flights: a saved sample journey offers "Open in My flights" instead of a duplicate', await seen(G.getByRole('button', { name: 'Open in My flights' }), 8000));
     await backToTabs(G); await G.getByRole('button', { name: 'Home' }).click();
     // details come back from the database, not just this browser
     await G.evaluate(() => localStorage.removeItem('skystop.planmeta.v1'));

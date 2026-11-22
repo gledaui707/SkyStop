@@ -1,42 +1,42 @@
-# Five-minute live demo script (matches the app as deployed)
-Public app: **https://skystop.vercel.app** (production, Vercel; data in Supabase project `sgwbtgwccskqamzttczz`).
-On a laptop the app opens inside an iPhone frame; on a phone it is full screen. Sample journeys are generated a week or more ahead, so dates are always in the future.
+# Five-minute live demo script (verified on the live app)
+Public app: **https://skystop.vercel.app** (production; data in Supabase project `sgwbtgwccskqamzttczz`).
+Every step and number below was observed on the live site on 22 Nov 2026 in a fresh browser at 390×844, 375×667 and
+320×568 (QA walkthrough: 38/39 checks; the one miss is the onboarding conversation, which was removed on request).
+Sample journeys are generated about a week ahead, so the dates change with the day; the times and durations do not.
 
 ## Before you present (2 minutes)
-1. Open the URL in a **private/incognito window** (new guest → you get the onboarding and an empty My Plans).
-2. Confirm the onboarding loads ("Your layover, reimagined."). If **"We could not load the airports"** appears, tap **Try again**, then switch network.
-3. Second browser/network ready. Optional: Supabase dashboard on `layovers` / `plan_items`.
+1. Open the URL in a **private/incognito window** (new guest: you get the splash and the three intro slides).
+2. If **"We could not load the airports"** appears, tap **Try again**, then switch network.
+3. Keep a second private window ready in case the first one gets stuck.
 
 ## Timed script (300 seconds)
-| Time | Do | Say / point out | Expect on screen |
+| Time | Do | Expect on screen | Say |
 |---|---|---|---|
-| 0:00–0:30 | Tap **Get started** through the three intro slides | "First visit only; skippable; replay from Profile → Settings." | "Your layover, reimagined." → … → Home with no saved flight ("Where's your next stop?"); tap **Add flight** |
-| 0:30–1:10 | Type **AXR7KD** → **Find my journey** | "Sample references only — SkyStop doesn't connect to airline systems, and says so." | Journey overview: Jakarta CGK → **Singapore SIN** → Paris CDG; timeline in local times; **12h 20m layover − 2h planning buffer = 10h 20m usable** |
-| 1:10–2:00 | **Explore Singapore** → List view; open **Butterfly Garden** | "Real venues from changiairport.com: terminal and airside only where the airport states it; time is an estimate; source link at the bottom." | Sheet: Terminal 3 transit, Levels 2–3 · Free · Airside · source **changiairport.com** |
-| 2:00–2:40 | Add **Butterfly Garden**, **Harry's** and **Free Snooze Lounge** → **Build itinerary (3)** | "The time budget is the hero: usable time minus planned time." | 30m + 40m + 45m = 1h 55m planned → **8h 25m left** |
-| 2:40–3:20 | **Save plan** | "One atomic server function; success only after the server confirms." | Home: "…is saved" and the **Next connection** ticket CGK → SIN → CDG |
-| 3:20–3:45 | **Refresh** | "Read back from PostgreSQL for this guest." | Same ticket |
-| 3:45–4:30 | **Plan a layover** → type **DH5PRZ** → **Find my journey** (Paris → Dubai → Tokyo) → **Explore Dubai** | "Four supported airports — Singapore, Lisbon, London Heathrow, Dubai — each shows only its own venues." | 7h layover − 2h = **5h usable**; Al Majlis, Timeless Spa… and the itinerary **Emirati dinner and spa** |
-| 4:30–5:00 | **My Plans** | "Plans belong to this browser's anonymous guest; row-level security keeps other guests out." | The saved Singapore plan |
+| 0:00–0:25 | Watch the splash; tap **Get started** three times | Splash → "Your layover, reimagined." → … → Home "Where's your next stop?" | "No account needed: a guest session is created for me." |
+| 0:25–1:05 | **Add flight** → type **AXR7KD** → **Find my journey** | Journey: **CGK 08:20 → SIN 11:15**, layover in Singapore **12h 20m**, **SIN 23:35 → CDG 06:20** (+1 day); **12h 20m − 2h buffer = 10h 20m usable** | "Sample booking references only; SkyStop doesn't connect to airlines. All times are local to each airport." |
+| 1:05–1:30 | **Save to My flights** | Home card: Jakarta → Paris via **SIN**, Arrive SIN **11:15**, Connection **12h 20m**, Depart SIN **23:35**, Time to explore **10h 20m** | "Saved in PostgreSQL. (Optional: refresh — it's still here.)" |
+| 1:30–1:50 | **View layover** → **Explore activities** | Layover: Singapore Changi, 10h 20m remaining, "No activities planned yet" → Changi activities, "10h 20m usable time · 10h 20m still free" | "From my flight straight into the airport." |
+| 1:50–2:40 | Tap **Food** (shows Harry's and LeMa Dumpling), back to **All**; add **Butterfly Garden** and **Harry's**; tap **Map**, open **Rooftop pool with jacuzzi** in the venue strip, tap **Add** | Map (Explore): terminal pins with counts, no route; the preview shows "Rest · 1h · Paid entry, Terminal 1 · Transit area – Level 3 · Airside"; sheet "3 selected" | "Explore is for deciding what to do. Real Changi venues from the airport's website." |
+| 2:40–3:25 | **Build itinerary (3)** → Arriving at **T1**, Departing from **T3** | Time card: Layover 12h 20m · Buffer 2h · Activities **2h 10m** · Transfers **40m** → **7h 30m** remaining; transfers between stops ("5–10m · Skytrain or walk") | "Usable time minus activities minus counted transfers; Changi's published transfer times." |
+| 3:25–4:00 | **View route on map** → tap the first **Directions** (A → 1) → **Back to route** → **Back to itinerary** | Route map: stops **1 Butterfly Garden, 2 Harry's, 3 Rooftop pool**, same 7h 30m left. Directions: Arrival T1 → Butterfly Garden T3, **5–10 min**, 1.1 km, Skytrain | "Route lines are illustrative; the minutes are the airport's." |
+| 4:00–4:40 | **Save changes** → **Home** → **My Plans** → open the plan; refresh the page | My Plans: "Singapore layover · **3 activities · 7h 30m left**"; after refresh the plan opens with the same three stops | "Saved and read back from the database, owned only by this guest." |
+| 4:40–5:00 | Wrap up | | "Booking → layover → activities → itinerary → saved." |
 
-Alternatives: **Enter flight details manually** on Find your journey leads to the same overview → builder → save. **BQ3LMV** (Porto → Lisbon → New York, 5h 20m layover) and **CJ8NWT** (New York → London → Singapore, 5h 30m) also work.
+Interest-based ordering is not part of this flow: the onboarding conversation that asked for interests was removed
+(Get started now opens Home directly).
 
-Verification (2026-11-12): the booking-reference flow, all four references, Explore for LHR/DXB and a full save are covered by `npm run test:e2e` against a simulated API (64 checks). On the live site, onboarding → CJ8NWT → Explore London → venue sheet was checked read-only (no records created). The 8h 25m figure is arithmetic from the tested builder, not yet seen on the live site — rehearse once before the demo.
-
-## Optional: flight change (about 60 seconds)
-Shows that a plan reacts to its flight. Full steps and numbers in docs/FLIGHT_UPDATES.md.
-1. Save DH5PRZ with Sleepover lounge, Al Majlis, Timeless Spa and Dubai Duty Free (4h 40m of 5h → 20m left).
-2. Profile → Settings → **Demo controls** → **Earlier departure** (07:45 → 07:00). Say: "This is a simulated update; SkyStop has no airline feed."
-3. Home: "Your flight time changed." → **Review plan**: 25m over; Dubai Duty Free no longer fits.
-4. **Apply changes** (End after Timeless Spa → 15m left). Then Demo controls → **Reset**.
+## Optional 30-second extension (if time allows)
+Profile → Settings → **Demo controls** → **Earlier departure** → "Departure 22:50 (was 23:35). 45m less to explore;
+your plan still fits." Close → Home shows "Your flight time changed." (labelled *Simulated update*) and the card shows
+22:50 with 23:35 struck through. Then Demo controls → **Reset**. Say: "Simulated, not airline data; the saved booking
+is untouched." (A plan that no longer fits, with suggestions, is shown in docs/FLIGHT_UPDATES.md using DH5PRZ.)
 
 ## If something goes wrong
 - **Catalogue error:** Try again; second network.
-- **Save error ("Plan not saved"):** the draft is kept; tap **Try again**.
+- **Save error ("not saved"):** the draft is kept; tap **Try again**.
 - Do **not** save the same plan from two tabs during the demo.
 
 ## Rehearsal log (fill in)
-| # | Date | Build/commit | Duration | Problems |
-|---|---|---|---|---|
-| 1 | | | | |
-| 2 | | | | |
+| Date | Duration | Issues |
+|---|---|---|
+| | | |

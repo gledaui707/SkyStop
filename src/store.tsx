@@ -151,12 +151,14 @@ interface HistState { stack: Route[]; prev: Route[] | null }
 const sameStack = (a: Route[], b: Route[]) => JSON.stringify(a) === JSON.stringify(b)
 
 function transition(kind: NavKind, update: () => void) {
-  const doc = document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } }
+  const doc = document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void>; ready?: Promise<void>; updateCallbackDone?: Promise<void> } }
   const reduce = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (!doc.startViewTransition || reduce) { update(); return }
   const root = document.documentElement
   root.dataset.nav = kind
   const t = doc.startViewTransition(() => flushSync(update))
+  // A transition started while another runs skips the earlier one; its promises then reject (not an error for us).
+  void t.ready?.catch(() => {}); void t.updateCallbackDone?.catch(() => {})
   void t.finished.catch(() => {}).finally(() => { if (root.dataset.nav === kind) delete root.dataset.nav })
 }
 
