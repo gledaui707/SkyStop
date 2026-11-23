@@ -102,6 +102,7 @@ export interface NotificationRow {
 export type NewNotification = Pick<NotificationRow, 'layover_id' | 'kind' | 'title' | 'body' | 'simulated'> & { dedupe_key: string }
 
 export async function listNotifications(sb: SupabaseClient): Promise<NotificationRow[]> {
+  if (!(await sb.auth.getSession()).data.session) return [] // no guest yet: nothing to read (and no 401)
   return ok(await sb.from('notifications').select('id, layover_id, kind, title, body, simulated, read_at, resolved_at, created_at')
     .order('created_at', { ascending: false }).limit(50)) as NotificationRow[];
 }
