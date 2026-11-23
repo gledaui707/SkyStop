@@ -292,77 +292,210 @@ try {
     await v.ctx.close();
   }
 
-  // ---- 4b. First run: three photo slides → Get started → Home with nothing saved (guest session, SS transition).
-  //      Skip → Account Access (Get started / Log in / Create one). Flights are added from Home.
-  const signups = () => fake.calls.filter((c) => c.includes('/auth/v1/signup')).length;
+  // ---- 4b. Onboarding: splash → three optional intro slides → a scripted booking-first conversation (one tap, no Next
+  //      buttons) → Home. Get started or Skip on any slide opens the conversation; the conversation's own Skip leads to
+  //      Account Access (Get started / Log in / Create one), whose Get started plays the SS loader and opens Home.
+  const signupsBefore = fake.calls.filter((c) => c.includes('/auth/v1/signup')).length;
   const appReady = (pg) => pg.waitForFunction(() => !document.querySelector('[inert]')); // after the launch splash
-  // Get started moves through the three slides; on the last one it opens Home.
+  // The three photo intro slides come first; Get started on any of them skips the rest and opens the conversation.
   const throughSlides = async (pg) => {
     await pg.getByText('Your layover, reimagined.').waitFor({ timeout: 6000 });
-    for (let k = 0; k < 3; k++) { await pg.getByRole('button', { name: 'Get started' }).click(); await pg.waitForTimeout(450); }
+    await pg.getByRole('button', { name: 'Get started' }).click();
+  };
+  // Account Access is reached from the conversation's own Skip (the slides' Skip only skips the slides).
+  const toAccess = async (pg) => {
+    await pg.getByRole('button', { name: 'Skip' }).click();
+    await pg.getByRole('button', { name: 'Yes, I’m booked' }).waitFor({ timeout: 8000 });
+    await pg.getByRole('button', { name: 'Skip' }).click();
   };
   const loaderSeen = (pg) => pg.evaluate(() => { window.__ssl = false; new MutationObserver(() => { if (document.querySelector('.ss-loader')) window.__ssl = true; }).observe(document.body, { childList: true, subtree: true }); });
-  const emptyHome = (pg) => pg.getByRole('heading', { name: /next stop/ });
+  for (const [how, label] of [[0, 'Get started on slide 1'], [1, 'Get started on slide 2'], [2, 'Get started on slide 3'], ['swipe', 'moving on from the last slide'], ['skip', 'Skip on the slides']]) {
+    const g = await newGuest(undefined, { firstVisit: true, reducedMotion: MOTION });
+    const s0 = fake.calls.filter((c) => c.includes('/auth/v1/signup')).length;
+    await g.page.goto(BASE); await appReady(g.page); await g.page.getByText('Your layover, reimagined.').waitFor({ timeout: 6000 });
+    if (typeof how === 'number') {
+      if (how > 0) { await g.page.getByRole('tab', { name: `Screen ${how + 1} of 3` }).click(); await g.page.waitForTimeout(500); }
+      await g.page.getByRole('button', { name: 'Get started' }).click();
+    } else if (how === 'swipe') {
+      await g.page.getByRole('tab', { name: 'Screen 3 of 3' }).click(); await g.page.waitForTimeout(500);
+      await g.page.keyboard.press('ArrowRight');
+    } else await g.page.getByRole('button', { name: 'Skip' }).click();
+    const inTalk = await seen(g.page.getByRole('button', { name: 'Yes, I’m booked' }), 8000);
+    check(`intro: ${label} opens the booking conversation (no Home, no guest session yet)`, inTalk && (await g.page.getByLabel('Upcoming trip').count()) === 0
+      && !(await visible(g.page, 'Where’s your next stop?')) && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === s0);
+    await g.ctx.close();
+  }
   {
+    // The full first run: slides → conversation → booking → journey → airport → interests → Home with the flight saved
     const o = await newGuest(undefined, { firstVisit: true, reducedMotion: 'no-preference' });
     const P = o.page;
     const known = new Set(fake.plans.keys()); // the fake backend is shared by the whole suite: count only this visitor's new flights
-    const mine = () => [...fake.plans.keys()].filter((k) => !known.has(k));
-    const s0 = signups();
+    const mineAX = () => [...fake.plans.entries()].filter(([id, x]) => !known.has(id) && fake.details.get(x.row.id)?.row.booking_ref === 'AXR7KD').map(([, x]) => x)
+    const said = (t, timeout = 8000) => P.locator('main .sr-only', { hasText: t }).waitFor({ state: 'attached', timeout });
     await P.goto(BASE);
     await appReady(P); await loaderSeen(P);
     await P.getByText('Your layover, reimagined.').waitFor();
     check('intro: the three photo slides come first (progress for 3 screens, Get started, Sign in, Skip)',
       (await P.getByRole('tab', { name: /Screen \d of 3/ }).count()) === 3 && await P.getByRole('button', { name: 'Get started' }).isVisible()
       && await P.getByRole('button', { name: 'Sign in' }).isVisible() && await P.getByRole('button', { name: 'Skip' }).isVisible());
-    await P.getByRole('button', { name: 'Get started' }).click(); await P.waitForTimeout(450);
-    check('intro: Get started on an earlier slide moves to the next one (no guest session yet)',
-      (await P.getByRole('tab', { name: 'Screen 2 of 3' }).getAttribute('aria-selected')) === 'true' && signups() === s0);
-    await P.getByRole('button', { name: 'Get started' }).click(); await P.waitForTimeout(450);
+    await P.evaluate(() => { window.__caret = false; new MutationObserver(() => { if (document.querySelector('.onb-caret--inline')) window.__caret = true; }).observe(document.body, { childList: true, subtree: true }); });
     await P.getByRole('button', { name: 'Get started' }).click();
-    await emptyHome(P).waitFor({ timeout: 15000 });
-    check('intro: Get started on the last slide opens Home with no saved flight (SS transition, one guest session, no conversation, no Account Access)',
-      await P.evaluate(() => window.__ssl) && signups() === s0 + 1 && mine().length === 0 && (await P.getByLabel('Upcoming trip').count()) === 0
-      && !(await visible(P, 'Already have a flight booked?')) && !(await visible(P, 'No account yet?')) && await P.getByRole('button', { name: /^Add flight/ }).first().isVisible());
-    await P.reload(); await appReady(P); await emptyHome(P).waitFor();
-    check('refresh: Home again; the introduction is not shown twice', !(await visible(P, 'Your layover, reimagined.')));
-    // From Home: a sample booking; its layover starts empty and leads to discovery
-    await P.getByRole('button', { name: /^Add flight/ }).first().click();
-    await P.getByLabel('Booking reference').fill('AXR7KD'); await P.getByRole('button', { name: 'Find my journey' }).click();
-    await P.getByRole('button', { name: 'Save to My flights' }).click(); await P.getByLabel('Upcoming trip').waitFor();
-    await P.getByRole('button', { name: 'View layover' }).click(); await P.getByText('No activities planned yet').waitFor();
+    await P.getByRole('button', { name: 'Yes, I’m booked' }).waitFor({ timeout: 6000 });
+    check('conversation: starts by itself after the slides; lines stream in; no Next buttons', await P.evaluate(() => window.__caret) && (await P.getByRole('button', { name: /^(Next|Continue)$/ }).count()) === 0);
+    check('conversation: no account or guest session is created while talking', fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore);
+    // Yes → the booking reference appears by itself
+    await P.getByRole('button', { name: 'Yes, I’m booked' }).click();
+    await said('Let’s find your flight.');
+    await P.getByRole('button', { name: 'Find my flight' }).waitFor();
+    check('booking: "Let’s find your flight." with the reference field, Find my flight, Try a sample booking and manual entry',
+      await P.getByLabel('Booking reference').isVisible() && await P.getByRole('button', { name: 'Try a sample booking' }).isVisible() && await P.getByRole('button', { name: 'Enter flight details manually' }).isVisible()
+      && /Yes, I’m booked/.test(await P.getByRole('list', { name: 'Your answers' }).innerText()));
+    // An unknown reference: concise inline error, retry and manual entry stay available
+    await P.waitForTimeout(500);
+    await P.getByLabel('Booking reference').click(); await P.keyboard.type('ZZZ999', { delay: 25 }); await P.keyboard.press('Enter');
+    await P.getByRole('alert').filter({ hasText: 'We couldn’t find that booking' }).waitFor({ timeout: 4000 });
+    check('booking: an unknown reference shows a short inline error; samples and manual entry remain', await P.getByRole('list', { name: 'Sample bookings' }).isVisible() && await P.getByRole('button', { name: 'Enter flight details manually' }).isVisible() && !(await visible(P, 'Found your journey')));
+    // A real sample reference, typed: lookup animation, then the journey
+    await P.getByLabel('Booking reference').click(); await P.keyboard.press('ControlOrMeta+a'); await P.keyboard.type('axr7kd', { delay: 25 });
+    await P.getByRole('button', { name: 'Find my flight' }).click();
+    const looking = await P.getByRole('button', { name: 'Finding your flight' }).isVisible();
+    await said('Found your journey!');
+    check('lookup: a short animated lookup (the button reads Finding your flight), then "Found your journey!"', looking);
+    await said('You’re flying from Jakarta to Paris, with a stop in Singapore.');
+    await P.waitForTimeout(2600);
+    const journey = (await P.getByRole('region', { name: 'Journey CGK to CDG via SIN' }).innerText()).replace(/\s+/g, ' ');
+    check('journey: origin, connection and destination from the booking, with the trip timeline (local times and dates)',
+      /CGK.*Jakarta.*SIN.*Singapore.*CDG.*Paris/.test(journey) && /08:20 Depart Jakarta/.test(journey) && /11:15 Arrive Singapore/.test(journey) && /Connection in Singapore 12h 20m/.test(journey)
+      && /23:35 Depart Singapore/.test(journey) && /06:20 Arrive Paris/.test(journey), journey);
+    await said('You’ll have 12h 20m at Singapore Changi Airport.');
+    await P.waitForTimeout(1900);
+    const airport = (await P.getByRole('region', { name: /^Singapore Changi Airport: 12h 20m connection, 10h 20m to explore$/ }).innerText()).replace(/\s+/g, ' ');
+    check('airport: Singapore Changi with photo and code; 12h 20m connection − 2h buffer = 10h 20m to explore', /Singapore Changi Airport/.test(airport) && /SIN/.test(airport)
+      && /Connection 12h 20m/.test(airport) && /Planning buffer − 2h/.test(airport) && /To explore 10h 20m/.test(airport), airport);
+    await said('You’ve got time to explore Singapore Changi.');
+    // Interests: several can be picked; then confirm
+    await said('What would you like to do during your layover?');
+    await P.getByRole('button', { name: /^Dining/ }).waitFor(); await P.waitForTimeout(800);
+    check('interests: four cards (Dining, Shopping, Relaxation, Attractions); confirm waits for a pick', /Dining.*Shopping.*Relaxation.*Attractions/s.test(await P.getByRole('list', { name: 'Interests' }).innerText()) && await P.getByRole('button', { name: /Pick one or more/ }).isDisabled());
+    await P.getByRole('button', { name: /^Dining/ }).click(); await P.getByRole('button', { name: /^Attractions/ }).click();
+    check('interests: Dining and Attractions are marked as picked; the others stay available', (await P.getByRole('button', { name: /^Dining/ }).getAttribute('aria-pressed')) === 'true'
+      && (await P.getByRole('button', { name: /^Attractions/ }).getAttribute('aria-pressed')) === 'true' && await P.getByRole('button', { name: /^Shopping/ }).isEnabled());
+    await P.getByRole('button', { name: /That’s it \(2\)/ }).click();
+    await said('Perfect. Let’s find something worth your time.');
+    // Finishing: guest session, the flight saved, Home (no Account Access)
+    await P.locator('.ss-loader').waitFor({ timeout: 6000 });
+    await P.getByRole('button', { name: 'View layover' }).waitFor({ timeout: 15000 }); await P.waitForTimeout(500);
+    const saved = mineAX();
+    check('finish: one guest session, the flight saved once, Home opens directly (no Account Access, no Get started)',
+      fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore + 1 && saved.length === 1 && saved[0].items.length === 0
+      && !(await visible(P, 'No account yet?')) && (await P.locator('.ss-loader').count()) === 0, `saved=${saved.length}`);
+    check('finish: interests kept; no activities added anywhere', await P.evaluate(() => localStorage.getItem('skystop.interests.v1')) === '["Food","Sights"]');
+    const card = (await P.getByLabel('Upcoming trip').innerText()).replace(/\s+/g, ' ');
+    check('Home card: CGK → CDG via SIN; Arrive SIN 11:15 · Connection 12h 20m · Depart SIN 23:35; 10h 20m to explore = 12h 20m − 2h; View layover',
+      /Jakarta.*Paris.*CGK.*SIN.*CDG/.test(card) && /Arrive SIN 11:15/i.test(card) && /Connection 12h 20m/i.test(card) && /Depart SIN 23:35/i.test(card)
+      && /Time to explore 10h 20m/.test(card) && /12h 20m connection − 2h buffer/.test(card) && await P.getByRole('button', { name: 'View layover' }).isVisible(), card);
+    await P.getByRole('button', { name: 'My Plans' }).click(); await P.getByRole('heading', { name: 'My plans' }).waitFor();
+    check('My Plans: no itinerary was created from the interests', await visible(P, 'No saved itineraries yet'));
+    await P.getByRole('button', { name: 'Home' }).first().click();
+    // View layover → empty itinerary → Explore activities → discovery with interests first → add → build
+    await P.getByRole('button', { name: 'View layover' }).click();
+    await P.getByText('No activities planned yet').waitFor();
     check('Layover details: "No activities planned yet" with one action, Explore activities (no Edit plan)', await visible(P, 'Discover what you can do during your layover.')
       && await P.getByRole('button', { name: 'Explore activities' }).isVisible() && (await P.getByRole('button', { name: 'Edit plan' }).count()) === 0);
-    // Replay introduction: the slides again, then Home with the flight kept (same session, nothing added)
-    await P.getByRole('button', { name: 'Back' }).first().click(); await P.getByLabel('Upcoming trip').waitFor();
-    await P.getByRole('button', { name: 'Profile' }).click(); await P.getByRole('button', { name: 'Replay introduction' }).click();
+    await P.getByRole('button', { name: 'Explore activities' }).click();
+    await P.getByRole('heading', { name: 'Activities' }).waitFor();
+    const order = await P.getByRole('button', { name: /^Add / }).evaluateAll((els) => els.map((e) => e.getAttribute('aria-label').replace(/^Add /, '')));
+    // Changi: Dining = LeMa, Harry's; Attractions = Jewel Rain Vortex, Butterfly Garden, Canopy Park, Free Singapore Tour; Relaxation = the lounge and the pool
+    const firstRest = Math.min(...['Free Snooze Lounge', 'Rooftop pool with jacuzzi'].map((n) => order.indexOf(n)).filter((i) => i >= 0))
+    const heading = await P.evaluate(() => { const hs = [...document.querySelectorAll('h2')].map((h) => h.textContent); return hs.indexOf('Activities') < hs.indexOf('Curated itineraries') })
+    check('discovery: Dining and Attractions first ("from your interests"), activities before curated itineraries', await visible(P, 'Dining and Attractions first, from your interests')
+      && firstRest === 6 && heading, JSON.stringify(order));
+    await P.getByRole('button', { name: /^Add Butterfly Garden/ }).click();
+    await P.getByRole('button', { name: 'Build itinerary (1)' }).click();
+    await P.getByLabel('Itinerary').waitFor();
+    check('building: the chosen activity starts the itinerary for this flight', (await P.getByLabel('Itinerary').innerText()).includes('Butterfly Garden'));
+    await P.getByRole('button', { name: 'Save changes' }).click(); await P.waitForTimeout(1500);
+    const after = mineAX();
+    check('building: saving updates the same flight (no second flight); My Plans now lists it', after.length === 1 && after[0].items.length === 1);
+    // Refresh keeps the flight; replaying the onboarding with the same booking does not duplicate it
+    await P.reload(); await P.waitForTimeout(2600);
+    check('refresh: the saved flight is still on Home', await P.getByRole('button', { name: 'View layover' }).isVisible() && !(await visible(P, 'Already have a flight booked?')));
+    await P.getByRole('button', { name: 'Profile' }).click();
+    await P.getByRole('button', { name: 'Replay introduction' }).click();
     await throughSlides(P);
-    await P.getByLabel('Upcoming trip').waitFor({ timeout: 15000 });
-    check('replay: the slides end on Home with the saved flight; same session, no flight added', signups() === s0 + 1 && mine().length === 1);
+    await P.getByRole('button', { name: 'Yes, I’m booked' }).click();
+    await P.getByRole('button', { name: 'Try a sample booking' }).waitFor({ timeout: 6000 }); await P.waitForTimeout(500);
+    await P.getByRole('button', { name: 'Try a sample booking' }).click();
+    await P.getByRole('button', { name: /^Sample booking AXR7KD/ }).click();
+    await P.getByRole('button', { name: /^Not sure yet/ }).waitFor({ timeout: 15000 }); await P.waitForTimeout(600);
+    await P.getByRole('button', { name: /^Not sure yet/ }).click();
+    await P.getByRole('button', { name: 'View layover' }).waitFor({ timeout: 15000 }); await P.waitForTimeout(400);
+    check('replay: same booking again → still one flight (with its itinerary), same session, no Account Access',
+      mineAX().length === 1 && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === signupsBefore + 1
+      && !(await visible(P, 'No account yet?')));
     await o.ctx.close();
   }
   {
-    // The guest session cannot be created at first: a short retry on the last slide; Try again opens Home
+    // Not yet: no booking asked, no flight invented; interests; Home as a guest
     const n = await newGuest(undefined, { firstVisit: true });
-    const before = fake.plans.size;
-    await n.page.goto(BASE); await appReady(n.page);
-    fake.failNext['auth/v1/signup'] = 1;
-    await throughSlides(n.page);
+    const before = fake.plans.size, s0 = fake.calls.filter((c) => c.includes('/auth/v1/signup')).length;
+    await n.page.goto(BASE); await appReady(n.page); await throughSlides(n.page);
+    await n.page.getByRole('button', { name: 'Not yet' }).click();
+    await n.page.locator('main .sr-only', { hasText: 'You can explore your options before booking.' }).waitFor({ state: 'attached', timeout: 6000 });
+    check('Not yet: SkyStop shows comparing flights and exploring airports; no booking field', await n.page.getByRole('region', { name: 'Compare flights' }).isVisible() && (await n.page.getByLabel('Booking reference').count()) === 0);
+    await n.page.getByRole('button', { name: /^Relaxation/ }).waitFor({ timeout: 8000 }); await n.page.waitForTimeout(700);
+    await n.page.getByRole('button', { name: /^Relaxation/ }).click();
+    fake.failNext['auth/v1/signup'] = 1; // the guest session cannot be created at first
+    await n.page.getByRole('button', { name: /That’s it/ }).click();
     await n.page.getByRole('alert').filter({ hasText: 'SkyStop couldn’t start.' }).waitFor({ timeout: 15000 });
-    check('intro: if the guest session fails, the transition stops with a short message and Try again', await n.page.getByRole('button', { name: 'Try again' }).isVisible() && (await n.page.locator('.ss-loader').count()) === 0);
+    check('guest session error: the transition stops with a short retry (no flight to claim)', await n.page.getByRole('button', { name: 'Try again' }).isVisible() && (await n.page.locator('.ss-loader').count()) === 0);
     await n.page.getByRole('button', { name: 'Try again' }).click();
-    await emptyHome(n.page).waitFor({ timeout: 15000 });
-    check('intro: Try again opens Home with no saved flight', fake.plans.size === before && (await n.page.getByLabel('Upcoming trip').count()) === 0);
+    await n.page.getByRole('button', { name: /^Add flight/ }).first().waitFor({ timeout: 15000 });
+    check('Not yet: Home as a guest, no flight saved, Compare flights still there', fake.plans.size === before && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length > s0
+      && await n.page.getByRole('button', { name: /^Compare flights/ }).first().isVisible() && (await n.page.getByLabel('Upcoming trip').count()) === 0);
     await n.ctx.close();
+  }
+  {
+    // Manual entry from the conversation: guest session, then Home with the manual flight form on top
+    const m = await newGuest(undefined, { firstVisit: true });
+    await m.page.goto(BASE); await appReady(m.page); await throughSlides(m.page);
+    await m.page.getByRole('button', { name: 'Yes, I’m booked' }).click();
+    await m.page.getByRole('button', { name: 'Enter flight details manually' }).waitFor({ timeout: 6000 }); await m.page.waitForTimeout(400);
+    await m.page.getByRole('button', { name: 'Enter flight details manually' }).click();
+    await m.page.getByRole('combobox', { name: 'Connecting airport' }).waitFor({ timeout: 15000 });
+    check('manual entry: the existing manual flight form opens after the guest session (no Account Access)', await m.page.getByRole('region', { name: 'Journey route' }).isVisible() && !(await visible(m.page, 'No account yet?')));
+    await m.ctx.close();
+  }
+  {
+    // Saving the flight fails once: a short retry; nothing claimed as saved; Try again saves it
+    const f = await newGuest(undefined, { firstVisit: true });
+    const knownF = new Set(fake.plans.keys());
+    await f.page.goto(BASE); await appReady(f.page); await throughSlides(f.page);
+    await f.page.getByRole('button', { name: 'Yes, I’m booked' }).click();
+    await f.page.getByRole('button', { name: 'Try a sample booking' }).waitFor({ timeout: 6000 }); await f.page.waitForTimeout(400);
+    await f.page.getByRole('button', { name: 'Try a sample booking' }).click();
+    await f.page.getByRole('button', { name: /^Sample booking DH5PRZ/ }).click();
+    await f.page.getByRole('button', { name: /^Not sure yet/ }).waitFor({ timeout: 15000 }); await f.page.waitForTimeout(600);
+    fake.failNext['rpc/save_plan'] = 1; // the save fails (and the lost-reply check finds nothing saved)
+    await f.page.getByRole('button', { name: /^Not sure yet/ }).click();
+    await f.page.getByRole('alert').filter({ hasText: 'Your flight isn’t saved yet.' }).waitFor({ timeout: 15000 });
+    check('save failure: the transition stops and a retry appears; no "saved" claim, still on the conversation', await f.page.getByRole('button', { name: 'Try again' }).isVisible() && (await f.page.locator('.ss-loader').count()) === 0
+      && (await f.page.getByRole('button', { name: 'View layover' }).count()) === 0);
+    await f.page.getByRole('button', { name: 'Try again' }).click();
+    await f.page.getByRole('button', { name: 'View layover' }).waitFor({ timeout: 15000 });
+    const card = (await f.page.getByLabel('Upcoming trip').innerText()).replace(/\s+/g, ' ');
+    check('save retry: saved once; overnight connection shown in Dubai local time (arrive 00:45, depart 07:45, 7h, 5h to explore)',
+      [...fake.plans.entries()].filter(([id, x]) => !knownF.has(id) && fake.details.get(x.row.id)?.row.booking_ref === 'DH5PRZ').length === 1 && /Arrive DXB 00:45/i.test(card) && /Depart DXB 07:45/i.test(card) && /Connection 7h/i.test(card) && /Time to explore 5h/.test(card), card);
+    await f.ctx.close();
   }
   {
     // Skip → Account Access (not signed in); the screen comes back on the next launch until a choice is made
     const o = await newGuest(undefined, { firstVisit: true, reducedMotion: 'no-preference' });
     const sk0 = fake.calls.filter((c) => c.includes('/auth/v1/signup')).length;
     await o.page.goto(BASE); await appReady(o.page);
-    await o.page.getByRole('button', { name: 'Skip' }).click();
+    await toAccess(o.page);
     await o.page.getByRole('button', { name: 'Get started' }).waitFor();
-    check('onboarding: Skip on the slides opens Account Access without signing in', await o.page.getByRole('heading', { name: 'SkyStop', level: 1 }).isVisible() && await o.page.getByText('Plan your layover', { exact: true }).isVisible() && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === sk0);
+    check('onboarding: Skip in the conversation opens Account Access without signing in', await o.page.getByRole('heading', { name: 'SkyStop', level: 1 }).isVisible() && await o.page.getByText('Plan your layover', { exact: true }).isVisible() && fake.calls.filter((c) => c.includes('/auth/v1/signup')).length === sk0);
     check('access: decorative layers ignore pointer events; glass uses a real backdrop blur', await o.page.evaluate(() => getComputedStyle(document.querySelector('.access__stage')).pointerEvents === 'none' && /blur/.test(getComputedStyle(document.querySelector('.access__strip')).backdropFilter)));
     await o.page.reload();
     await o.page.getByRole('button', { name: 'Get started' }).waitFor();
@@ -386,7 +519,7 @@ try {
     const a = await newGuest(undefined, { firstVisit: true });
     await a.page.goto(BASE); await appReady(a.page); await loaderSeen(a.page);
     const lg0 = fake.calls.filter((c) => c.includes('/auth/v1/signup')).length;
-    await a.page.getByRole('button', { name: 'Skip' }).click();
+    await toAccess(a.page);
     await a.page.getByRole('button', { name: action, exact: true }).click();
     await a.page.getByRole('button', { name: submit }).waitFor();
     check(`access: ${action} opens the ${form.toLowerCase()} form directly, without the guest loader or a guest session`,
@@ -398,7 +531,8 @@ try {
     // Get started when the guest session cannot be created: the loader stops and a concise retry appears
     const e = await newGuest(undefined, { firstVisit: true });
     await e.page.goto(BASE); await appReady(e.page);
-    await e.page.getByRole('button', { name: 'Skip' }).click();
+    await toAccess(e.page);
+    await e.page.getByRole('button', { name: 'Get started' }).waitFor();
     fake.failNext['auth/v1/signup'] = 1;
     await e.page.getByRole('button', { name: 'Get started' }).click();
     await e.page.getByRole('alert').filter({ hasText: 'Couldn’t start' }).waitFor({ timeout: 8000 });
@@ -430,14 +564,24 @@ try {
     await s2.close();
   }
   {
-    // Reduced motion: the slides change instantly and Get started still ends on Home
+    // Reduced motion: the same automatic progression, with instant changes
     const rm = await newGuest(undefined, { firstVisit: true, reducedMotion: 'reduce' });
-    await rm.page.goto(BASE); await appReady(rm.page);
+    await rm.page.goto(BASE);
     await throughSlides(rm.page);
-    await emptyHome(rm.page).waitFor({ timeout: 10000 });
-    check('reduced motion: the slides end on Home in the same way (no saved flight)', (await rm.page.getByLabel('Upcoming trip').count()) === 0);
+    await rm.page.getByRole('button', { name: 'Yes, I’m booked' }).waitFor({ timeout: 4000 }); await rm.page.waitForTimeout(150);
+    const line = await rm.page.evaluate(() => ({ caret: !!document.querySelector('.onb-caret--inline'),
+      whole: [...document.querySelectorAll('main p')].filter((p) => p.querySelector('.sr-only')).every((p) => p.querySelector('span[aria-hidden="true"]').textContent === p.querySelector('.sr-only').textContent),
+      asked: [...document.querySelectorAll('main p .sr-only')].some((e) => e.textContent === 'Already have a flight booked?') }));
+    await rm.page.getByRole('button', { name: 'Yes, I’m booked' }).click();
+    await rm.page.getByRole('button', { name: 'Try a sample booking' }).waitFor({ timeout: 5000 });
+    await rm.page.getByRole('button', { name: 'Try a sample booking' }).click();
+    await rm.page.getByRole('button', { name: /^Sample booking BQ3LMV/ }).click();
+    await rm.page.getByRole('button', { name: /^Dining/ }).waitFor({ timeout: 10000 }); await rm.page.waitForTimeout(200);
+    await rm.page.getByRole('button', { name: /^Dining/ }).click(); await rm.page.getByRole('button', { name: /That’s it/ }).click();
+    await rm.page.getByRole('button', { name: 'View layover' }).waitFor({ timeout: 10000 });
+    check('reduced motion: lines appear whole (no streaming); the conversation still runs by itself through booking and interests to Home', !line.caret && line.whole && line.asked, JSON.stringify(line));
     await rm.page.getByRole('button', { name: 'Profile' }).click(); await rm.page.getByRole('button', { name: 'Replay introduction' }).click();
-    await rm.page.getByRole('button', { name: 'Skip' }).click(); await rm.page.waitForTimeout(400);
+    await toAccess(rm.page); await rm.page.waitForTimeout(400);
     await rm.page.getByRole('button', { name: 'Profile' }).click().catch(() => {}); await rm.page.getByRole('button', { name: 'Sign in' }).click(); await rm.page.waitForTimeout(400);
     check('access: reduced motion shows a still composition', await rm.page.evaluate(() => [...document.querySelectorAll('.access__orbit, .access__blob, .access__strip')].every((e) => getComputedStyle(e).animationName === 'none')));
     await rm.ctx.close();
@@ -862,7 +1006,7 @@ try {
     check('review: rule-based suggestions, least disruptive first (end after Timeless Spa → 15m left; swap → 50m left)',
       /^End after Timeless Spa.*15m\s*left \| Swap Sleepover lounge for Be Relax spa.*50m\s*left$/.test((await P.getByRole('radio').evaluateAll((els) => els.map((e) => e.textContent))).join(' | ')));
     check('plan: time budget, timeline and times agree (25m over; the last stop is beyond the usable time; depart 07:00)', (await norm(P.getByLabel('Time budget'))).includes('Over your usable time by 25m')
-      && (await P.getByText('beyond your usable time').count()) === 1 && await visible(P, '5 Dec, 07:00'));
+      && (await P.getByText('beyond your usable time').count()) === 1 && await seen(P.getByText(/\d{1,2} \w{3}, 07:00/)));
     check('plan: the word "demo" does not appear on the planning screen', !/demo/i.test(await P.locator('main').innerText()));
     // Keep my plan: the warning stays, nothing saved
     await P.getByRole('button', { name: 'Keep my plan' }).click();

@@ -6,13 +6,15 @@ Evidence: `docs/screenshots/qa-2026-11-22/` (390 px screens, 320/375 montages). 
 repo (it created three anonymous guests with one flight/plan each on production, as any visitor would).
 
 ## A. Overall readiness
-**Ready for live demo**, with minor issues (none blocks the five-minute flow).
+**Ready for live demo**, with minor issues (none blocks the five-minute flow). Update 23 Nov: the booking-first
+onboarding conversation, bypassed by mistake at audit time, has been restored; the demo script now imports the
+booking inside onboarding.
 
 ## B. Verified demo flow (production)
 | Step | Result | Observed |
 |---|---|---|
 | 1 First visit: splash, intro slides, guest entry | Pass | Splash → 3 slides → Get started → Home "Where's your next stop?" as an anonymous guest (`is_anonymous: true`), no login/registration |
-| 1 Conversational onboarding (Yes, I'm booked, interests) | **Not present** | Removed at the owner's request on 22 Nov (commit ea6884e). Booking import is Home → **Add flight** |
+| 1 Conversational onboarding (Yes, I'm booked, interests) | **Not present at audit time** | Bypassed by mistake in commit ea6884e (a misreading of an instruction to skip the intro slides; not an owner request). Restored on 23 Nov — see docs/ONBOARDING.md |
 | 1 Booking lookup | Pass | ZZZ999 → "Booking number not found." + samples; AXR7KD → CGK 08:20 → SIN 11:15 / SIN 23:35 → CDG 06:20 (+1), 12h 20m − 2h = 10h 20m. (The lookup is immediate; no animated lookup on this path) |
 | 2 Saved flight on Home | Pass | Card: Jakarta → Paris via SIN, Arrive 11:15, Connection 12h 20m, Depart 23:35, 12h 20m − 2h buffer, 10h 20m to explore, Gate B12 |
 | 2 Refresh / repeat import | Pass | Still on Home after refresh; same reference again offers "Open in My flights"; DB still 1 row |
@@ -62,7 +64,7 @@ lint configuration; final PDF review/upload; demo booking and rehearsals.
 **P2:**
 - Unhandled "Transition was skipped" promise when two screen transitions overlap (console noise only). Fixed — `src/store.tsx`.
 - Browser test helpers read screens before animated transitions finished (test-only). Waits added — `tests/e2e/journey.mjs`.
-- The onboarding conversation (booking question, interests) is gone by request, so interest-based ordering cannot be demonstrated. Not changed.
+- The onboarding conversation (booking question, interests) had been bypassed by mistake; restored on 23 Nov (docs/ONBOARDING.md).
 - One Wikimedia venue photo intermittently blocked by the browser (rate limiting); placeholder shown.
 - At 320 px the builder's save bar truncates "unsaved changes".
 - At 320×568 the Directions map has little room; the start marker can sit under the destination label.

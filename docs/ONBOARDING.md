@@ -1,17 +1,16 @@
-# Onboarding: three intro slides, then Home
+# Onboarding: optional intro slides, then a conversation that builds your trip
 
-**Current flow (22 Nov 2026):** First run: **Splash → three intro slides → Home with no saved flight**. Get started
-moves through the slides; on the last one it runs `completeOnboarding({})` (SS transition, guest session reused or
-created, nothing saved) and opens the empty Home, where flights are added with **Add flight**. If the guest session
-cannot be created, the last slide shows "SkyStop couldn’t start." with **Try again**. Skip still leads to Account
-Access; Sign in opens the email form. Replay introduction (Profile → Settings) shows the slides and returns to Home.
+First run: **Splash → three intro slides (optional) → booking-first conversation → Home** (with the imported flight saved).
+- **Get started** on any slide skips the remaining slides and opens the conversation; **Skip** does the same. Swipe,
+  the arrow keys and the dots move between slides; moving on from the last slide also opens the conversation.
+- The conversation's own **Skip** leads to Account Access. **Not yet** enters Home without a flight (after interests).
+- Replay introduction (Profile → Settings) shows the slides and the conversation again; the same booking is never saved twice.
 
-The booking conversation described below is **no longer shown** after the slides (owner's request). Its code
-(`src/features/onboarding/Onboarding.tsx`) is kept but is not reachable from the app; its browser checks were replaced
-by checks of the slides → Home flow.
+Correction (23 Nov 2026): commit ea6884e (22 Nov) wrongly made the last Get started open an empty Home, which bypassed
+the conversation. The owner had asked for Get started to skip the *slides*, not the conversation; that was a
+misreading, not an owner request. Restored from cabd046 (Welcome.tsx, IntroSlides.tsx) with the intended Get started /
+Skip behaviour; Onboarding.tsx was never changed.
 
-*Previous flow:* Splash → three intro slides → conversation → Home (with the imported flight saved).
-Skip (slides or conversation) still leads to Account Access, which stays available from Profile.
 Code: `src/features/onboarding/IntroSlides.tsx`, `Onboarding.tsx` (+ `onboarding.css`), `completeOnboarding` in
 `src/store.tsx`, `src/data/interests.ts`.
 

@@ -475,6 +475,8 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
 - Intro slides: Get started on the last slide opens Home with no saved flight (SS transition, guest session), instead
   of the booking conversation. Failure shows "SkyStop couldn’t start." with Try again. Skip / Sign in unchanged. The
   conversation code is kept but no longer reachable; its 27 browser checks were replaced by 9 checks of the new flow.
+  **Correction (23 Nov):** this was a misreading of the owner's instruction (skip the slides, not the conversation);
+  reverted in the restoration entry below.
 - Checks: `npx tsc -b` clean; `npx vitest run` 169 passed, 1 skipped (hosted); `npm run test:e2e` 184/184;
   `node tests/e2e/layout-audit.mjs` 0 issues at 320/375/390/430 (welcome and profile included).
 
@@ -499,8 +501,24 @@ overview, builder, airport list and map). Styling and markup only; no data, Supa
 ### Assignment 2 QA audit on production (22 Nov 2026)
 
 Full report: docs/QA_REPORT.md. Live site (06a6fe6) driven in a fresh browser at 390/375/320: 38/39 checks each (the
-miss is the onboarding conversation, removed on request); database rows verified through each guest's own session;
+miss is the onboarding conversation, which had been bypassed by mistake in ea6884e — see the restoration entry below); database rows verified through each guest's own session;
 RLS verified (no session 401; second guest 0 rows, save_plan 403). Suites: typecheck clean; vitest 175 passed, 1 skipped;
 build OK; DB harness 17/17; e2e 191/191 with reduced motion and, after fixes, 191/191 with animations; layout 0 issues.
 Fixed: Leaflet teardown error during camera animations (AirportMap), unhandled view-transition promise (store), test
 waits for animated transitions; SPEC/README/ARCHITECTURE/REQUIREMENTS/DEMO_SCRIPT brought up to date. Lint not configured.
+
+### Booking-first onboarding restored (23 Nov 2026)
+
+- Cause: commit ea6884e (22 Nov) misread "Get started should bring the user to Home with no saved flight" and made the
+  last intro slide skip the conversation. The owner's intent: Get started skips the *intro slides*, not the conversation.
+- Restored `src/screens/Welcome.tsx` and `src/features/onboarding/IntroSlides.tsx` from cabd046 (unchanged since), then:
+  Get started and Skip on any slide open the conversation; swipe / arrow keys / dots still move between slides, and
+  moving on from the last slide opens the conversation. `Onboarding.tsx` was never changed; one fix: a question
+  cancelled by Skip no longer raises an unhandled "aborted" rejection.
+- Tests: the 27 conversation checks from cabd046 merged back into the current suite (Account Access now reached via
+  the conversation's Skip) plus 5 new intro checks (Get started on slides 1, 2, 3; moving on from slide 3; Skip).
+  A date-dependent check in the flight-update block ("5 Dec") made date-independent.
+- Checks: `npm run typecheck` clean; `npx vitest run` 175 passed, 1 skipped; `npm run build` OK; `npm run test:e2e`
+  214/214 with reduced motion and 214/214 with `MOTION=no-preference`; `node tests/e2e/layout-audit.mjs` 0 issues;
+  local walkthrough with animations (AXR7KD, Dining + Attractions → Home → itinerary → save → My Plans) 11/11.
+  Not yet re-verified on the live site (not deployed, by instruction).

@@ -10,7 +10,7 @@ supplied, so the student must map them before submission (docs/REQUIREMENTS.md).
 ## Stories and acceptance criteria
 | Story | Acceptance criteria | Where it is tested |
 |---|---|---|
-| US1 Look up my booking | Enter a six-character booking reference; a supported sample reference (AXR7KD, BQ3LMV, CJ8NWT, DH5PRZ) shows the journey: origin, connecting airport, destination, each leg's airport-local times and dates. An unknown or malformed reference shows a short inline message; samples and manual entry stay available. No airline system is contacted and none is claimed. | `src/data/journeys.test.ts`; e2e "booking:" checks; production walkthrough |
+| US1 Look up my booking | In the onboarding conversation (or later via Add flight), enter a six-character booking reference; a supported sample reference (AXR7KD, BQ3LMV, CJ8NWT, DH5PRZ) shows the journey: origin, connecting airport, destination, each leg's airport-local times and dates. An unknown or malformed reference shows a short inline message; samples and manual entry stay available. No airline system is contacted and none is claimed. | `src/data/journeys.test.ts`; e2e "booking:" checks; production walkthrough |
 | US2 Identify my layover and its usable time | The connecting airport, connection length, planning buffer and time to explore (connection − buffer) are shown in the airport's local time, correct across midnight and DST. The same numbers appear on the journey, Home card, layover details and builder. | `src/data/time.test.ts`, `src/domain/domain.test.ts`; e2e "Home card", "layover" checks |
 | US3 Keep my flight | Save the flight to My flights (database). It is still there after a refresh; importing the same booking again opens it instead of duplicating it. | e2e "flights:"; production walkthrough (DB rows) |
 | US4 Discover what I can do | Airport activities from PostgreSQL in a list and on a map, filtered by category and search (shared by list and map); details show duration, terminal, access (airside/landside/unverified), price wording and source. Curated itineraries. | e2e "discovery", "Explore" checks |
@@ -22,8 +22,11 @@ supplied, so the student must map them before submission (docs/REQUIREMENTS.md).
 Optional, not part of the core MVP: simulated flight updates (Settings → Demo controls; docs/FLIGHT_UPDATES.md).
 
 ## Screens and navigation (as built)
-In-app screen stack mirrored in browser history (Back/Forward work); no URL routes. Splash → three intro slides →
-Home (My flights, Add flight, Compare flights, Things to do) → Find your journey (booking reference) → Journey →
+In-app screen stack mirrored in browser history (Back/Forward work); no URL routes. First run: splash → three intro
+slides (optional; Get started or Skip opens the conversation) → booking-first conversation ("Already have a flight
+booked?" → booking reference → animated lookup → journey and layover → activity interests) → guest session → Home with
+the saved flight ("Not yet" → Home without a flight). Afterwards: Home (My flights, Add flight, Compare flights, Things
+to do) → Find your journey (booking reference) → Journey →
 Airport (List / Map: Explore) → Itinerary builder → Route map (Plan) → Directions → My Plans → Plan details; Profile
 (account, travel documents, Settings: Replay introduction, Demo controls, About & data). Tab bar: Home, Airports, My Plans.
 

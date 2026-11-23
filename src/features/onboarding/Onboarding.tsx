@@ -100,10 +100,15 @@ export function Onboarding() {
       setLine({ id: id++, text })
       await wait(reduce ? 120 : text.length * PACE.perChar + 160)
     }
-    const ask = <T,>() => new Promise<T>((res, rej) => {
-      answer.current = res as (v: unknown) => void
-      signal.addEventListener('abort', () => rej(new Error('aborted')), { once: true })
-    })
+    const ask = <T,>() => {
+      const p = new Promise<T>((res, rej) => {
+        answer.current = res as (v: unknown) => void
+        signal.addEventListener('abort', () => rej(new Error('aborted')), { once: true })
+      })
+      // A question can be cancelled (Skip, leaving) before anyone awaits its answer: not an unhandled error.
+      p.catch(() => {})
+      return p
+    }
     const chip = (cid: string, label: string) => setTrail((t) => [...t.filter((x) => x.id !== cid), { id: cid, label }])
     setPhase('intro'); setLine(null); setBooked(null); setJourney(null); setInterests([]); setLocked(false); setTrail([]); setFailed(false)
     void (async () => {
