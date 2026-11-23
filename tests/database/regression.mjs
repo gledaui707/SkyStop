@@ -84,4 +84,27 @@ await check('Flight details, profiles and flight removal are owner-only',async()
  for (const t of ['layovers','plan_items','layover_details']) assert.equal((await db.query(`select count(*)::int n from public.${t} where ${t==='layovers'?'id':'layover_id'}='${plan}'`)).rows[0].n,0);
  await db.exec('reset role');
 });
+await check('Notifications: owner-only, one per dedupe key, cascade with the flight',async()=>{
+ await db.exec('reset role');
+ await db.exec(readFileSync(new URL('supabase/migrations/202611230001_notifications.sql',root),'utf8')); // re-runnable
+ const fl='f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
+ await identity('authenticated',A); await db.exec(save(0,[a1],{id:fl}));
+ const add=(k)=>`insert into public.notifications(layover_id,kind,title,simulated,dedupe_key) values ('${fl}','flight_time','Flight time changed',true,'${k}') on conflict (owner_id,dedupe_key) do nothing`;
+ await db.exec(add('update:1')); await db.exec(add('update:1')); await db.exec(add('update:2'));
+ assert.equal((await db.query('select count(*)::int n from public.notifications')).rows[0].n,2);
+ await fail(`insert into public.notifications(kind,title,dedupe_key) values ('plan_saved','x','update:1')`,'23505');
+ await db.exec(`update public.notifications set resolved_at=now(), read_at=now() where layover_id='${fl}'`);
+ assert.equal((await db.query('select count(*)::int n from public.notifications where resolved_at is not null and read_at is not null')).rows[0].n,2);
+ await identity('authenticated',B);
+ assert.equal((await db.query('select count(*)::int n from public.notifications')).rows[0].n,0);
+ await db.exec(`update public.notifications set title='x'`); // B sees nothing to change
+ await fail(`insert into public.notifications(layover_id,kind,title,dedupe_key) values ('${fl}','plan_saved','x','b1')`,'42501'); // not B's flight
+ await fail(`insert into public.notifications(owner_id,kind,title,dedupe_key) values ('${A}','plan_saved','x','b2')`,'42501');
+ await identity('anon'); await fail('select * from public.notifications','42501');
+ await identity('authenticated',A);
+ assert.equal((await db.query(`select count(*)::int n from public.notifications where title='x'`)).rows[0].n,0);
+ await db.exec(`delete from public.layovers where id='${fl}'`);
+ assert.equal((await db.query('select count(*)::int n from public.notifications')).rows[0].n,0);
+ await db.exec('reset role');
+});
 await db.close(); console.log(`${passed} database checks passed. Hosted Supabase/Auth/browser checks remain required.`);

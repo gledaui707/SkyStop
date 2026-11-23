@@ -11,25 +11,13 @@ import { fmtDur } from '../../data/time'
 import { ACTIVITIES } from '../../data/catalogue'
 import type { Plan } from '../../data/types'
 import { Button, cx } from '../../components/ui'
-import { flightView, updateFor, type FlightLike, type FlightView } from './updates'
+import { changeLines, flightView, timeWithDay, updateFor, type FlightLike, type FlightView } from './updates'
+export { changeLines, timeWithDay }
+const stamp = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+const nameOf = (id: string) => ACTIVITIES.find((a) => a.id === id)?.name ?? 'an activity'
 import { planningImpact, suggestRevisions, type PlanningImpact, type Revision } from './impact'
 import type { PlanLike } from '../../data/itinerary'
 
-const hm = (local: string) => local.slice(11, 16)
-const days = (a: string, b: string) => Math.round((Date.parse(a.slice(0, 10)) - Date.parse(b.slice(0, 10))) / 86400000)
-/** "01:35 +1" when a time moved to another day than booked. */
-export const timeWithDay = (local: string, booked: string) => { const d = days(local, booked); return `${hm(local)}${d > 0 ? ` +${d}` : d < 0 ? ` −${-d}` : ''}` }
-const stamp = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-const nameOf = (id: string) => ACTIVITIES.find((a) => a.id === id)?.name ?? 'an activity'
-
-/** "Departure 22:50 (was 23:35)", "Gate D24 (was B12)". */
-export function changeLines(v: FlightView): string[] {
-  const out: string[] = []
-  if (v.changed.arrival) out.push(`Arrival ${timeWithDay(v.arrival, v.original.arrival)} (was ${hm(v.original.arrival)})`)
-  if (v.changed.departure) out.push(`Departure ${timeWithDay(v.departure, v.original.departure)} (was ${hm(v.original.departure)})`)
-  if (v.changed.gate) out.push(`Gate ${v.gate}${v.gateTerminal ? `, Terminal ${v.gateTerminal.replace(/^T/, '')}` : ''} (was ${v.original.gate})`)
-  return out
-}
 /** The return-transfer status after a gate change, in one sentence (or nothing to say). */
 const gateNote = (v: FlightView) => (!v.changed.gate ? '' : v.returnTransferUnknown ? 'The walk to the new gate isn’t verified, so it isn’t counted.'
   : v.returnTransferRecalculated ? 'The walk to the new gate is recalculated.' : '')

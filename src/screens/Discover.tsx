@@ -11,7 +11,8 @@ import type { Category, Plan } from '../data/types'
 import { Backdrop, Button, CATEGORIES, cx, Chip, ChipRow, Field, Header, LargeTitle, Photo, EmptyState } from '../components/ui'
 import { FlightStack } from '../components/FlightStack'
 import { FlightUpdateNotice } from '../features/flightUpdates/FlightUpdateUI'
-import { flightView, updateFor } from '../features/flightUpdates/updates'
+import { flightView } from '../features/flightUpdates/updates'
+import { NotificationInbox } from '../features/notifications/NotificationInbox'
 
 const Heading = ({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) => (
   <div className="mb-3 mt-8 flex items-center justify-between"><h2 className="text-h2 font-bold">{children}</h2>{action}</div>
@@ -52,7 +53,8 @@ const Notch = ({ icon: Icon = ArrowUpRight }: { icon?: LucideIcon }) => (
 
 /** Home: discovery-first, with the next saved trip on top when there is one. */
 export function Home() {
-  const { plans, go, switchTab, account, setNotice } = useApp()
+  const { plans, go, switchTab, account, unreadNotifications } = useApp()
+  const [inbox, setInbox] = useState(false)
   const [photo, setPhoto] = useState<string | null>(null)
   useEffect(() => {
     let live = true
@@ -93,8 +95,9 @@ export function Home() {
               : <span className="grid size-12 shrink-0 place-items-center rounded-full bg-white/90 text-muted-text ring-1 ring-black/5"><UserRound size={22} /></span>}
             <span className="min-w-0 truncate text-body text-white/85 [text-shadow:0_1px_10px_rgb(0_0_0/0.4)]">{greeting()}{account.status === 'registered' && account.name ? <>, <b className="font-semibold text-white">{account.name.split(' ')[0]}</b></> : ''}</span>
           </button>
-          <button onClick={() => setNotice(upcoming.some((p) => updateFor(p) && !updateFor(p)!.seen) ? 'A flight update is shown under My flights.' : 'No new notifications')} aria-label="Notifications" className="glass-dark press relative grid size-12 shrink-0 place-items-center rounded-full">
+          <button onClick={() => setInbox(true)} aria-label={unreadNotifications ? `Notifications, ${unreadNotifications} unread` : 'Notifications'} className="glass-dark press relative grid size-12 shrink-0 place-items-center rounded-full">
             <Bell size={20} />
+            {unreadNotifications > 0 && <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-accent px-1 text-micro font-bold text-white ring-2 ring-canvas">{unreadNotifications > 9 ? '9+' : unreadNotifications}</span>}
           </button>
         </div>
         {plans.length === 0 ? (
@@ -106,6 +109,7 @@ export function Home() {
       </div>
 
 
+      <NotificationInbox open={inbox} onClose={() => setInbox(false)} />
       <div className="relative mt-6 px-5">
         {/* With no saved flights at all, Home goes straight to Add flight / Compare flights (no empty section). */}
         {plans.length > 0 && (<>

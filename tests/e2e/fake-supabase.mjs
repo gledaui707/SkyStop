@@ -896,7 +896,7 @@ export function createFakeSupabase() {
   const details = new Map(); // layover_id -> { row, owner }
   const profiles = new Map(); // owner -> row
   const avatars = new Map(); // object path -> bytes
-  const db = { plans, accounts, details, profiles, avatars, calls: [], failNext: {}, emails: [] };
+  const db = { plans, accounts, details, profiles, avatars, calls: [], failNext: {}, emails: [], notifications: [] };
   const tokenFor = (sub) => { const exp = Math.floor(Date.now() / 1000) + 3600; return { access_token: `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub, role: 'authenticated', exp, is_anonymous: !!accounts.get(sub)?.is_anonymous })}.sig`, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: `r-${sub}`, user: accounts.get(sub) }; };
   /** Simulates the user opening the confirmation link: the guest becomes a permanent account with the SAME id. */
   db.confirmEmail = (uid) => { const u = accounts.get(uid); u.email = u.new_email; delete u.new_email; u.is_anonymous = false; };
@@ -945,6 +945,32 @@ export function createFakeSupabase() {
         const rows = [].concat(req.postDataJSON());
         for (const r of rows) { const p = plans.get(r.layover_id); if (!p || p.row.owner_id !== uid) return json(route, 403, { code: '42501', message: 'new row violates row-level security policy' }); details.set(r.layover_id, { owner: uid, row: { ...r, owner_id: uid } }); }
         return json(route, 201, rows.map((r) => ({ layover_id: r.layover_id })));
+      }
+    }
+    if (table === 'notifications') {
+      const uid = userOf(req); if (!uid) return json(route, 401, { code: '42501', message: 'permission denied' });
+      const mine = db.notifications.filter((n) => n.owner_id === uid);
+      if (method === 'GET') return json(route, 200, [...mine].sort((x, y) => y.created_at.localeCompare(x.created_at) || y.seq - x.seq).slice(0, 50));
+      if (method === 'POST') {
+        for (const r of [].concat(req.postDataJSON())) {
+          if (r.layover_id && plans.get(r.layover_id)?.row.owner_id !== uid) return json(route, 403, { code: '42501', message: 'new row violates row-level security policy' });
+          if (mine.some((n) => n.dedupe_key === r.dedupe_key)) continue; // unique (owner_id, dedupe_key): ignored duplicate
+          db.notifications.push({ id: crypto.randomUUID(), owner_id: uid, read_at: null, resolved_at: null, created_at: new Date().toISOString(), seq: db.notifications.length, ...r });
+        }
+        return json(route, 201, []);
+      }
+      if (method === 'PATCH') {
+        const b = req.postDataJSON(), q = url.searchParams;
+        const ids = q.get('id')?.replace(/^in\.\(|\)$/g, '').split(',');
+        for (const n of mine) {
+          if (q.get('read_at') === 'is.null' && n.read_at) continue;
+          if (q.get('resolved_at') === 'is.null' && n.resolved_at) continue;
+          if (ids && !ids.includes(n.id)) continue;
+          if (q.get('layover_id') && n.layover_id !== q.get('layover_id').slice(3)) continue;
+          if (q.get('simulated') && String(n.simulated) !== q.get('simulated').slice(3)) continue;
+          Object.assign(n, b);
+        }
+        return json(route, 200, []);
       }
     }
     if (table === 'traveler_profiles') {

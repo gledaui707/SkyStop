@@ -4,7 +4,8 @@ import type { Draft, Plan } from './data/types'
 import { guestStore } from './data/mock'
 import { loadCatalogue } from './data/catalogue'
 import { fetchPlans, removePlan as removeSaved, saveDraft } from './data/plans'
-import { simulate, updatesStore, type FlightUpdate, type ScenarioId } from './features/flightUpdates/updates'
+import { changeLines, flightView, simulate, updatesStore, type FlightUpdate, type ScenarioId } from './features/flightUpdates/updates'
+import { addNotification, listNotifications, markNotificationsRead, resolveNotifications, type NewNotification, type NotificationRow } from './api/repositories'
 import { getSupabase } from './api/client'
 import { getAccount, type Account } from './api/account'
 import { getProfile, type DataError } from './api/repositories'
@@ -75,7 +76,12 @@ interface Ctx {
   plansState: LoadState
   reload: () => void
   /** Saves to the database; resolves with the server copy or rejects with a readable error. */
-  savePlan: (d: Draft) => Promise<Plan>
+  /** `fix`: this save applies a suggested change after a flight update (logged as "fix applied", not "saved"). */
+  savePlan: (d: Draft, o?: { fix?: boolean }) => Promise<Plan>
+  /** The guest's notification history (database, newest first), unread count, and marking read. */
+  notifications: NotificationRow[]
+  unreadNotifications: number
+  readNotifications: (ids?: string[]) => void
   /** Removes a saved flight together with its itinerary. */
   removePlan: (id: string) => Promise<void>
   /** Flight updates per saved flight (src/features/flightUpdates), kept apart from the bookings. Changing one re-renders
@@ -228,7 +234,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       catch (e) { setCatalogue({ status: 'error', error: errText(e) }); return }
       try {
         const mine = await fetchPlans()
-        setPlans(mine); setPlansState({ status: 'ready' })
+        setPlans(mine); setPlansState({ status: 'ready' }); void loadNotifications()
         if (mine.length > 0) setHintState('done')
       } catch (e) { setPlansState({ status: 'error', error: errText(e) }) }
     })()
@@ -236,7 +242,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(reload, [reload])
   /** Re-reads only this user's flights (after signing in or out); the catalogue stays loaded. */
   const reloadPlans = useCallback(async () => {
-    try { setPlans(await fetchPlans()); setPlansState({ status: 'ready' }) } catch (e) { setPlansState({ status: 'error', error: errText(e) }) }
+    try { setPlans(await fetchPlans()); setPlansState({ status: 'ready' }); void loadNotifications() } catch (e) { setPlansState({ status: 'error', error: errText(e) }) }
   }, [])
   const [account, setAccount] = useState<Account>({ status: 'none' })
   const [profile, setProfile] = useState<TravelerProfileRow | null>(null)
@@ -263,13 +269,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [flightUpdates, setFlightUpdates] = useState<Record<string, FlightUpdate>>(() => updatesStore.all())
   const plansRef = useRef(plans)
   plansRef.current = plans
+  // Notification inbox: stored in Supabase (owner-only). Failures never block the action that caused them.
+  const [notifications, setNotifications] = useState<NotificationRow[]>([])
+  const loadNotifications = useCallback(async () => {
+    try { setNotifications(await listNotifications(getSupabase())) } catch { /* table missing or offline: inbox stays as it was */ }
+  }, [])
+  const notify = useCallback((n: NewNotification) => { void addNotification(getSupabase(), n).then(loadNotifications, () => {}) }, [loadNotifications])
+  const readNotifications = useCallback((ids?: string[]) => {
+    const now = new Date().toISOString()
+    setNotifications((cur) => cur.map((x) => (!x.read_at && (!ids || ids.includes(x.id)) ? { ...x, read_at: now } : x)))
+    void markNotificationsRead(getSupabase(), ids).catch(() => {})
+  }, [])
   const simulateFlightUpdate = useCallback((planId: string, scenario: ScenarioId) => {
     const plan = plansRef.current.find((p) => p.id === planId)
     const u = plan ? simulate(plan, scenario) : null
-    if (u) { updatesStore.set(u); setFlightUpdates(updatesStore.all()) }
+    if (u) {
+      updatesStore.set(u); setFlightUpdates(updatesStore.all())
+      const gate = scenario === 'gate', where = plan!.origin && plan!.destination ? `${plan!.origin} → ${plan!.destination} via ${plan!.airport}` : `Connection at ${plan!.airport}`
+      notify({ layover_id: planId, kind: gate ? 'gate' : 'flight_time', simulated: true, dedupe_key: `update:${planId}:${u.updatedAt}`,
+        title: gate ? 'Departure gate changed' : 'Flight time changed', body: `${where} · ${changeLines(flightView(plan!)).join(' · ')}`.slice(0, 300) })
+    }
     return u
-  }, [])
-  const resetFlightUpdate = useCallback((planId: string) => { updatesStore.remove(planId); setFlightUpdates(updatesStore.all()) }, [])
+  }, [notify])
+  const resetFlightUpdate = useCallback((planId: string) => {
+    updatesStore.remove(planId); setFlightUpdates(updatesStore.all())
+    void resolveNotifications(getSupabase(), planId).then(loadNotifications, () => {})
+  }, [loadNotifications])
   const markFlightUpdate = useCallback((planId: string, p: Pick<FlightUpdate, 'seen' | 'decision'>) => { updatesStore.patch(planId, p); setFlightUpdates(updatesStore.all()) }, [])
   const removePlan = async (id: string) => {
     await removeSaved(id)
@@ -277,8 +302,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     resetFlightUpdate(id)
   }
   const savePlanRef = useRef<((d: Draft) => Promise<Plan>) | null>(null)
-  const savePlan = async (d: Draft) => {
+  const savePlan = async (d: Draft, o?: { fix?: boolean }) => {
     const p = await saveDraft(d)
+    // One entry per saved revision (a retried save never adds a second one); flights without activities are not itineraries.
+    if (o?.fix) {
+      notify({ layover_id: p.id, kind: 'fix_applied', simulated: false, dedupe_key: `fix:${p.id}:${p.revision}`, title: 'Suggested change applied', body: `${p.name} · ${p.activityIds.length} ${p.activityIds.length === 1 ? 'activity' : 'activities'} kept` })
+      void resolveNotifications(getSupabase(), p.id).then(loadNotifications, () => {})
+    } else if (p.activityIds.length) notify({ layover_id: p.id, kind: 'plan_saved', simulated: false, dedupe_key: `saved:${p.id}:${p.revision}`, title: 'Itinerary saved', body: `${p.name} · ${p.activityIds.length} ${p.activityIds.length === 1 ? 'activity' : 'activities'}` })
     setPlans((cur) => (cur.some((x) => x.id === p.id) ? cur.map((x) => (x.id === p.id ? p : x)) : [p, ...cur]))
     setPlansState({ status: 'ready' })
     void refreshAccountRef.current?.() // the first save starts a guest session
@@ -365,7 +395,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const nextHint = () => { if (hint === 'done') return; setHint(hint >= 3 ? 'done' : ((hint + 1) as HintStage)) }
   const skipHints = () => setHint('done')
   return (
-    <C.Provider value={{ route: stack[stack.length - 1], prevRoute: stack[stack.length - 2] ?? null, go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, flightUpdates, simulateFlightUpdate, resetFlightUpdate, markFlightUpdate, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, finishAccess, enterAsGuest, entering, completeOnboarding, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
+    <C.Provider value={{ route: stack[stack.length - 1], prevRoute: stack[stack.length - 2] ?? null, go, replace, back, switchTab, catalogue, plans, plansState, reload, savePlan, removePlan, notifications, unreadNotifications: notifications.filter((x) => !x.read_at).length, readNotifications, flightUpdates, simulateFlightUpdate, resetFlightUpdate, markFlightUpdate, account, refreshAccount, profile, setProfile, draft, setDraft, picked, setPicked, notice, setNotice, welcomed, finishWelcome, finishAccess, enterAsGuest, entering, completeOnboarding, replayOnboarding, hint, advanceHint, nextHint, skipHints }}>
       {children}
     </C.Provider>
   )

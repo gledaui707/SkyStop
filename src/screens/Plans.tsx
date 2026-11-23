@@ -153,7 +153,7 @@ export function PlanDetail({ id }: { id: string }) {
         {impact && <UpdateLine i={impact} planned={items.length > 0} />}
         <BudgetHero n={plan.hero} overnight={isOvernight(new Date(v.arrival), new Date(v.departure))} />
         <PlanReview plan={p} onApply={async (r) => {
-          const saved = await savePlan({ ...toDraft(p), activityIds: r.activityIds })
+          const saved = await savePlan({ ...toDraft(p), activityIds: r.activityIds }, { fix: true })
           setNotice(`Plan updated: ${fmtDur(computeItinerary(saved).hero.remaining)} left to explore.`)
         }} />
         {items.length ? (<>

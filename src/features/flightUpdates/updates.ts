@@ -128,6 +128,20 @@ export function withUpdate<T extends FlightLike>(f: T): T {
   return { ...f, arrival: v.arrival, departure: v.departure, departureLocation: v.departureLocation }
 }
 
+// Wording of a change (shared by the screens and the notification inbox).
+const days = (a: string, b: string) => Math.round((Date.parse(a.slice(0, 10)) - Date.parse(b.slice(0, 10))) / 86400000)
+/** "01:35 +1" when a time moved to another day than booked. */
+export const timeWithDay = (local: string, booked: string) => { const d = days(local, booked); return `${hm(local)}${d > 0 ? ` +${d}` : d < 0 ? ` −${-d}` : ''}` }
+
+/** "Departure 22:50 (was 23:35)", "Gate D24 (was B12)". */
+export function changeLines(v: FlightView): string[] {
+  const out: string[] = []
+  if (v.changed.arrival) out.push(`Arrival ${timeWithDay(v.arrival, v.original.arrival)} (was ${hm(v.original.arrival)})`)
+  if (v.changed.departure) out.push(`Departure ${timeWithDay(v.departure, v.original.departure)} (was ${hm(v.original.departure)})`)
+  if (v.changed.gate) out.push(`Gate ${v.gate}${v.gateTerminal ? `, Terminal ${v.gateTerminal.replace(/^T/, '')}` : ''} (was ${v.original.gate})`)
+  return out
+}
+
 export interface Scenario { id: ScenarioId; label: string; detail: (f: FlightLike) => string }
 const hm = (local: string) => local.slice(11, 16)
 /** Deterministic scenarios, all relative to the booking (applying one twice gives the same result). */

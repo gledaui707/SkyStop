@@ -93,3 +93,28 @@ export async function deleteProfile(sb: SupabaseClient): Promise<void> {
   if (!data.session) return;
   ok(await sb.from('traveler_profiles').delete().eq('owner_id', data.session.user.id).select('owner_id'));
 }
+
+// ---- Notification inbox (owner-only table `notifications`) ----
+export interface NotificationRow {
+  id: string; layover_id: string | null; kind: 'flight_time' | 'gate' | 'plan_saved' | 'fix_applied'
+  title: string; body: string; simulated: boolean; read_at: string | null; resolved_at: string | null; created_at: string
+}
+export type NewNotification = Pick<NotificationRow, 'layover_id' | 'kind' | 'title' | 'body' | 'simulated'> & { dedupe_key: string }
+
+export async function listNotifications(sb: SupabaseClient): Promise<NotificationRow[]> {
+  return ok(await sb.from('notifications').select('id, layover_id, kind, title, body, simulated, read_at, resolved_at, created_at')
+    .order('created_at', { ascending: false }).limit(50)) as NotificationRow[];
+}
+/** Adds an event once: a repeated dedupe key for the same guest is ignored. */
+export async function addNotification(sb: SupabaseClient, n: NewNotification): Promise<void> {
+  await ensureGuestSession(sb);
+  ok(await sb.from('notifications').upsert(n, { onConflict: 'owner_id,dedupe_key', ignoreDuplicates: true }).select('id'));
+}
+export async function markNotificationsRead(sb: SupabaseClient, ids?: string[]): Promise<void> {
+  const q = sb.from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null)
+  ok(await (ids ? q.in('id', ids) : q).select('id'))
+}
+/** Marks a flight's open simulated updates as resolved (after Reset or an applied fix). */
+export async function resolveNotifications(sb: SupabaseClient, layoverId: string): Promise<void> {
+  ok(await sb.from('notifications').update({ resolved_at: new Date().toISOString() }).eq('layover_id', layoverId).eq('simulated', true).is('resolved_at', null).select('id'))
+}

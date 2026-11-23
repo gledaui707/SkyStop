@@ -1042,6 +1042,23 @@ try {
     const tk2 = await norm(P.getByLabel('Upcoming trip'));
     check('reset: Home shows the booking again (07:45, gate B12, 5h); no notice', /Depart DXB 07:45/i.test(tk2) && /Gate B12/.test(tk2) && tk2.includes('Time to explore 5h') && (await P.getByRole('status', { name: 'Flight update' }).count()) === 0, tk2);
     check('flight updates: kept on this device, apart from the booking (one store, no duplicate flights)', mine().length === 1 && await P.evaluate(() => localStorage.getItem('skystop.flightupdates.v1') === '{}'));
+    // Notification inbox (database): one entry per event, newest first, simulated updates labelled and resolved after reset
+    const bell = P.getByRole('button', { name: /^Notifications/ });
+    check('inbox: the bell shows 8 unread (1 itinerary saved, 6 simulated updates, 1 applied fix)', await seen(P.getByRole('button', { name: 'Notifications, 8 unread' })), await bell.getAttribute('aria-label'));
+    const notes = () => fake.notifications.filter((n) => mine().some((m) => m.row.id === n.layover_id));
+    check('inbox: stored per guest with one row per event (no duplicates)', notes().length === 8 && new Set(notes().map((n) => n.dedupe_key)).size === 8);
+    await bell.click();
+    const box = P.getByRole('list', { name: 'Notification history' }); await box.waitFor();
+    const items = await box.getByRole('listitem').evaluateAll((els) => els.map((e) => e.textContent.replace(/\s+/g, ' ')));
+    // newest first: gate, gate (with times), both legs, departure, arrival, applied fix, earlier departure, itinerary saved
+    check('inbox: newest first; simulated updates labelled and resolved; the save and the applied fix are not simulated', items.length === 8 && /^Departure gate changed.*Simulated.*Resolved/.test(items[0])
+      && /^Suggested change applied/.test(items[5]) && /^Itinerary saved/.test(items[7]) && [5, 7].every((k) => !/Simulated|Resolved/.test(items[k]))
+      && [0, 1, 2, 3, 4, 6].every((k) => /Simulated.*Resolved/.test(items[k])), items.map((t) => t.slice(0, 40)).join(' | '));
+    await P.getByRole('dialog', { name: 'Notifications' }).getByRole('button', { name: 'Close' }).click();
+    check('inbox: opening marks all read (badge cleared, read_at stored)', await seen(P.getByRole('button', { name: 'Notifications', exact: true })) && notes().every((n) => n.read_at));
+    await P.reload(); await P.getByLabel('Upcoming trip').waitFor();
+    await bell.click(); await box.waitFor();
+    check('inbox: history survives a refresh (read from the database)', (await box.getByRole('listitem').count()) === 8);
     await u.ctx.close();
   }
   {
