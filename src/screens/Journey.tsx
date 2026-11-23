@@ -7,7 +7,7 @@ import { getAirport, isSupported } from '../data/mock'
 import { fmtDur } from '../data/time'
 import { IMAGES, sized } from '../data/images'
 import { journeyDraft } from '../features/onboarding/handoff'
-import { ActionBar, Backdrop, Button, Header, cx } from '../components/ui'
+import { ActionBar, Button, Header, cx } from '../components/ui'
 import { TimeRing } from '../components/BudgetHero'
 
 const day = (local: string) => new Date(`${local.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -30,19 +30,26 @@ export function FindJourney() {
 
   return (
     <div className="relative pb-[calc(var(--nav-h)+2rem)]">
-      <Backdrop img={IMAGES.hero} />
+      {/* Full-bleed photographic hero: the headline sits on the photo, the form floats over its lower edge. */}
+      <div aria-hidden="true" className="ph pointer-events-none absolute inset-x-0 top-0 h-[26rem] overflow-hidden">
+        <img src={sized(IMAGES.hero, 900, 900)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-transparent" />
+        <div className="hero-melt absolute inset-x-0 bottom-0 h-[60%]" />
+        <div className="absolute -right-16 top-24 size-64 rounded-full bg-accent/25 blur-3xl" />
+      </div>
       <Header title="Add flight" />
-      <div className="relative grid grid-cols-[minmax(0,1fr)] gap-8 px-5 pt-16">
-        <div>
-          <h1 className="text-title font-bold [text-shadow:0_2px_16px_rgb(0_0_0/0.4)]">Find your journey</h1>
-          <p className="mt-3 text-body leading-relaxed text-ink/85 [text-shadow:0_1px_10px_rgb(0_0_0/0.4)]">Enter your booking reference to see your connection and layover time.</p>
+      <div className="relative grid grid-cols-[minmax(0,1fr)] gap-6 px-5 pt-[7.5rem]">
+        <div className="anim-rise">
+          <p className="glass-light inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-cap font-semibold"><Plane size={14} aria-hidden="true" />Already booked</p>
+          <h1 className="mt-3 text-display font-bold [text-shadow:0_2px_18px_rgb(0_0_0/0.45)]">Find your journey</h1>
+          <p className="mt-2 max-w-[22rem] text-body leading-relaxed text-ink/85 [text-shadow:0_1px_10px_rgb(0_0_0/0.5)]">Enter your booking reference to see your connection and layover time.</p>
         </div>
 
-        <form className="glass-premium grid grid-cols-[minmax(0,1fr)] gap-6 rounded-surface p-5" onSubmit={(e) => { e.preventDefault(); submit() }} noValidate>
+        <form className="glass-premium anim-rise grid grid-cols-[minmax(0,1fr)] gap-5 rounded-tray p-5 [animation-delay:80ms]" onSubmit={(e) => { e.preventDefault(); submit() }} noValidate>
           <div className="grid grid-cols-[minmax(0,1fr)] gap-2.5">
-          <label htmlFor="booking-ref" className="text-sub font-semibold text-ink">Booking reference</label>
-          <div className={cx('field flex min-h-16 items-center gap-3 rounded-control px-4 transition-colors focus-within:!border-accent-dark focus-within:ring-4 focus-within:ring-accent/25', error && '!border-error')}>
-            <Search size={22} className="shrink-0 text-muted" aria-hidden="true" />
+          <label htmlFor="booking-ref" className="text-cap font-semibold uppercase tracking-[0.08em] text-muted-text">Booking reference</label>
+          <div className={cx('field flex min-h-16 items-center gap-3 rounded-card px-4 transition-colors focus-within:!border-accent-dark focus-within:ring-4 focus-within:ring-accent/25', error && '!border-error')}>
+            <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><Search size={18} /></span>
             <input id="booking-ref" size={1} value={ref} maxLength={8} autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text"
               aria-invalid={!!error} aria-describedby={error ? 'ref-error' : 'ref-help'}
               onChange={(e) => { setRef(e.target.value.toUpperCase()); setError(null) }} placeholder="e.g. AXR7KD"
@@ -50,24 +57,25 @@ export function FindJourney() {
           </div>
           {error
             ? <p id="ref-error" role="alert" className="text-sub font-medium text-error">{error}</p>
-            : <p id="ref-help" className="text-cap text-muted-text">6 letters or numbers.</p>}
+            : <p id="ref-help" className="text-cap text-muted-text">6 letters or numbers, on your ticket or confirmation email.</p>}
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
           <Button type="submit" className="w-full" disabled={!ref.trim()}>Find my journey</Button>
-          </div>
+          <div className="flex items-center gap-3 text-cap text-muted" aria-hidden="true"><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
+          <Button type="button" variant="secondary" icon={PenLine} className="w-full" onClick={() => go({ name: 'trip' })}>I can't find my flight</Button>
         </form>
-        <Button variant="secondary" size="lg" icon={PenLine} className="-mt-3 w-full" onClick={() => go({ name: 'trip' })}>I can't find my flight</Button>
 
         {!showSamples && (
-          <ol aria-label="How it works" className="glass-subtle grid grid-cols-[minmax(0,1fr)] gap-4 rounded-surface p-5">
-            {[[Search, 'Find your booking', 'Your flights and connection airport.'],
-              [Clock, 'See your layover', 'Time between flights, minus a safety buffer.'],
-              [Sparkles, 'Plan what fits', 'Choose activities that fit the time you have.']].map(([Icon, t, d], i) => {
+          <ol aria-label="How it works" className="anim-rise relative grid grid-cols-3 gap-2 px-1 [animation-delay:160ms]">
+            <span aria-hidden="true" className="absolute left-[16.6%] right-[16.6%] top-[1.375rem] h-0.5 rounded-full [background:var(--rail-grad)] opacity-60" />
+            {[[Search, 'Find', 'your booking'],
+              [Clock, 'See', 'your layover'],
+              [Sparkles, 'Plan', 'what fits']].map(([Icon, t, d], i) => {
               const I = Icon as typeof Search
               return (
-                <li key={i} className="flex items-start gap-3.5">
-                  <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-dark"><I size={20} /></span>
-                  <span className="min-w-0 pt-0.5"><b className="block text-body font-semibold">{t as string}</b><span className="block text-sub text-muted-text">{d as string}</span></span>
+                <li key={i} className="relative flex flex-col items-center text-center">
+                  <span aria-hidden="true" className={cx('grid size-11 place-items-center rounded-full ring-4 ring-canvas', i === 0 ? 'btn-coral' : 'sheet-solid text-accent-dark')}><I size={19} /></span>
+                  <b className="mt-2.5 text-sub font-semibold">{t as string}</b>
+                  <span className="text-cap text-muted-text">{d as string}</span>
                 </li>)
             })}
           </ol>

@@ -96,9 +96,9 @@ export function Profile() {
       <Header title="Profile" />
       <div className="relative grid grid-cols-[minmax(0,1fr)] gap-7 px-5 pt-2">
         {/* identity card: the screen's focal point */}
-        <section aria-label="Your profile" className="glass-premium grid gap-4 rounded-surface p-4">
+        <section aria-label="Your profile" className="instrument relative grid gap-4 overflow-hidden rounded-tray p-5">
           <div className="flex items-center gap-4">
-            <Avatar src={photo} size="size-16" />
+            <span className="shrink-0 rounded-full p-[3px] [background:var(--sunset-grad)] shadow-[var(--shadow-glow)]"><span className="block rounded-full bg-canvas p-[2px]"><Avatar src={photo} size="size-16" /></span></span>
             <div className="min-w-0">
               <p className="truncate text-h1 font-bold leading-tight">{account.name || (account.status === 'registered' ? account.email : 'Guest')}</p>
               <p className="text-sub text-muted-text">{account.status === 'registered' ? 'Signed in' : account.status === 'guest-pending' ? 'Confirmation pending' : 'Saved on this device only'}</p>
@@ -106,9 +106,9 @@ export function Profile() {
           </div>
           <dl className="grid grid-cols-2 gap-2">
             {[[plans.length, plans.length === 1 ? 'Flight' : 'Flights'], [plans.filter((p) => p.activityIds.length).length, 'Itineraries']].map(([n, l]) => (
-              <div key={l} className="rounded-control bg-ink-tint px-3 py-2.5">
-                <dt className="text-cap text-muted-text">{l}</dt>
-                <dd className="text-h2 font-bold tabular-nums">{n}</dd>
+              <div key={l} className="rounded-card bg-deep/30 px-4 py-3 ring-1 ring-line">
+                <dt className="text-cap font-medium uppercase tracking-[0.06em] text-muted-text">{l}</dt>
+                <dd className="mt-0.5 text-h1 font-bold tabular-nums">{n}</dd>
               </div>))}
           </dl>
         </section>

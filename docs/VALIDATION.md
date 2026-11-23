@@ -522,3 +522,17 @@ waits for animated transitions; SPEC/README/ARCHITECTURE/REQUIREMENTS/DEMO_SCRIP
   214/214 with reduced motion and 214/214 with `MOTION=no-preference`; `node tests/e2e/layout-audit.mjs` 0 issues;
   local walkthrough with animations (AXR7KD, Dining + Attractions → Home → itinerary → save → My Plans) 11/11.
   Not yet re-verified on the live site (not deployed, by instruction).
+
+### Visual refinement: Add flight and Profile identity (23 Nov 2026, scheduled redesign run)
+
+- Reviewed `design-references/` and screenshots of every screen at 390 px. Weakest screen: Add flight ("Find your
+  journey") — headline, form, a separate button and a tall "how it works" list stacked as four generic boxes.
+- Add flight: full-bleed photo hero with coral light; display headline on the photo; one frosted form slab holding the
+  reference field, the primary action and "I can't find my flight" (divided by "or"); "how it works" is now a compact
+  three-step coral rail. Validation, sample lookup and navigation logic unchanged.
+- Profile: identity card uses the coral-lit `instrument` material with a sunset ring around the avatar; stats as
+  recessed tiles. No background photo (owner decision of 22 Nov kept).
+- Checks: `npx tsc --noEmit` clean; `npx vitest run` 175 passed, 1 skipped; `npm run build` OK; `npm run test:e2e`
+  219/219 (reduced motion); `node tests/e2e/layout-audit.mjs` at 320/375/390/430 px: 0 issues.
+  Limitation: remote photos (Unsplash) are blocked in the test environment, so screenshots show the gradient
+  placeholder in the hero; not verified on the live site.
