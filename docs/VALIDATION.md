@@ -536,3 +536,19 @@ waits for animated transitions; SPEC/README/ARCHITECTURE/REQUIREMENTS/DEMO_SCRIP
   219/219 (reduced motion); `node tests/e2e/layout-audit.mjs` at 320/375/390/430 px: 0 issues.
   Limitation: remote photos (Unsplash) are blocked in the test environment, so screenshots show the gradient
   placeholder in the hero; not verified on the live site.
+
+### Visual refinement: Profile as one composed screen (24 Nov 2026, scheduled redesign run)
+
+- Reviewed `design-references/` and screenshots of every screen at 390 px. Weakest screen: Profile — two equal-weight
+  account buttons in their own box, travel documents as two generic stacked inputs, and a plain settings list.
+- Identity card (coral-lit `instrument`) now carries the guest's one main action: Create account (coral), with Sign in
+  as a quiet text action beside "Keep your plans on any device." Stats are one divided strip. The Account section
+  (photo, name, email) appears only once signed in.
+- Travel documents: one burgundy `passport` surface (gold labels, faint guilloche rings) used both while editing (fields
+  written into the passport, `passport-field`) and once saved (Nationality / Residence rows, Edit / Remove). Saving
+  still goes through `saveProfile` / `deleteProfile`; Enter now submits the form.
+- Settings: iOS-style inset grouped list (`group-row`) with coral icon wells and inset hairlines; Log out in error red.
+  No background photo (owner decision of 22 Nov kept). No schema or data-access changes.
+- Checks: `npm run build` OK (tsc clean); `npx vitest run` 175 passed, 1 skipped; `npm run test:e2e` 219/219
+  (reduced motion); `node tests/e2e/layout-audit.mjs` at 320/375/390/430 px: 0 issues. Profile screenshots checked
+  at 390 and 320 px (guest, saved passport, settings). Not verified on the live site.

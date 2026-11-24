@@ -80,6 +80,8 @@ Headings use −0.022em tracking; numbers that change use `tabular-nums`. Weight
 | `theme-paper` + `paper` | warm light paper, dark-ink tokens inside | flight passes and Wallet strips |
 | `btn-coral` / `btn-secondary` / `pill-on` | coral gradient / frosted glass / warm white with dark text | buttons, chips |
 | `field` | recessed dark well, clear outline (white inside paper) | inputs |
+| `passport` (+ `passport-field`, `passport-btn`) | opaque burgundy cover, gold labels, faint guilloche rings | Profile travel documents (edit and saved states) |
+| `group-row` | inset hairline between rows, starting after the icon well | grouped settings lists |
 | `ph`, `photo-fade`, `hero-melt`, `scroll-fade`, `scrim` | placeholders and photo treatments | as named |
 | `bottom-fade` | dims scrolled content behind the floating tab bar and action trays | tab bar (App shell), `ActionBar` |
 

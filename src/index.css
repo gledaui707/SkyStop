@@ -366,6 +366,31 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
   .field::placeholder, .field input::placeholder { color: var(--color-muted); }
   .theme-paper .field { background: #fff; border-color: rgb(31 26 23 / 0.16); box-shadow: none; }
 
+  /* Travel documents as a passport: deep burgundy cover, faint guilloche rings, gold foil text. The form is
+     written into it (passport-field), so editing and the saved card are the same object. Opaque: no blur needed. */
+  .passport {
+    --gold: #F1D49A;
+    background:
+      repeating-radial-gradient(circle at 112% -12%, transparent 0 13px, rgb(241 212 154 / 0.055) 13px 14px),
+      radial-gradient(120% 80% at 0% 0%, rgb(234 81 57 / 0.22) 0%, transparent 60%),
+      linear-gradient(155deg, #7A2537 0%, #561726 52%, #350C17 100%);
+    border: 1px solid rgb(241 212 154 / 0.2);
+    box-shadow: inset 0 1px 0 rgb(255 230 200 / 0.12), var(--shadow-e2);
+    color: #fff;
+  }
+  .passport-field {
+    background: rgb(20 4 9 / 0.42);
+    border: 1px solid rgb(241 212 154 / 0.26);
+    color: #fff;
+  }
+  .passport-field::placeholder { color: rgb(255 236 226 / 0.62); }
+  .passport-field:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 0 4px rgb(241 212 154 / 0.18); }
+  .passport-btn { background: rgb(255 240 232 / 0.12); border: 1px solid rgb(241 212 154 / 0.24); color: #fff; }
+  .passport-btn:active { background: rgb(255 240 232 / 0.2); }
+  /* Grouped settings list (iOS inset group): hairlines start after the icon well. */
+  .group-row { position: relative; }
+  .group-row + .group-row::before { content: ''; position: absolute; top: 0; left: 4.125rem; right: 0; height: 1px; background: var(--color-line); }
+
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .panel, .glass, .glass-subtle, .glass-premium, .btn-secondary { background: rgb(44 31 28 / 0.96); }
     .panel-accent { background: rgb(70 32 26 / 0.96); }

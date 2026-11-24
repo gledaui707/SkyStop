@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, ChevronRight, Database, Globe, LogOut, PenLine, Mail, RotateCcw, ShieldCheck, SlidersHorizontal, Trash2, UserRound } from 'lucide-react'
+import { Camera, ChevronRight, Database, Globe, LogOut, PenLine, RotateCcw, ShieldCheck, SlidersHorizontal, Trash2, UserRound } from 'lucide-react'
 import { useApp } from '../store'
 import { getSupabase } from '../api/client'
 import { avatarUrl, createAccount, removeAvatar, signIn, signOut, updateName, uploadAvatar } from '../api/account'
@@ -91,12 +91,28 @@ export function Profile() {
     await deleteProfile(sb); setProfile(null); setNationality(''); setResidence(''); setEditingDocs(false)
   })
 
+  const guest = account.status !== 'registered'
+  const savedDocs = !!profile && !editingDocs
+  const docsDirty = nationality !== (profile?.nationality ?? '') || residence !== (profile?.residence ?? '')
+  const passportHead = (
+    <div className="flex items-center gap-3.5">
+      <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-full bg-black/20 text-[var(--gold)] ring-1 ring-[var(--gold)]/35">
+        <Globe size={26} strokeWidth={1.4} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-cap font-semibold uppercase tracking-[0.18em] text-[var(--gold)]">Passport</p>
+        <p className="text-sub text-white/80">Travel details</p>
+      </div>
+      <span className="flex shrink-0 items-center gap-1 text-cap font-medium text-white/80"><ShieldCheck size={14} />Private</span>
+    </div>
+  )
+
   return (
     <div className="relative pb-[calc(var(--nav-h)+2rem)]">
       <Header title="Profile" />
       <div className="relative grid grid-cols-[minmax(0,1fr)] gap-7 px-5 pt-2">
-        {/* identity card: the screen's focal point */}
-        <section aria-label="Your profile" className="instrument relative grid gap-4 overflow-hidden rounded-tray p-5">
+        {/* identity card: the screen's focal point; for a guest it carries the one main action */}
+        <section aria-label="Your profile" className="instrument relative grid gap-5 overflow-hidden rounded-tray p-5">
           <div className="flex items-center gap-4">
             <span className="shrink-0 rounded-full p-[3px] [background:var(--sunset-grad)] shadow-[var(--shadow-glow)]"><span className="block rounded-full bg-canvas p-[2px]"><Avatar src={photo} size="size-16" /></span></span>
             <div className="min-w-0">
@@ -104,17 +120,26 @@ export function Profile() {
               <p className="text-sub text-muted-text">{account.status === 'registered' ? 'Signed in' : account.status === 'guest-pending' ? 'Confirmation pending' : 'Saved on this device only'}</p>
             </div>
           </div>
-          <dl className="grid grid-cols-2 gap-2">
-            {[[plans.length, plans.length === 1 ? 'Flight' : 'Flights'], [plans.filter((p) => p.activityIds.length).length, 'Itineraries']].map(([n, l]) => (
-              <div key={l} className="rounded-card bg-deep/30 px-4 py-3 ring-1 ring-line">
-                <dt className="text-cap font-medium uppercase tracking-[0.06em] text-muted-text">{l}</dt>
-                <dd className="mt-0.5 text-h1 font-bold tabular-nums">{n}</dd>
+          <dl className="grid grid-cols-2 divide-x divide-line rounded-card bg-deep/30 py-3 ring-1 ring-line">
+            {[[plans.length, plans.length === 1 ? 'Flight' : 'Flights'], [plans.filter((p) => p.activityIds.length).length, plans.filter((p) => p.activityIds.length).length === 1 ? 'Itinerary' : 'Itineraries']].map(([n, l]) => (
+              <div key={l} className="flex flex-col-reverse items-center px-3">
+                <dt className="text-cap font-medium text-muted-text">{l}</dt>
+                <dd className="text-h1 font-bold tabular-nums">{n}</dd>
               </div>))}
           </dl>
+          {guest && (
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-1">
+              {account.status === 'guest-pending' && <div className="mb-2"><Notice tone="info">Check {account.pendingEmail} for a confirmation link. Your guest flights move with you once it is confirmed.</Notice></div>}
+              <Button onClick={() => go({ name: 'access', auth: 'create' })}>Create account</Button>
+              <p className="flex flex-wrap items-center justify-center gap-x-1 text-sub text-muted-text">Keep your plans on any device.
+                <Button variant="tertiary" size="sm" className="px-2" onClick={() => go({ name: 'access', auth: 'signin' })}>Sign in</Button></p>
+              {error && <Notice tone="warn">{error}</Notice>}
+            </div>
+          )}
         </section>
 
+        {!guest && (
         <Section title="Account">
-          {account.status === 'registered' && (<>
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => fileRef.current?.click()} disabled={photoBusy} aria-label={photo ? 'Change profile picture' : 'Add profile picture'} className="press relative shrink-0">
               <Avatar src={photo} size="size-[4.5rem]" />
@@ -137,71 +162,66 @@ export function Profile() {
             <p className="text-sub font-medium text-muted-text">Email</p>
             <p className="flex min-h-[3.25rem] items-center truncate rounded-control bg-ink-tint px-4 text-body text-ink">{account.email}</p>
           </div>
-          </>)}
-          {account.status === 'registered' ? null : (
-            <>
-              {account.status === 'guest-pending' && <Notice tone="info">Check {account.pendingEmail} for a confirmation link. Your guest flights move with you once it is confirmed.</Notice>}
-              <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
-                <Button onClick={() => go({ name: 'access', auth: 'create' })}>Create account</Button>
-                <Button variant="secondary" onClick={() => go({ name: 'access', auth: 'signin' })}>Sign in</Button>
-              </div>
-              {error && <Notice tone="warn">{error}</Notice>}
-            </>
-          )}
-          {account.status === 'registered' && error && <Notice tone="warn">{error}</Notice>}
-        </Section>
+          {error && <Notice tone="warn">{error}</Notice>}
+        </Section>)}
 
-        <Section title="Travel documents" bare={!!profile && !editingDocs} action={
-          <InfoTip id="docs-help" title="Travel documents">Optional. Used only to tailor entry guidance for activities outside the transit area. It never decides whether you may enter a country. SkyStop does not ask for passport numbers or document photos.</InfoTip>}>
-          {profile && !editingDocs ? (
-            <>
-              {/* saved: a small passport cover (same composition as the Overnight connection card) */}
-              <aside aria-label="Passport details" className="relative flex items-center gap-4 overflow-hidden rounded-surface bg-gradient-to-br from-[#6e1f30] to-[#3b0f1b] p-4 text-white">
-                <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full border border-[#f1d49a]/15" />
-                <div aria-hidden="true" className="relative grid size-16 shrink-0 place-items-center rounded-full bg-[#8a3346] text-[#f1d49a] ring-1 ring-[#f1d49a]/30">
-                  <Globe size={30} strokeWidth={1.4} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-cap font-semibold tracking-wide text-[#f1d49a]">Passport</p>
-                  <p className="truncate text-card font-semibold">{profile.nationality || 'Nationality not set'}</p>
-                  {profile.residence && <p className="mt-0.5 truncate text-sub text-white/80">Lives in {profile.residence}</p>}
-                </div>
-              </aside>
+        {/* travel documents: one passport, written into while editing, read back once saved */}
+        <section aria-label="Travel documents" className="grid gap-3">
+          <SectionHeader kind="label" action={
+            <InfoTip id="docs-help" title="Travel documents">Optional. Used only to tailor entry guidance for activities outside the transit area. It never decides whether you may enter a country. SkyStop does not ask for passport numbers or document photos.</InfoTip>}>Travel documents</SectionHeader>
+          {savedDocs ? (
+            <aside aria-label="Passport details" className="passport relative grid gap-5 overflow-hidden rounded-tray p-5">
+              {passportHead}
+              <dl className="grid grid-cols-[minmax(0,1fr)] gap-3 border-t border-[var(--gold)]/20 pt-4">
+                <div className="flex items-baseline justify-between gap-3"><dt className="shrink-0 text-cap font-semibold uppercase tracking-[0.12em] text-[var(--gold)]">Nationality</dt><dd className="truncate text-card font-semibold">{profile.nationality || 'Not set'}</dd></div>
+                <div className="flex items-baseline justify-between gap-3"><dt className="shrink-0 text-cap font-semibold uppercase tracking-[0.12em] text-[var(--gold)]">Residence</dt><dd className="truncate text-card font-semibold">{profile.residence || 'Not set'}</dd></div>
+              </dl>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="secondary" icon={PenLine} onClick={() => setEditingDocs(true)}>Edit</Button>
-                <Button variant="secondary" icon={Trash2} disabled={busy} onClick={clearDocs}>Remove</Button>
+                <button type="button" onClick={() => setEditingDocs(true)} className="passport-btn press flex min-h-11 items-center justify-center gap-2 rounded-full text-sub font-semibold"><PenLine size={16} />Edit</button>
+                <button type="button" disabled={busy} onClick={clearDocs} className="passport-btn press flex min-h-11 items-center justify-center gap-2 rounded-full text-sub font-semibold disabled:opacity-50"><Trash2 size={16} />Remove</button>
               </div>
-            </>
+            </aside>
           ) : (
-            <>
+            <form className="passport relative grid grid-cols-[minmax(0,1fr)] gap-4 overflow-hidden rounded-tray p-5" onSubmit={(e) => { e.preventDefault(); if ((nationality.trim() || residence.trim()) && docsDirty) void saveDocs() }}>
+              {passportHead}
               <datalist id="countries">{countries.map((c) => <option key={c} value={c} />)}</datalist>
-              <label className="grid gap-1.5 text-sub font-medium text-muted-text">Passport nationality
-                <input list="countries" value={nationality} onChange={(e) => setNationality(e.target.value)} className={inputCls} placeholder="e.g. Indonesia" autoComplete="off" /></label>
-              <label className="grid gap-1.5 text-sub font-medium text-muted-text">Country of residence
-                <input list="countries" value={residence} onChange={(e) => setResidence(e.target.value)} className={inputCls} placeholder="Optional" autoComplete="off" /></label>
-              <p className="flex gap-2 text-cap text-muted-text"><ShieldCheck size={15} className="mt-px shrink-0" />Only you can see these details.</p>
+              <label className="grid gap-1.5 text-cap font-semibold uppercase tracking-[0.12em] text-[var(--gold)]">Passport nationality
+                <input list="countries" value={nationality} onChange={(e) => setNationality(e.target.value)} className="passport-field block min-h-[3.25rem] w-full min-w-0 rounded-control px-4 text-body font-medium normal-case tracking-normal" placeholder="e.g. Indonesia" autoComplete="off" /></label>
+              <label className="grid gap-1.5 text-cap font-semibold uppercase tracking-[0.12em] text-[var(--gold)]">Country of residence
+                <input list="countries" value={residence} onChange={(e) => setResidence(e.target.value)} className="passport-field block min-h-[3.25rem] w-full min-w-0 rounded-control px-4 text-body font-medium normal-case tracking-normal" placeholder="Optional" autoComplete="off" /></label>
+              <p className="text-cap text-white/80">No passport numbers or document photos. Only you can see these details.</p>
               {(editingDocs || nationality.trim() || residence.trim()) && (
                 <div className={editingDocs ? 'grid grid-cols-2 gap-2' : 'grid'}>
-                  <Button disabled={busy || !(nationality.trim() || residence.trim()) || (nationality === (profile?.nationality ?? '') && residence === (profile?.residence ?? ''))} onClick={saveDocs}>Save</Button>
-                  {editingDocs && <Button variant="secondary" onClick={() => { setEditingDocs(false); setNationality(profile?.nationality ?? ''); setResidence(profile?.residence ?? '') }}>Cancel</Button>}
+                  <Button type="submit" disabled={busy || !(nationality.trim() || residence.trim()) || !docsDirty}>Save</Button>
+                  {editingDocs && <button type="button" className="passport-btn press min-h-[3.25rem] rounded-full text-body font-semibold" onClick={() => { setEditingDocs(false); setNationality(profile?.nationality ?? ''); setResidence(profile?.residence ?? '') }}>Cancel</button>}
                 </div>)}
-            </>
+            </form>
           )}
-        </Section>
+        </section>
 
-        <Section title="Settings">
-          <button onClick={replayOnboarding} className="press flex min-h-12 items-center gap-3 text-left text-body font-medium"><RotateCcw size={19} className="text-accent-dark" />Replay introduction</button>
-          <button onClick={() => setAbout(true)} className="press flex min-h-12 items-center gap-3 text-left text-body font-medium"><Database size={19} className="text-accent-dark" />
-            <span className="min-w-0 flex-1">About & data<span className="block text-cap font-normal text-muted-text">Sample data, sources and limitations</span></span><ChevronRight size={18} className="text-muted-text" /></button>
-          <button onClick={() => setControls(true)} className="press flex min-h-12 items-center gap-3 text-left text-body font-medium"><SlidersHorizontal size={19} className="text-accent-dark" />
-            <span className="min-w-0 flex-1">Demo controls<span className="block text-cap font-normal text-muted-text">Simulate flight update</span></span><ChevronRight size={18} className="text-muted-text" /></button>
-          {account.status !== 'none' && (
-            <button onClick={() => void logOut()}
-              className="press flex min-h-12 items-center gap-3  pt-3 text-left text-body font-medium text-error"><LogOut size={19} />Log out</button>)}
-        </Section>
+        <section aria-label="Settings" className="grid gap-3">
+          <SectionHeader kind="label">Settings</SectionHeader>
+          <div className="panel overflow-hidden rounded-surface">
+            <SettingRow icon={RotateCcw} title="Replay introduction" onClick={replayOnboarding} />
+            <SettingRow icon={Database} title="About & data" sub="Sample data, sources and limitations" onClick={() => setAbout(true)} more />
+            <SettingRow icon={SlidersHorizontal} title="Demo controls" sub="Simulate flight update" onClick={() => setControls(true)} more />
+            {account.status !== 'none' && <SettingRow icon={LogOut} title="Log out" onClick={() => void logOut()} danger />}
+          </div>
+        </section>
       </div>
       <Sheet open={about} onClose={() => setAbout(false)} title="About & data"><AboutData /></Sheet>
       <DemoControls open={controls} onClose={() => setControls(false)} />
     </div>
+  )
+}
+
+/** One row of the grouped settings list: icon well, title, optional caption and chevron. */
+function SettingRow({ icon: Icon, title, sub, onClick, more, danger }: { icon: typeof Database; title: string; sub?: string; onClick: () => void; more?: boolean; danger?: boolean }) {
+  return (
+    <button type="button" onClick={onClick} className={cx('group-row press flex min-h-[3.75rem] w-full items-center gap-3.5 px-4 py-2.5 text-left text-body font-medium transition-colors active:bg-ink-tint', danger && 'text-error')}>
+      <span aria-hidden="true" className={cx('grid size-9 shrink-0 place-items-center rounded-[0.7rem]', danger ? 'bg-error-tint text-error' : 'bg-accent-tint text-accent-dark')}><Icon size={18} /></span>
+      <span className="min-w-0 flex-1">{title}{sub && <span className="block text-cap font-normal text-muted-text">{sub}</span>}</span>
+      {more && <ChevronRight size={18} aria-hidden="true" className="shrink-0 text-muted-text" />}
+    </button>
   )
 }
