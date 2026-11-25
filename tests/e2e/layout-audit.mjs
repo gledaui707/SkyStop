@@ -65,7 +65,7 @@ for (const [w, h] of WIDTHS) {
     const issues = await page.evaluate(measure);
     total += issues.length;
     console.log(`${issues.length ? 'FAIL' : 'ok  '} ${w}px ${name}${issues.length ? '\n      - ' + [...new Set(issues)].slice(0, 8).join('\n      - ') : ''}`);
-    if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${w}-${name}.png` }); }
+    if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${w}-${name}.png`, fullPage: !!process.env.FULL }); }
   };
   const click = (role, name, opts = {}) => page.getByRole(role, { name, ...opts }).first().click();
   try {
@@ -122,6 +122,7 @@ for (const [w, h] of WIDTHS) {
       await page.getByRole('button', { name: 'Notifications' }).waitFor();
     }
     await visit('home-flight-stack');
+    await click('button', /^See all/); await page.getByRole('heading', { name: 'My flights' }).waitFor(); await visit('my-flights-routes');
   } catch (e) { total++; console.log(`CRASH ${w}px: ${e.message.split('\n')[0]}`); }
   await ctx.close();
   // Flight updates (a new guest with one Dubai plan): Demo controls, the Home notice, the plan review, the builder

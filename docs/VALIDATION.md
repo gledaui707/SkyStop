@@ -552,3 +552,22 @@ waits for animated transitions; SPEC/README/ARCHITECTURE/REQUIREMENTS/DEMO_SCRIP
 - Checks: `npm run build` OK (tsc clean); `npx vitest run` 175 passed, 1 skipped; `npm run test:e2e` 219/219
   (reduced motion); `node tests/e2e/layout-audit.mjs` at 320/375/390/430 px: 0 issues. Profile screenshots checked
   at 390 and 320 px (guest, saved passport, settings). Not verified on the live site.
+
+### Visual refinement: My flights as a wallet of flight tickets (25 Nov 2026, scheduled redesign run)
+
+- Reviewed `design-references/` and screenshots of every screen at 390 px. Weakest screen: My flights — one flat dark
+  row per flight with a photo bleeding in from the side, a coral full-width Add flight button and a mostly empty page.
+- Hero: the next flight's airport photo behind "N flights ahead" and three frosted summary tiles (total layover hours
+  ahead, flights with an itinerary, past flights).
+- Each flight is a ticket: airport photo window (code, city, "In N days" countdown; coral on the next flight), a route
+  rail with the layover as the coral node and its duration (arrive-from / depart-to codes with times when the route is
+  known; arrive / depart times otherwise), a perforation, and a stub with the date and itinerary status. The next
+  flight uses the coral-lit `panel-accent`; past flights are dimmed. Remove stays a separate 44 px button on the photo.
+  Add flight is the dashed "add" tile used in My plans; the empty state is the glass card used in My plans.
+- Data, sorting, flight-update changes and the remove sheet (with `removePlan`) are unchanged.
+- Tests: `tests/e2e/journey.mjs` My flights check now expects the ticket order (hub, origin, destination per card)
+  instead of the old "via XXX" text; `tests/e2e/layout-audit.mjs` also visits My flights with three routed flights
+  (`my-flights-routes`) and can take full-page shots (`FULL=1`).
+- Checks: `npm run build` OK (tsc clean); `npx vitest run` 175 passed, 1 skipped; `npm run test:e2e` 219/219;
+  `node tests/e2e/layout-audit.mjs` at 320/375/390/430 px: 0 issues. Screenshots checked at 390 and 320 px.
+  Remote (Unsplash) photos blocked in the test environment; bundled airport photos only. Not verified on the live site.

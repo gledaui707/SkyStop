@@ -106,6 +106,9 @@ Headings use −0.022em tracking; numbers that change use `tabular-nums`. Weight
 | `Sheet`, `ActivitySheet`, `ActivityRow`, `Photo` | | bottom sheet in `glass-medium` |
 | `ItineraryTimeline`, `VenuePhoto`, `HopRow`, `ZoneTag` (`components/Timeline.tsx`) | | the layover as a rail: `tl-anchor` time stubs at arrival/departure, numbered stop cards with a usage footer and a bottom strip (time before the stop dim, the stop's own slice bright), transfer capsules; shared by the builder (editable) and saved plans (read-only). `ActivitySheet` is a photo-led `Sheet` (`bare`): the venue fills the top, the name sits on it, one fact strip, locations grouped in cards |
 
+My flights (`screens/MyFlights.tsx`) shows each flight as a ticket: photo window with a countdown chip, a route rail whose
+coral node is the layover, a dashed perforation and a stub (date, itinerary status); the next flight is `panel-accent`.
+
 Domain components reuse these: `BudgetHero` (time budget, `instrument` + `TimeRing` gauge), `TripTicket`, `FlightStack`, `AirportPicker`,
 `AirportMap`, `SSMark` (white monogram for dark backgrounds).
 

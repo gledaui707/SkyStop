@@ -862,7 +862,7 @@ try {
     await G.getByRole('button', { name: /^See all \(/ }).click();
     await G.getByRole('heading', { name: 'My flights' }).waitFor();
     const up = (await G.getByLabel('Upcoming flights').innerText()).replace(/\s+/g, ' ');
-    check('My flights: upcoming flights in date order with connection, dates and itinerary status', /CGK.*CDG.*via SIN.*JFK.*SIN.*via LHR.*CDG.*HND.*via DXB/.test(up) && (up.match(/No itinerary yet/g) || []).length === 3, up.slice(0, 200));
+    check('My flights: upcoming flights in date order with connection, dates and itinerary status', /SIN.*CGK.*CDG.*LHR.*JFK.*SIN.*DXB.*CDG.*HND/.test(up) && (up.match(/No itinerary yet/g) || []).length === 3, up.slice(0, 200));
     await G.getByRole('button', { name: 'Remove flight CDG to HND' }).click();
     check('My flights: removal asks first and says what goes with it', await visible(G, 'This flight has no saved itinerary.') && await G.getByRole('button', { name: 'Remove flight', exact: true }).isVisible());
     const n0 = fake.plans.size, d0 = fake.details.size;
