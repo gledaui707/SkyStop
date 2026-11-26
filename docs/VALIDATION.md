@@ -571,3 +571,20 @@ waits for animated transitions; SPEC/README/ARCHITECTURE/REQUIREMENTS/DEMO_SCRIP
 - Checks: `npm run build` OK (tsc clean); `npx vitest run` 175 passed, 1 skipped; `npm run test:e2e` 219/219;
   `node tests/e2e/layout-audit.mjs` at 320/375/390/430 px: 0 issues. Screenshots checked at 390 and 320 px.
   Remote (Unsplash) photos blocked in the test environment; bundled airport photos only. Not verified on the live site.
+
+### Visual refinement: Your journey as a boarding pass (26 Nov 2026, scheduled redesign run)
+
+- Reviewed `design-references/` and screenshots of every screen at 390 px. Weakest screen: Your journey (booking
+  result) — a small inset photo, a generic vertical list of four stops with the layover as a box between them, a
+  separate info card, and the time budget peeking behind the action tray at first sight.
+- Full-bleed photo of the connecting airport behind the header (`Backdrop`), with the focal point on the photo:
+  "Connecting in SIN" pill, the city as a display headline, the layover length and date, and a frosted route capsule
+  (origin — coral hub — destination).
+- Flight timeline is one boarding pass: Flight 1 and Flight 2 as horizontal legs (big codes, local times, cities,
+  dashed flight path with the flying time, "+1" on next-day arrivals, the hub code in coral) joined by a coral
+  layover band (duration, land and take-off times) between dashed perforations.
+- The buffer explanation moved inside the time budget instrument (one surface instead of two). Save, explore,
+  duplicate-save and navigation logic unchanged; no data or schema changes.
+- Checks: `npm run build` OK (tsc clean); `npx vitest run` 175 passed, 1 skipped; `npm run test:e2e` 219/219;
+  `node tests/e2e/layout-audit.mjs` at 320/375/390/430 px: 0 issues. Screenshots checked at 390 and 320 px.
+  Remote (Unsplash) photos blocked in the test environment; bundled airport photos only. Not verified on the live site.

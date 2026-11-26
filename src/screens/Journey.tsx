@@ -7,7 +7,7 @@ import { getAirport, isSupported } from '../data/mock'
 import { fmtDur } from '../data/time'
 import { IMAGES, sized } from '../data/images'
 import { journeyDraft } from '../features/onboarding/handoff'
-import { ActionBar, Button, Header, cx } from '../components/ui'
+import { ActionBar, Backdrop, Button, Header, cx } from '../components/ui'
 import { TimeRing } from '../components/BudgetHero'
 
 const day = (local: string) => new Date(`${local.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -131,53 +131,79 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
     setDraft({ ...flight, ...(existing ? { planId: existing.id, revision: existing.revision, activityIds: existing.activityIds, name: existing.name } : {}) })
     go(supported ? { name: 'airport', code: j.connection, view: 'list' } : { name: 'builder' })
   }
-  const Stop = ({ code, label, at, strong }: { code: string; label: string; at: string; strong?: boolean }) => (
-    <div className="relative pl-9">
-      <span className={cx('absolute left-0 top-1 grid size-6 place-items-center rounded-full ring-4 ring-canvas', strong ? 'btn-coral' : 'pill-on')}><Plane size={12} className="-rotate-45" /></span>
-      <p className="text-cap text-muted-text">{label} · {day(at)}</p>
-      <p className="text-card font-bold"><span className="tabular-nums">{time(at)}</span> <span className="font-semibold">{code}</span> <span className="text-body font-normal text-muted-text">{city(code)}</span></p>
+  const nextDay = (a: string, b: string) => a.slice(0, 10) !== b.slice(0, 10)
+  const hero = IMAGES.airports[j.connection] ?? conn.image
+  /** One end of a flight leg on the boarding pass: big code, local time, city. */
+  const End = ({ code, label, at, right, hub, plus }: { code: string; label: string; at: string; right?: boolean; hub?: boolean; plus?: boolean }) => (
+    <div className={cx('min-w-0', right && 'text-right')}>
+      <p className="text-cap text-muted-text">{label}</p>
+      <p className={cx('text-[2rem] font-bold leading-none tracking-[-0.03em] max-[359px]:text-[1.75rem]', hub && 'text-accent-dark')}>{code}</p>
+      <p className="mt-1.5 text-body font-semibold tabular-nums">{time(at)}{plus && <sup className="ml-0.5 text-micro font-semibold text-accent-dark">+1</sup>}</p>
+      <p className="truncate text-cap text-muted-text">{city(code)}</p>
     </div>
   )
-  const Flight = ({ min }: { min: number }) => (
-    <p className="relative py-3 pl-9 text-sub text-muted-text"><Clock size={14} className="mr-1.5 inline" />Flight · {fmtDur(min)}</p>
+  /** A flight leg: departure and arrival joined by a dashed flight path with the flying time. */
+  const Leg = ({ n, from, to, dep, arr, min, hubFrom }: { n: number; from: string; to: string; dep: string; arr: string; min: number; hubFrom?: boolean }) => (
+    <div className="px-5 py-4">
+      <p className="flex items-center justify-between gap-3 text-micro font-semibold uppercase tracking-[0.1em] text-muted-text">
+        <span>Flight {n}</span><span className="normal-case tracking-normal">{day(dep)}</span></p>
+      <div className="mt-2.5 grid grid-cols-[minmax(0,1fr)_minmax(4rem,1.1fr)_minmax(0,1fr)] items-center gap-2">
+        <End code={from} label="Depart" at={dep} hub={hubFrom} />
+        <span className="grid justify-items-center gap-1 pt-3 text-muted-text">
+          <span className="flex w-full items-center gap-1">
+            <span className="size-1.5 shrink-0 rounded-full border border-white/40" />
+            <span className="h-px flex-1 border-t border-dashed border-white/30" />
+            <Plane size={16} fill="currentColor" aria-hidden="true" className="shrink-0 rotate-45 text-ink" />
+            <span className="h-px flex-1 border-t border-dashed border-white/30" />
+            <span className="size-1.5 shrink-0 rounded-full bg-white/50" />
+          </span>
+          <span className="text-micro font-semibold tabular-nums">{fmtDur(min)}</span>
+        </span>
+        <End right code={to} label="Arrive" at={arr} hub={!hubFrom} plus={nextDay(dep, arr)} />
+      </div>
+    </div>
   )
   return (
-    <div className="pb-[calc(var(--nav-h)+11rem)]">
+    <div className="relative pb-[calc(var(--nav-h)+11rem)]">
+      <Backdrop img={hero} className="h-[27rem]" />
       <Header title="Your journey" subtitle={`Booking ${j.ref}`} />
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 px-5 pt-2">
-        {/* route summary */}
-        <section className="ph relative overflow-hidden rounded-surface text-white">
-          <img src={sized(conn.image, 800, 420)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="absolute inset-0 size-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-deep/90 via-deep/50 to-deep/20" />
-          <div className="relative p-5">
-            <p className="text-cap font-semibold text-white/80">Connecting in</p>
-            <p className="text-h1 font-bold leading-tight">{city(j.connection)} <span className="text-white/75">{j.connection}</span></p>
-            <div className="mt-4 flex items-center gap-2 text-sub font-semibold">
-              <span>{j.origin}</span><span className="h-px flex-1 border-t border-dashed border-white/50" />
-              <span className="btn-coral rounded-full px-2.5 py-1">{j.connection}</span>
-              <span className="h-px flex-1 border-t border-dashed border-white/50" /><span>{j.destination}</span>
+      <div className="relative grid grid-cols-[minmax(0,1fr)] gap-5 px-5 pt-6">
+        {/* focal point: where the connection is and how long it lasts */}
+        <section aria-label="Connection" className="anim-rise">
+          <p className="glass-light inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-cap font-semibold"><Plane size={14} className="-rotate-45" aria-hidden="true" />Connecting in {j.connection}</p>
+          <h2 className="mt-3 text-display font-bold [text-shadow:0_2px_18px_rgb(0_0_0/0.45)]">{city(j.connection)}</h2>
+          <p className="mt-1 text-body text-ink/90 [text-shadow:0_1px_10px_rgb(0_0_0/0.5)]">
+            <b className="tabular-nums">{fmtDur(j.layover.totalMin)}</b> between flights · <span className="whitespace-nowrap">{day(j.layover.arrivalLocal)}</span></p>
+          {/* route at a glance */}
+          <div aria-label={`${city(j.origin)} to ${city(j.destination)} via ${city(j.connection)}`} role="img"
+            className="glass-subtle mt-5 flex items-center gap-2 rounded-full px-4 py-2.5 text-sub font-semibold">
+            <span>{j.origin}</span><span className="h-px flex-1 border-t border-dashed border-white/40" />
+            <span className="btn-coral rounded-full px-2.5 py-0.5">{j.connection}</span>
+            <span className="h-px flex-1 border-t border-dashed border-white/40" /><span>{j.destination}</span>
+          </div>
+        </section>
+
+        {/* boarding pass: flight in, the layover as a coral band, flight out */}
+        <section aria-label="Flight timeline" className="panel anim-rise overflow-hidden rounded-surface [animation-delay:80ms]">
+          <Leg n={1} from={j.origin} to={j.connection} dep={j.legs[0].departLocal} arr={j.legs[0].arriveLocal} min={j.legs[0].durationMin} />
+          <div className="relative border-y border-dashed border-[rgb(255_141_115/0.35)] bg-[linear-gradient(110deg,rgb(234_81_57/0.3)_0%,rgb(234_81_57/0.12)_55%,rgb(246_160_77/0.1)_100%)] px-5 py-4">
+            <div className="flex items-center gap-3.5">
+              <span aria-hidden="true" className="btn-coral grid size-11 shrink-0 place-items-center rounded-full"><Clock size={20} /></span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sub font-semibold text-accent-dark">Layover in {city(j.connection)}</p>
+                <p className="text-h1 font-bold leading-tight tabular-nums">{fmtDur(j.layover.totalMin)}</p>
+              </div>
+              <p className="shrink-0 text-right text-cap text-muted-text tabular-nums">
+                <span className="block"><span className="text-ink">{time(j.layover.arrivalLocal)}</span> land</span>
+                <span className="block"><span className="text-ink">{time(j.layover.departureLocal)}</span> take off</span></p>
             </div>
           </div>
+          <Leg n={2} from={j.connection} to={j.destination} dep={j.legs[1].departLocal} arr={j.legs[1].arriveLocal} min={j.legs[1].durationMin} hubFrom />
+          <p className="border-t border-line px-5 py-3 text-cap text-muted-text">All times are local to each airport.</p>
         </section>
 
-        {/* flight timeline */}
-        <section aria-label="Flight timeline" className="panel relative rounded-surface p-5">
-          <span aria-hidden="true" className="absolute bottom-10 left-[1.9rem] top-9 w-[3px] rounded-full bg-[image:var(--rail-grad)] opacity-80" />
-          <Stop code={j.origin} label="Depart" at={j.legs[0].departLocal} />
-          <Flight min={j.legs[0].durationMin} />
-          <Stop code={j.connection} label="Arrive" at={j.legs[0].arriveLocal} strong />
-          <div className="panel-accent my-3 ml-9 rounded-control p-3.5">
-            <p className="text-sub font-semibold text-accent-dark">Layover in {city(j.connection)}</p>
-            <p className="text-h2 font-bold">{fmtDur(j.layover.totalMin)}</p>
-          </div>
-          <Stop code={j.connection} label="Depart" at={j.legs[1].departLocal} strong />
-          <Flight min={j.legs[1].durationMin} />
-          <Stop code={j.destination} label="Arrive" at={j.legs[1].arriveLocal} />
-          <p className="mt-3 text-cap text-muted-text">All times are local to each airport.</p>
-        </section>
-
-        {/* time budget */}
-        <section aria-label="Layover time breakdown" className="instrument rounded-surface p-5">
+        {/* time budget, with the buffer explained inside it */}
+        <section aria-label="Layover time breakdown" className="instrument anim-rise rounded-surface p-5 [animation-delay:160ms]">
           <div className="flex items-center gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-sub font-medium text-muted-text">Estimated usable time</p>
@@ -189,9 +215,9 @@ export function JourneyOverview({ refCode }: { refCode: string }) {
             </TimeRing>
           </div>
           <p className="mt-3 text-sub text-muted-text">{fmtDur(j.layover.totalMin)} layover − {fmtDur(j.layover.bufferMin)} planning buffer = <b className="text-ink">{fmtDur(j.layover.usableMin)} usable</b></p>
+          <p className="mt-3 flex gap-2.5 border-t border-line pt-3 text-cap text-muted-text"><Info size={16} aria-hidden="true" className="mt-px shrink-0 text-accent-dark" />
+            <span>The buffer keeps time free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding.</span></p>
         </section>
-        <p className="panel flex gap-2.5 rounded-control p-3.5 text-sub text-muted-text"><Info size={18} className="mt-0.5 shrink-0 text-accent-dark" />
-          <span>The planning buffer keeps time free for airport procedures: leaving the aircraft, transfer security or passport control, walking to the gate and boarding.</span></p>
       </div>
       <ActionBar>
         <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
