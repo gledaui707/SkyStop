@@ -390,6 +390,27 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
   /* Grouped settings list (iOS inset group): hairlines start after the icon well. */
   .group-row { position: relative; }
   .group-row + .group-row::before { content: ''; position: absolute; top: 0; left: 4.125rem; right: 0; height: 1px; background: var(--color-line); }
+  /* Airport discovery. Curated itinerary: a photo card whose lower half is warm smoked glass lit from below. */
+  .route-card {
+    background:
+      radial-gradient(120% 70% at 0% 100%, rgb(234 81 57 / 0.22) 0%, transparent 60%),
+      linear-gradient(180deg, #1a100e 0%, #24170f 100%);
+    border: 1px solid rgb(255 236 226 / 0.12);
+    box-shadow: var(--glass-edge), var(--shadow-e2);
+  }
+  .fit-ok { background: rgb(18 40 28 / 0.62); color: #a6f0c4; border: 1px solid rgb(116 217 160 / 0.35); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+  .fit-over { background: rgb(60 18 14 / 0.62); color: #ffc0b4; border: 1px solid rgb(255 134 115 / 0.4); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+  /* Ordered stops on a short coral rail. */
+  .route-trail { position: relative; }
+  .route-trail::before { content: ''; position: absolute; left: 0.6875rem; top: 0.9rem; bottom: 0.9rem; width: 2px; border-radius: 2px; background: var(--rail-grad); opacity: 0.7; }
+  .route-node {
+    position: relative; display: inline-grid; place-items: center; flex-shrink: 0; width: 1.375rem; height: 1.375rem; border-radius: 999px;
+    background: #2a1a17; border: 1.5px solid var(--color-accent-dark); color: var(--color-accent-dark); font-size: 0.6875rem; font-weight: 700;
+    transform: translateY(-1px);
+  }
+  /* Activity photo tile; selected tiles get a coral edge and glow. */
+  .act-tile { background: #1c1210; border: 1px solid rgb(255 236 226 / 0.1); box-shadow: var(--shadow-e1); transition: box-shadow var(--dur-base) var(--ease-glide), border-color var(--dur-base) var(--ease-glide); }
+  .act-tile-on { border-color: rgb(255 141 115 / 0.75); box-shadow: 0 0 0 1px rgb(234 81 57 / 0.5), var(--shadow-glow); }
 
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .panel, .glass, .glass-subtle, .glass-premium, .btn-secondary { background: rgb(44 31 28 / 0.96); }
@@ -398,6 +419,8 @@ html.in-device-frame { --safe-top: 3.1rem; --safe-bottom: 1.1rem; }
     .instrument { background: radial-gradient(120% 90% at 100% 0%, rgb(234 81 57 / 0.3) 0%, transparent 55%), rgb(40 27 24 / 0.97); }
     .glass-medium { background: rgb(30 20 18 / 0.97); }
     .glass-dark { background: rgb(20 14 13 / 0.88); }
+    .fit-ok { background: rgb(18 40 28 / 0.94); }
+    .fit-over { background: rgb(60 18 14 / 0.94); }
     .glass-light { background: rgb(60 44 40 / 0.92); }
   }
 }

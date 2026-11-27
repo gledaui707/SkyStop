@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { ChevronLeft, ListChecks, Plus, Check, Search, Sparkles, X } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, ChevronLeft, Clock, ListChecks, Plus, Check, Search, Sparkles, X } from 'lucide-react'
 import { useApp } from '../store'
 import { ACTIVITIES, getActivities, getAirport, getTemplates } from '../data/mock'
 import { sized } from '../data/images'
 import { fmtDur, timeSpan } from '../data/time'
 import { computeItinerary } from '../data/itinerary'
-import { ActionBar, ActivityRow, ActivitySheet, Button, CATEGORIES, Chip, ChipRow, Photo, cx, IconButton } from '../components/ui'
+import { ActionBar, ActivitySheet, Button, CATEGORIES, Chip, ChipRow, cx, IconButton } from '../components/ui'
+import { VenuePhoto } from '../components/Timeline'
 import { ExploreMap, exploreDefaults, type ExploreUi } from '../features/wayfinding/ExploreMap'
 import { useEntryState } from '../features/wayfinding/entryState'
 import type { Category } from '../data/types'
@@ -98,82 +99,111 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
   const usable = b?.usable
   const templates = getTemplates(code)
   const curatedBlock = (<>
-        <h2 className="mb-3 mt-9 text-h2 font-bold">Curated itineraries</h2>
-        <ul className="grid gap-4">
+        <SectionTitle sub={templates.length > 1 ? 'Swipe to compare' : undefined}>Curated itineraries</SectionTitle>
+        <ul data-allow-bleed className={cx('no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2', templates.length === 1 && '[&>li]:w-full')}>
           {templates.map((t) => {
             const items = t.activityIds.map((id) => ACTIVITIES.find((a) => a.id === id)!)
             const dur = timeSpan(items)
             const fit = usable === undefined ? null : dur <= usable
             return (
-              <li key={t.id} className="panel overflow-hidden rounded-surface">
-                <div className="ph relative flex h-44 gap-0.5">
-                  {items.map((a) => <span key={a.id} className="relative h-full min-w-0 flex-1 overflow-hidden"><Photo img={a.image} w={200} h={176} className="absolute inset-0 size-full" /></span>)}
-                  <div className="photo-fade absolute inset-x-0 bottom-0 h-[90%]" />
+              <li key={t.id} className="route-card relative w-[86%] shrink-0 snap-center overflow-hidden rounded-surface">
+                {/* The first stop fills the card; the rest show as a stack of round photos (who you'll "meet" on the way) */}
+                <div className="relative h-[15rem]">
+                  <VenuePhoto a={items[0]} w={360} h={240} iconSize={44} iconTop="38%" className="absolute inset-0" />
+                  <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#1a100e] via-[#1a100e]/45 to-black/10" />
+                  <p className={cx('absolute left-3 top-3 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-full px-3 py-1.5 text-cap font-semibold',
+                    fit === null ? 'glass-dark text-white' : fit ? 'fit-ok' : 'fit-over')}>
+                    {fit === null ? <Clock size={14} aria-hidden="true" /> : fit ? <Check size={14} strokeWidth={2.6} aria-hidden="true" /> : <AlertTriangle size={14} aria-hidden="true" />}
+                    <span>{fit === null ? 'Set your layover times to check whether it fits.' : fit ? `Fits with ${fmtDur(usable! - dur)} to spare.` : `Needs ${fmtDur(dur - usable!)} more than your usable time. You can trim it.`}</span></p>
                   <div className="absolute inset-x-4 bottom-3 text-white">
-                    <h3 className="text-h2 font-bold leading-tight">{t.name}</h3>
-                    <p className="text-sub text-white/80">{ap.code} · {fmtDur(dur)} · {items.length} stops</p>
+                    <div className="mb-2 flex items-center" aria-hidden="true">
+                      {items.slice(0, 4).map((a, i) => (
+                        <span key={a.id} style={{ zIndex: 5 - i }} className={cx('relative size-9 overflow-hidden rounded-full ring-2 ring-[#2a1a17]', i > 0 && '-ml-2.5')}>
+                          <VenuePhoto a={a} w={36} h={36} iconSize={16} className="absolute inset-0" /></span>))}
+                      {items.length > 4 && <span className="-ml-2.5 grid size-9 place-items-center rounded-full bg-[#2a1a17] text-cap font-semibold ring-2 ring-[#2a1a17]">+{items.length - 4}</span>}
+                    </div>
+                    <h3 className="text-h2 font-bold leading-tight [text-shadow:0_2px_12px_rgb(0_0_0/0.45)]">{t.name}</h3>
+                    <p className="mt-0.5 text-sub text-white/80">{ap.code} · {fmtDur(dur)} · {items.length} stops</p>
                   </div>
                 </div>
-                <div className="p-4">
-                  <p className="text-body text-muted-text">{t.blurb}</p>
-                  <ol className="relative mt-3 ml-1.5 border-l border-dashed border-accent-dark/50 pl-4 text-body">
-                    {items.map((a) => <li key={a.id} className="relative flex justify-between gap-3 py-1"><span aria-hidden="true" className="absolute -left-[1.3rem] top-[0.7rem] size-2.5 rounded-full bg-accent ring-4 ring-[#2a1f1d]" /><span className="min-w-0">{a.name}</span><span className="shrink-0 text-muted-text tabular-nums">{fmtDur(a.durationMin)}</span></li>)}
+                <div className="relative px-4 pb-4 pt-3">
+                  <p className="text-sub text-muted-text">{t.blurb}</p>
+                  <ol className="route-trail mt-3 text-sub" aria-label={`${t.name} stops`}>
+                    {items.map((a, i) => (
+                      <li key={a.id} className="flex items-baseline gap-2.5 py-1">
+                        <span aria-hidden="true" className="route-node">{i + 1}</span>
+                        <span className="min-w-0 flex-1 font-medium">{a.name}</span>
+                        <span className="shrink-0 text-muted-text tabular-nums">{fmtDur(a.durationMin)}</span></li>))}
                   </ol>
-                  <p className={cx('mt-3 rounded-control px-3 py-2 text-sub font-medium', fit === null ? 'bg-ink-tint text-muted-text' : fit ? 'bg-success/12 text-success' : 'bg-error-tint text-ink')}>
-                    {fit === null ? 'Set your layover times to check whether it fits.' : fit ? `Fits with ${fmtDur(usable! - dur)} to spare.` : `Needs ${fmtDur(dur - usable!)} more than your usable time. You can trim it.`}</p>
-                  <Button variant="secondary" className="mt-3 w-full" onClick={() => applyItinerary(t.id)}>Use this itinerary</Button>
+                  <button onClick={() => applyItinerary(t.id)} className="press btn-secondary mt-3 flex min-h-12 w-full items-center justify-between rounded-full pl-5 pr-1.5 text-body font-semibold">
+                    Use this itinerary<span aria-hidden="true" className="btn-coral grid size-9 place-items-center rounded-full"><ArrowUpRight size={19} /></span></button>
                 </div>
               </li>
             )
           })}
         </ul>
-
   </>)
   const activitiesBlock = (<>
-        <h2 className="mb-1 mt-8 text-h2 font-bold">Activities</h2>
-        {interests.length > 0 && (
-          <p className="mb-3 flex items-center gap-1.5 text-sub text-muted-text"><Sparkles size={15} className="text-accent-dark" aria-hidden="true" />
-            {LABEL_LIST(interests)} first, from your interests</p>)}
-        {!interests.length && <div className="mb-2" />}
-        <label className="relative block">
-          <span className="sr-only">Search activities</span>
-          <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search activities" type="search" className="field min-h-12 w-full rounded-full pl-11 pr-4 text-body focus:!border-accent-dark/70 focus:outline-none" />
-        </label>
-        <div className="mt-3"><ChipRow>{CATEGORIES.map((c) => <Chip key={c} active={cat === c} onClick={() => setCat(c)}>{c}</Chip>)}</ChipRow></div>
-        <ul className="mt-3 grid gap-3">
+        <SectionTitle sub={interests.length > 0 ? `${LABEL_LIST(interests)} first, from your interests` : undefined} spark={interests.length > 0}>Activities</SectionTitle>
+        {/* One frosted dock holds search and the category filter */}
+        <div className="glass-premium rounded-card p-2">
+          <label className="relative block">
+            <span className="sr-only">Search activities</span>
+            <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search activities" type="search"
+              className="min-h-11 w-full rounded-full bg-black/25 pl-11 pr-4 text-body ring-1 ring-white/10 focus:outline-none focus:ring-accent-dark/70" />
+          </label>
+          <div className="mt-2"><ChipRow>{CATEGORIES.map((c) => <Chip key={c} active={cat === c} onClick={() => setCat(c)}>{c}</Chip>)}</ChipRow></div>
+        </div>
+        <ul className="mt-4 grid grid-cols-2 gap-3">
           {shown.map((a) => {
             const on = planned.includes(a.id)
-            return <ActivityRow key={a.id} a={a} onOpen={() => setOpen(a.id)} action={
-              <button aria-label={`${on ? 'Remove' : ready ? 'Add' : 'Select'} ${a.name}`} aria-pressed={on} onClick={() => toggle(a.id)}
-                className={cx('press grid size-11 shrink-0 place-items-center rounded-full transition-colors', on ? 'btn-coral' : 'bg-accent-tint text-accent-dark ring-1 ring-accent/25')}>{on ? <Check size={20} strokeWidth={2.6} /> : <Plus size={20} />}</button>} />
+            return (
+              <li key={a.id} className={cx('act-tile relative overflow-hidden rounded-card', on && 'act-tile-on')}>
+                <button onClick={() => setOpen(a.id)} className="press block w-full text-left">
+                  <span className="relative block aspect-[4/5]">
+                    <VenuePhoto a={a} w={200} h={250} iconSize={34} iconTop="40%" className="absolute inset-0" />
+                    <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#140c0a] via-[#140c0a]/30 to-transparent" />
+                    <span className="glass-dark absolute left-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-micro font-semibold"><Clock size={12} aria-hidden="true" />{fmtDur(a.durationMin)}</span>
+                    <span className="absolute inset-x-3 bottom-2.5 text-white">
+                      <span className="line-clamp-2 text-[1rem] font-semibold leading-tight [text-shadow:0_1px_8px_rgb(0_0_0/0.5)]">{a.name}</span>
+                      <span className="mt-0.5 block truncate text-cap text-white/75">{a.category} · {a.costLabel.replace(' (illustrative)', '')}</span>
+                      <span className="block truncate text-micro text-white/60">{[a.terminal, a.access === 'Unverified' ? null : a.access].filter(Boolean).join(' · ')}{a.leavesAirport ? ' · leaves airport' : ''}</span>
+                    </span>
+                  </span>
+                </button>
+                <button aria-label={`${on ? 'Remove' : ready ? 'Add' : 'Select'} ${a.name}`} aria-pressed={on} onClick={() => toggle(a.id)}
+                  className={cx('press absolute right-1.5 top-1.5 grid size-11 place-items-center rounded-full transition-colors', on ? 'btn-coral' : 'glass-dark text-white')}>
+                  {on ? <Check size={20} strokeWidth={2.6} /> : <Plus size={20} />}</button>
+              </li>)
           })}
-          {!shown.length && <li className="py-6 text-center text-muted-text">No activities match.</li>}
+          {!shown.length && <li className="col-span-2 py-6 text-center text-muted-text">No activities match.</li>}
         </ul>
   </>)
   return (
     <div className="pb-[calc(var(--nav-h)+6.5rem)]">
-      <div className="ph relative h-[26rem] overflow-hidden rounded-b-tray">
+      <div className="ph relative h-[min(28rem,66svh)] min-h-[21rem] overflow-hidden rounded-b-tray">
         <img src={sized(ap.image, 900, 800)} alt={ap.image.alt} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} className="anim-kenburns absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-[66%] bg-gradient-to-t from-deep/85 via-deep/35 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[72%] bg-gradient-to-t from-deep/90 via-deep/40 to-transparent" />
         {bar}
         <div className="absolute inset-x-5 bottom-5 text-white">
           <p className="glass-light inline-flex rounded-full px-3 py-1 text-cap font-semibold">{ap.code} · {ap.country}</p>
-          <h1 className="mt-2 text-title font-bold leading-tight">{ap.name}</h1>
-          <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/30 pt-3 text-sub text-white/90">
-            <li className="flex items-center gap-1.5"><ListChecks size={16} aria-hidden="true" /><span>{acts.length} {acts.length === 1 ? 'activity' : 'activities'}</span></li>
-            <li className="flex items-center gap-1.5"><Sparkles size={16} aria-hidden="true" /><span>{templates.length} {templates.length === 1 ? 'itinerary' : 'itineraries'}</span></li>
-          </ul>
+          <h1 className="mt-2 text-title font-bold leading-tight [text-shadow:0_2px_16px_rgb(0_0_0/0.45)]">{ap.name}</h1>
+          {/* Frosted capsule: what's here, and (once times exist) how much time there is to spend on it */}
+          <div className="glass-dark mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-card px-4 py-2.5 text-sub">
+            <span className="flex items-center gap-1.5"><ListChecks size={16} aria-hidden="true" />{acts.length} {acts.length === 1 ? 'activity' : 'activities'}</span>
+            <span className="flex items-center gap-1.5"><Sparkles size={16} aria-hidden="true" />{templates.length} {templates.length === 1 ? 'itinerary' : 'itineraries'}</span>
+            {usable !== undefined && (
+              <p className="w-full border-t border-white/15 pt-1.5 text-white">
+                <Clock size={15} aria-hidden="true" className="mr-1.5 inline -translate-y-px text-accent-dark" />
+                <b>{fmtDur(usable)}</b> usable time
+                {b?.over ? <> · <span className="whitespace-nowrap"><b className="text-error">{fmtDur(-b.remaining)} over budget</b></span></> : b ? <> · <span className="whitespace-nowrap"><b>{fmtDur(b.remaining)}</b> still free</span></> : null}
+              </p>)}
+          </div>
         </div>
       </div>
       <div className="relative px-5">
-        {usable !== undefined && (
-          <p className="panel-accent mt-4 rounded-control px-4 py-3 text-sub text-ink">
-            <b>{fmtDur(usable)}</b> usable time
-            {b?.over ? <> · <b className="text-error">{fmtDur(-b.remaining)} over budget</b></> : b ? <> · <b>{fmtDur(b.remaining)}</b> still free</> : null}
-          </p>
-        )}
         {/* With interests from the onboarding, the matching activities come first; otherwise curated itineraries lead */}
         {interests.length > 0 ? <>{activitiesBlock}{curatedBlock}</> : <>{curatedBlock}{activitiesBlock}</>}
       </div>
@@ -182,6 +212,16 @@ function List({ code, bar, ready, planned, b, toggle, applyItinerary, startTrip,
           : <Button className="w-full" onClick={() => startTrip()}>{planned.length ? `Set layover times (${planned.length} selected)` : 'Set my layover times'}</Button>}
       </ActionBar>
       <ActivitySheet a={acts.find((a) => a.id === open) ?? null} onClose={() => setOpen(null)} />
+    </div>
+  )
+}
+
+/** Section heading with an optional quiet line under it. */
+function SectionTitle({ children, sub, spark }: { children: React.ReactNode; sub?: string; spark?: boolean }) {
+  return (
+    <div className="mb-3 mt-8">
+      <h2 className="text-h2 font-bold">{children}</h2>
+      {sub && <p className="mt-0.5 flex items-center gap-1.5 text-sub text-muted-text">{spark && <Sparkles size={15} className="text-accent-dark" aria-hidden="true" />}{sub}</p>}
     </div>
   )
 }

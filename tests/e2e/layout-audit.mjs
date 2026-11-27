@@ -104,6 +104,7 @@ for (const [w, h] of WIDTHS) {
     await click('button', 'Find my journey'); await click('button', 'Explore Singapore');
     await page.getByRole('heading', { name: 'Curated itineraries' }).waitFor();
     for (const n of ['Add Butterfly Garden', 'Add Jewel Rain Vortex']) await click('button', n);
+    await visit('airport-list-planned');
     await click('button', 'Build itinerary (2)'); await page.getByLabel('Entry check').waitFor();
     await click('button', 'Arriving at Terminal 3 transit area'); await click('button', 'Departing from Terminal 3 transit area');
     await click('button', "I'm not sure");

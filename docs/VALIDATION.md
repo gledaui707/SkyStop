@@ -588,3 +588,26 @@ waits for animated transitions; SPEC/README/ARCHITECTURE/REQUIREMENTS/DEMO_SCRIP
 - Checks: `npm run build` OK (tsc clean); `npx vitest run` 175 passed, 1 skipped; `npm run test:e2e` 219/219;
   `node tests/e2e/layout-audit.mjs` at 320/375/390/430 px: 0 issues. Screenshots checked at 390 and 320 px.
   Remote (Unsplash) photos blocked in the test environment; bundled airport photos only. Not verified on the live site.
+
+### Visual refinement: airport discovery as photo tiles and itinerary cards (27 Nov 2026, scheduled redesign run)
+
+- Reviewed `design-references/` and screenshots of every screen at 390 px. Weakest screen: the airport list (discovery)
+  — a separate "usable time" panel, a curated itinerary card with a long dashed list, a coloured fit box and a full-width
+  secondary button, then six identical text rows with small thumbnails.
+- Hero: the activity / itinerary counts and, once times exist, "X usable time · Y still free" share one frosted capsule on
+  the photo (no separate panel). Hero height is capped to 66% of the viewport so the capsule stays above the action tray
+  at 320×568.
+- Curated itineraries: photo cards (first stop's photo fills the top, the other stops as a stack of round photos), the
+  fit result as a green / coral glass pill on the photo, the ordered stops on a short coral rail, and "Use this
+  itinerary" as a frosted pill with a coral arrow. With two or more itineraries they scroll sideways with snap.
+- Activities: two-column photo tiles (duration chip, name clamped to two lines, category and price, terminal and access);
+  the Add / Select / Remove button floats on the tile (44 px, same accessible names); selected tiles get a coral edge.
+  Search and the category chips sit in one frosted dock. Same data, filters, selection and navigation; no Supabase,
+  schema or logic changes.
+- Layout audit gains `airport-list-planned` (Changi with times and two selected activities).
+- Fixed during review: hero capsule under the action tray at 320×568; "still free" split across lines; tile names were
+  not clamped (`block` overrode `line-clamp`).
+- Checks: `npm run build` OK (tsc clean); `npx vitest run` 175 passed, 1 skipped (hosted); `npm run test:e2e` 219/219
+  (reduced motion); `node tests/e2e/layout-audit.mjs` at 320/375/390/430 px: 0 issues. Screenshots checked at 390 and
+  320 px. Remote (Unsplash) activity photos are blocked in the test environment, so tiles were reviewed with the
+  category-icon placeholder. Not verified on the live site; hosted tests not run (owner approval required).
